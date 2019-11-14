@@ -32,12 +32,12 @@ func (h *hasher) next() uint64 {
 	const hamtBits = 6
 	const hamtSize = 1 << hamtBits
 
-	if h.n < hamtSize {
+	if h.n < hamtBits {
 		type Seeded struct {
 			Seed int
 			Key  interface{}
 		}
-		h.h = h.h<<(64-h.n) | hash(Seeded{Seed: h.seed, Key: h.key})
+		h.h = hash(Seeded{Seed: h.seed, Key: h.key})
 		h.n = 64
 		h.seed++
 	}
