@@ -1,6 +1,6 @@
 # Frozen
 
-Immutable data structure library
+Efficient immutable data types.
 
 ## Types
 
@@ -9,3 +9,7 @@ Map and Set both use a [hashed array map trie
 
 - Map: Associates keys with values.
 - Set: Stores sets of values.
+
+## Bugs
+
+Efficiency is aspirational for now. Performance testing is in the future.
