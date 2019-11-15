@@ -2,14 +2,22 @@ package frozen
 
 import "math/bits"
 
+type node interface {
+	node()
+}
+
 type hamt struct {
 	bitmap uint64
-	base   []interface{}
+	base   []node
 }
+
+func (hamt) node() {}
 
 type entry struct {
 	key, value interface{}
 }
+
+func (entry) node() {}
 
 func (t hamt) isEmpty() bool {
 	return t.bitmap == 0
@@ -99,11 +107,11 @@ func (t hamt) deleteImpl(key interface{}, h *hasher) hamt {
 }
 
 func (t hamt) iterator() *hamtIter {
-	return &hamtIter{stk: [][]interface{}{t.base}}
+	return &hamtIter{stk: [][]node{t.base}}
 }
 
 type hamtIter struct {
-	stk [][]interface{}
+	stk [][]node
 	e   entry
 }
 
@@ -125,26 +133,26 @@ func (i *hamtIter) next() bool {
 	}
 }
 
-func (t hamt) insert(bit uint64, offset int, item interface{}) hamt {
-	base := make([]interface{}, len(t.base)+1)
+func (t hamt) insert(bit uint64, offset int, n node) hamt {
+	base := make([]node, len(t.base)+1)
 	copy(base, t.base[:offset])
 	copy(base[offset+1:], t.base[offset:])
-	base[offset] = item
+	base[offset] = n
 	return hamt{
 		bitmap: t.bitmap | bit,
 		base:   base,
 	}
 }
 
-func (t hamt) update(offset int, item interface{}) hamt {
-	base := make([]interface{}, len(t.base))
+func (t hamt) update(offset int, n node) hamt {
+	base := make([]node, len(t.base))
 	copy(base, t.base)
-	base[offset] = item
+	base[offset] = n
 	return hamt{bitmap: t.bitmap, base: base}
 }
 
 func (t hamt) remove(bit uint64, offset int) hamt {
-	base := make([]interface{}, len(t.base)-1)
+	base := make([]node, len(t.base)-1)
 	copy(base, t.base[:offset])
 	copy(base[offset:], t.base[offset+1:])
 	return hamt{bitmap: t.bitmap & ^bit, base: base}
