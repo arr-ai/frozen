@@ -91,6 +91,14 @@ func TestHamtDelete(t *testing.T) {
 	assert.True(t, d.isEmpty())
 }
 
+func TestHamtDeleteMissing(t *testing.T) {
+	h := hamt{}.put("foo", 42)
+	h = h.delete("bar")
+	assert.Equal(t, 1, h.count())
+	h = h.delete("foo")
+	assert.Equal(t, 0, h.count())
+}
+
 func TestHamtIter(t *testing.T) {
 	a := make([]int, 1000)
 	h := hamt{}
