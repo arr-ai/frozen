@@ -8,6 +8,12 @@ import (
 	"github.com/cespare/xxhash"
 )
 
+const (
+	hamtBits = 2
+	hamtSize = 1 << hamtBits
+	hamtMask = hamtSize - 1
+)
+
 type hasher struct {
 	key  interface{}
 	h    uint64
@@ -28,10 +34,7 @@ func newHasher(key interface{}, depth int) *hasher {
 	return h
 }
 
-func (h *hasher) next() uint64 {
-	const hamtBits = 6
-	const hamtSize = 1 << hamtBits
-
+func (h *hasher) next() int {
 	if h.n < hamtBits {
 		type Seeded struct {
 			Seed int
@@ -41,10 +44,10 @@ func (h *hasher) next() uint64 {
 		h.n = 64
 		h.seed++
 	}
-	i := uint64(1) << (h.h % hamtSize)
-	h.h /= hamtSize
+	i := h.h & hamtMask
+	h.h >>= hamtBits
 	h.n -= hamtBits
-	return i
+	return int(i)
 }
 
 func hash(key interface{}) uint64 {

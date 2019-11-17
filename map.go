@@ -1,23 +1,31 @@
 package frozen
 
 // Map maps keys to values. The zero value is the empty Map.
-type Map hamt
+type Map struct {
+	t hamt
+}
+
+var emptyMap = Map{t: empty{}}
+
+func EmptyMap() Map {
+	return emptyMap
+}
 
 // Put returns a new Map with key associated with value and all other keys
 // retained from m.
 func (m Map) Put(key, value interface{}) Map {
-	return Map(hamt(m).put(key, value))
+	return Map{t: m.t.put(key, value)}
 }
 
 // Put returns a new Map with all keys retained from m except key.
 func (m Map) Delete(key interface{}) Map {
-	return Map(hamt(m).delete(key))
+	return Map{t: m.t.delete(key)}
 }
 
 // Get returns the value associated with key in m and true iff the key was
 // found.
 func (m Map) Get(key interface{}) (interface{}, bool) {
-	return hamt(m).get(key)
+	return m.t.get(key)
 }
 
 // Hash computes a hash value for s.
@@ -34,7 +42,7 @@ func (m Map) Hash() uint64 {
 }
 
 func (m Map) Range() *MapIter {
-	return &MapIter{hamt(m).iterator()}
+	return &MapIter{i: m.t.iterator()}
 }
 
 type MapIter struct {
