@@ -84,10 +84,9 @@ func TestHamtDelete(t *testing.T) {
 	t.Parallel()
 
 	var h hamt = empty{}
-	const N = 8
+	const N = 1000
 	for i := 0; i < N; i++ {
 		h = h.put(i, i*i)
-		assert.NotPanics(t, h.validate)
 	}
 
 	d := h
@@ -103,7 +102,6 @@ func TestHamtDelete(t *testing.T) {
 		} else {
 			d.get(i)
 		}
-		assert.NotPanics(t, d.validate, "i=%v", i)
 	}
 	assert.Zero(t, d.count())
 	assert.True(t, d.isEmpty())
@@ -127,7 +125,7 @@ func TestHamtDelete(t *testing.T) {
 func TestHamtDeleteMissing(t *testing.T) {
 	t.Parallel()
 
-	var h hamt = empty{}.put("foo", 42)
+	h := empty{}.put("foo", 42)
 	h = h.delete("bar")
 	assert.Equal(t, 1, h.count())
 	h = h.delete("foo")
