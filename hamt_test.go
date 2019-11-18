@@ -3,6 +3,7 @@ package frozen
 import (
 	"testing"
 
+	"github.com/mediocregopher/seq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -91,7 +92,6 @@ func TestHamtDelete(t *testing.T) {
 
 	d := h
 	for i := 0; i < N; i++ {
-		t.Log(d)
 		assert.Equal(t, N-i, d.count())
 		assert.False(t, h.isEmpty())
 		_, has := d.get(i)
@@ -176,13 +176,36 @@ func BenchmarkInsertMapInterface(b *testing.B) {
 	}
 }
 
-func BenchmarkInsertHamt(b *testing.B) {
+var hamt1M = func() hamt {
 	var h hamt = empty{}
 	for i := 0; i < 1_000_000; i++ {
 		h = h.put(i, i*i)
 	}
+	return h
+}()
+
+func BenchmarkInsertHamt(b *testing.B) {
+	h := hamt1M
+	N := h.count()
 	b.ResetTimer()
-	for i := 1_000_000; i < 1_000_000+b.N; i++ {
+	for i := N; i < N+b.N; i++ {
 		h = h.put(i, i*i)
+	}
+}
+
+var seq1M = func() *seq.HashMap {
+	s := seq.NewHashMap()
+	for i := 0; i < 10_000; i++ {
+		s, _ = s.Set(i, i*i)
+	}
+	return s
+}()
+
+func BenchmarkInsertSeq(b *testing.B) {
+	s := seq1M
+	N := int(s.Size())
+	b.ResetTimer()
+	for i := N; i < N+b.N; i++ {
+		s, _ = s.Set(i, i*i)
 	}
 }

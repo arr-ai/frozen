@@ -2,7 +2,6 @@ package frozen
 
 import (
 	"fmt"
-	"math/bits"
 	"strings"
 )
 
@@ -64,129 +63,16 @@ func (empty) iterator() *hamtIter {
 	return newHamtIter(nil)
 }
 
-type part struct {
-	bitmap uint64
-	base   []hamt
-}
-
-func (t part) isEmpty() bool {
-	return false
-}
-
-func (t part) count() int {
-	c := 0
-	for _, b := range t.base {
-		c += b.count()
-	}
-	return c
-}
-
-func (t part) put(key, value interface{}) hamt {
-	return t.putImpl(entry{key: key, value: value}, 0, newHasher(key, 0))
-}
-
-func (t part) putImpl(e entry, depth int, h *hasher) hamt {
-	bit := uint64(1) << h.next()
-	offset := bits.OnesCount64(t.bitmap & (bit - 1))
-	if t.bitmap&bit == 0 {
-		if bitmap := t.bitmap | bit; bitmap < 1<<hamtSize-1 {
-			return part{
-				bitmap: bitmap,
-				base:   insert(t.base, offset, e),
-			}
-		}
-		var f full
-		copy(f.base[:offset], t.base[:offset])
-		copy(f.base[offset+1:], t.base[offset:])
-		f.base[offset] = e
-		return &f
-	}
-	return t.update(offset, t.base[offset].putImpl(e, depth+1, h))
-}
-
-func (t part) get(key interface{}) (interface{}, bool) {
-	return t.getImpl(key, newHasher(key, 0))
-}
-
-func (t part) getImpl(key interface{}, h *hasher) (interface{}, bool) {
-	bit := uint64(1) << h.next()
-	if t.bitmap&bit == 0 {
-		return nil, false
-	}
-	offset := bits.OnesCount64(t.bitmap & (bit - 1))
-	return t.base[offset].getImpl(key, h)
-}
-
-func (t part) delete(key interface{}) hamt {
-	h, _ := t.deleteImpl(key, newHasher(key, 0))
-	return h
-}
-
-func (t part) deleteImpl(key interface{}, h *hasher) (hamt, bool) {
-	bit := uint64(1) << h.next()
-	offset := bits.OnesCount64(t.bitmap & (bit - 1))
-	if t.bitmap&bit != 0 {
-		if child, deleted := t.base[offset].deleteImpl(key, h); deleted {
-			if !child.isEmpty() {
-				return t.update(offset, child), true
-			}
-			return t.remove(bit, offset), true
-		}
-	}
-	return t, false
-}
-
-func (t part) update(offset int, n hamt) part {
-	return part{bitmap: t.bitmap, base: update(t.base, offset, n)}
-}
-
-func (t part) remove(bit uint64, offset int) hamt {
-	if bitmap := t.bitmap & ^bit; bitmap != 0 {
-		return part{bitmap: bitmap, base: remove(t.base, offset)}
-	}
-	return empty{}
-}
-
-func (t part) validate() {
-	if bits.OnesCount64(t.bitmap) != len(t.base) {
-		panic(fmt.Sprintf("part=%v", t))
-	}
-	for _, v := range t.base {
-		v.validate()
-	}
-}
-
-func (t part) String() string {
-	var b strings.Builder
-	b.WriteString("{")
-	for i := 0; i < hamtSize; i++ {
-		if i > 0 {
-			b.WriteString(",")
-		}
-		if bit := uint64(1) << i; t.bitmap&bit != 0 {
-			offset := bits.OnesCount64(t.bitmap & (bit - 1))
-			b.WriteString(t.base[offset].String())
-		}
-	}
-	b.WriteString("}")
-	return b.String()
-}
-
-func (t part) iterator() *hamtIter {
-	return newHamtIter(t.base)
-}
-
-type hamtIter struct {
-	stk [][]hamt
-	e   entry
-}
-
 type full struct {
 	base [hamtSize]hamt
 }
 
+func newFull() *full {
+	return &full{base: [4]hamt{empty{}, empty{}, empty{}, empty{}}}
+}
+
 func (f *full) isEmpty() bool {
-	return false
+	return f.base[0].isEmpty() && f.base[1].isEmpty() && f.base[2].isEmpty() && f.base[3].isEmpty()
 }
 
 func (f *full) count() int {
@@ -222,25 +108,16 @@ func (f *full) delete(key interface{}) hamt {
 func (f *full) deleteImpl(key interface{}, h *hasher) (hamt, bool) {
 	offset := h.next()
 	if child, deleted := f.base[offset].deleteImpl(key, h); deleted {
-		if !child.isEmpty() {
-			return f.update(offset, child), true
-		}
-		return f.remove(offset), true
+		return f.update(offset, child), true
 	}
 	return f, false
 }
 
 func (f *full) update(offset int, t hamt) *full {
-	base := f.base
-	base[offset] = t
-	return &full{base: base}
-}
-
-func (f *full) remove(offset int) part {
-	return part{
-		bitmap: uint64((1<<hamtSize - 1) & ^(uint64(1) << offset)),
-		base:   remove(f.base[:], offset),
-	}
+	h := newFull()
+	copy(h.base[:], f.base[:])
+	h.base[offset] = t
+	return h
 }
 
 func (f *full) validate() {
@@ -286,8 +163,8 @@ func (e entry) putImpl(e2 entry, depth int, h *hasher) hamt {
 	if equal(e.key, e2.key) {
 		return e2
 	}
-	return part{}.
-		putImpl(e, depth, newHasher(e.key, depth)).(part).
+	return newFull().
+		putImpl(e, depth, newHasher(e.key, depth)).(*full).
 		putImpl(e2, depth, h)
 }
 
@@ -324,26 +201,9 @@ func (e entry) iterator() *hamtIter {
 	return newHamtIter([]hamt{e})
 }
 
-func insert(tbase []hamt, offset int, n hamt) []hamt {
-	base := make([]hamt, len(tbase)+1)
-	copy(base, tbase[:offset])
-	copy(base[offset+1:], tbase[offset:])
-	base[offset] = n
-	return base
-}
-
-func update(tbase []hamt, offset int, n hamt) []hamt {
-	base := make([]hamt, len(tbase))
-	copy(base, tbase)
-	base[offset] = n
-	return base
-}
-
-func remove(tbase []hamt, offset int) []hamt {
-	base := make([]hamt, len(tbase)-1)
-	copy(base, tbase[:offset])
-	copy(base[offset:], tbase[offset+1:])
-	return base
+type hamtIter struct {
+	stk [][]hamt
+	e   entry
 }
 
 func newHamtIter(base []hamt) *hamtIter {
@@ -359,8 +219,6 @@ func (i *hamtIter) next() bool {
 			case entry:
 				i.e = b
 				return true
-			case part:
-				i.stk = append(i.stk, b.base)
 			case *full:
 				i.stk = append(i.stk, b.base[:])
 			}
