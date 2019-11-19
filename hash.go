@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	hamtBits = 2
+	hamtBits = 3
 	hamtSize = 1 << hamtBits
 	hamtMask = hamtSize - 1
 )

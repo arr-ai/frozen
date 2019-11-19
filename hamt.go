@@ -68,11 +68,17 @@ type full struct {
 }
 
 func newFull() *full {
-	return &full{base: [4]hamt{empty{}, empty{}, empty{}, empty{}}}
+	return &full{
+		base: [hamtSize]hamt{
+			empty{}, empty{}, empty{}, empty{},
+			empty{}, empty{}, empty{}, empty{},
+		},
+	}
 }
 
 func (f *full) isEmpty() bool {
-	return f.base[0].isEmpty() && f.base[1].isEmpty() && f.base[2].isEmpty() && f.base[3].isEmpty()
+	return f.base[0].isEmpty() && f.base[1].isEmpty() && f.base[2].isEmpty() && f.base[3].isEmpty() &&
+		f.base[4].isEmpty() && f.base[5].isEmpty() && f.base[6].isEmpty() && f.base[7].isEmpty()
 }
 
 func (f *full) count() int {
