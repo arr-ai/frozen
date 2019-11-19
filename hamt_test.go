@@ -154,56 +154,92 @@ func TestHamtIter(t *testing.T) {
 	}
 }
 
-func BenchmarkInsertMapInt(b *testing.B) {
+func benchmarkInsertMapInt(b *testing.B, N int) {
 	m := map[int]int{}
-	for i := 0; i < 1_000_000; i++ {
+	for i := 0; i < N; i++ {
 		m[i] = i * i
 	}
 	b.ResetTimer()
-	for i := 1_000_000; i < 1_000_000+b.N; i++ {
+	for i := N; i < N+b.N; i++ {
+		m[i] = i * i
+	}
+}
+
+func BenchmarkInsertMapInt(b *testing.B) {
+	benchmarkInsertMapInt(b, 0)
+}
+
+func BenchmarkInsertMapInt1M(b *testing.B) {
+	benchmarkInsertMapInt(b, 1_000_000)
+}
+
+func benchmarkInsertMapInterface(b *testing.B, N int) {
+	m := map[interface{}]interface{}{}
+	for i := 0; i < N; i++ {
+		m[i] = i * i
+	}
+	b.ResetTimer()
+	for i := N; i < N+b.N; i++ {
 		m[i] = i * i
 	}
 }
 
 func BenchmarkInsertMapInterface(b *testing.B) {
-	m := map[interface{}]interface{}{}
-	for i := 0; i < 1_000_000; i++ {
-		m[i] = i * i
-	}
-	b.ResetTimer()
-	for i := 1_000_000; i < 1_000_000+b.N; i++ {
-		m[i] = i * i
-	}
+	benchmarkInsertMapInterface(b, 0)
 }
 
-var hamt1M = func() hamt {
-	var h hamt = empty{}
-	for i := 0; i < 1_000_000; i++ {
-		h = h.put(i, i*i)
-	}
-	return h
-}()
+func BenchmarkInsertMapInterface1M(b *testing.B) {
+	benchmarkInsertMapInterface(b, 1_000_000)
+}
 
-func BenchmarkInsertHamt(b *testing.B) {
-	h := hamt1M
-	N := h.count()
+var hamtPrepop = map[int]hamt{
+	0: empty{},
+	1_000_000: func() hamt {
+		var h hamt = empty{}
+		for i := 0; i < 1_000_000; i++ {
+			h = h.put(i, i*i)
+		}
+		return h
+	}(),
+}
+
+func benchmarkInsertFrozen(b *testing.B, N int) {
+	h := hamtPrepop[N]
 	b.ResetTimer()
 	for i := N; i < N+b.N; i++ {
 		h = h.put(i, i*i)
 	}
 }
 
-var seq1M = func() *seq.HashMap {
-	s := seq.NewHashMap()
-	for i := 0; i < 10_000; i++ {
-		s, _ = s.Set(i, i*i)
-	}
-	return s
-}()
+func BenchmarkInsertFrozen(b *testing.B) {
+	benchmarkInsertFrozen(b, 0)
+}
 
-func BenchmarkInsertSeq(b *testing.B) {
-	s := seq1M
-	N := int(s.Size())
+func BenchmarkInsertFrozen1M(b *testing.B) {
+	benchmarkInsertFrozen(b, 1_000_000)
+}
+
+var mediocrePrepop = map[int]*seq.HashMap{
+	0: seq.NewHashMap(),
+	10_000: func() *seq.HashMap {
+		s := seq.NewHashMap()
+		for i := 0; i < 10_000; i++ {
+			s, _ = s.Set(i, i*i)
+		}
+		return s
+	}(),
+}
+
+func BenchmarkInsertMediocre(b *testing.B) {
+	benchmarkInsertMediocre(b, 0)
+}
+
+func BenchmarkInsertMediocre10k(b *testing.B) {
+	benchmarkInsertMediocre(b, 10_000)
+}
+
+func benchmarkInsertMediocre(b *testing.B, N int) {
+	s := mediocrePrepop[N]
 	b.ResetTimer()
 	for i := N; i < N+b.N; i++ {
 		s, _ = s.Set(i, i*i)
