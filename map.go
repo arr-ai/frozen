@@ -2,7 +2,9 @@ package frozen
 
 // Map maps keys to values. The zero value is the empty Map.
 type Map struct {
-	t hamt
+	t     hamt
+	count int
+	hash  uint64
 }
 
 var emptyMap = Map{t: empty{}}
@@ -11,34 +13,101 @@ func EmptyMap() Map {
 	return emptyMap
 }
 
+func (m Map) IsEmpty() bool {
+	return m.t.isEmpty()
+}
+
+func (m Map) Count() int {
+	return m.count
+}
+
 // Put returns a new Map with key associated with value and all other keys
 // retained from m.
-func (m Map) Put(key, value interface{}) Map {
-	return Map{t: m.t.put(key, value)}
+func (m Map) With(key, value interface{}) Map {
+	result, old := m.t.put(key, value)
+	count := m.count
+	h := m.hash ^ hashKV(key, value)
+	if old != nil {
+		h ^= hashKV(old.key, old.value)
+	} else {
+		count++
+	}
+	return Map{t: result}
 }
 
 // Put returns a new Map with all keys retained from m except key.
-func (m Map) Delete(key interface{}) Map {
-	return Map{t: m.t.delete(key)}
+func (m Map) Without(keys ...interface{}) Map {
+	result := m.t
+	for _, key := range keys {
+		var old *entry
+		result, old = m.t.delete(key)
+		count := m.count
+		h := m.hash
+		if old != nil {
+			count--
+			h ^= hashKV(old.key, old.value)
+		}
+	}
+	return Map{t: result}
 }
 
-// Get returns the value associated with key in m and true iff the key was
+// Value returns the value associated with key in m and true iff the key was
 // found.
-func (m Map) Get(key interface{}) (interface{}, bool) {
+func (m Map) Value(key interface{}) (interface{}, bool) {
 	return m.t.get(key)
+}
+
+func (m Map) ValueElse(key interface{}, deflt interface{}) interface{} {
+	if value, has := m.Value(key); has {
+		return value
+	}
+	return deflt
+}
+
+func (m Map) ValueElseFunc(key interface{}, deflt func() interface{}) interface{} {
+	if value, has := m.Value(key); has {
+		return value
+	}
+	return deflt()
+}
+
+func (m Map) Project(keys ...interface{}) Map {
+	result := EmptyMap()
+	for i := m.Range(); i.Next(); {
+		for _, key := range keys {
+			if value, has := m.Value(key); has {
+				result = result.With(key, value)
+			}
+		}
+	}
+	return result
 }
 
 // Hash computes a hash value for s.
 func (m Map) Hash() uint64 {
-	// go run github.com/marcelocantos/primal/cmd/random_primes 2
-	const random64BitPrime1 = 3167960924819262823
-	const random64BitPrime2 = 4256779204343710393
+	// go run github.com/marcelocantos/primal/cmd/random_primes 1
+	return 3167960924819262823 ^ m.hash
+}
 
-	var h uint64 = random64BitPrime1
-	for i := m.Range(); i.Next(); {
-		h += random64BitPrime2*hash(i.Key()) + hash(i.Value())
+func (m Map) Equal(i interface{}) bool {
+	if n, ok := i.(Map); ok {
+		for i := m.Range(); i.Next(); {
+			if value, has := n.Value(i.Key()); has {
+				if !equal(value, i.Value()) {
+					return false
+				}
+			} else {
+				return false
+			}
+		}
+		for i := n.Range(); i.Next(); {
+			if _, has := n.Value(i.Key()); !has {
+				return false
+			}
+		}
+		return true
 	}
-	return h
+	return false
 }
 
 func (m Map) Range() *MapIter {
@@ -59,4 +128,9 @@ func (i *MapIter) Key() interface{} {
 
 func (i *MapIter) Value() interface{} {
 	return i.i.e.value
+}
+
+func hashKV(key, value interface{}) uint64 {
+	// go run github.com/marcelocantos/primal/cmd/random_primes 1
+	return hash(struct{ Key, Value interface{} }{Key: key, Value: value})
 }

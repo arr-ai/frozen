@@ -8,12 +8,12 @@ import (
 type hamt interface {
 	isEmpty() bool
 	count() int
-	put(key, value interface{}) hamt
-	putImpl(e entry, depth int, h *hasher) hamt
+	put(key, value interface{}) (result hamt, old *entry)
+	putImpl(e entry, depth int, h *hasher) (result hamt, old *entry)
 	get(key interface{}) (interface{}, bool)
 	getImpl(key interface{}, h *hasher) (interface{}, bool)
-	delete(key interface{}) hamt
-	deleteImpl(key interface{}, h *hasher) (hamt, bool)
+	delete(key interface{}) (result hamt, old *entry)
+	deleteImpl(key interface{}, h *hasher) (result hamt, old *entry)
 	validate()
 	String() string
 	iterator() *hamtIter
@@ -29,12 +29,12 @@ func (empty) count() int {
 	return 0
 }
 
-func (e empty) put(key, value interface{}) hamt {
+func (e empty) put(key, value interface{}) (result hamt, old *entry) {
 	return e.putImpl(entry{key: key, value: value}, 0, nil)
 }
 
-func (empty) putImpl(e entry, _ int, _ *hasher) hamt {
-	return e
+func (empty) putImpl(e entry, _ int, _ *hasher) (result hamt, old *entry) {
+	return e, nil
 }
 
 func (empty) get(key interface{}) (interface{}, bool) {
@@ -45,12 +45,12 @@ func (empty) getImpl(key interface{}, _ *hasher) (interface{}, bool) {
 	return nil, false
 }
 
-func (e empty) delete(key interface{}) hamt {
-	return e
+func (e empty) delete(key interface{}) (result hamt, old *entry) {
+	return e.deleteImpl(key, nil)
 }
 
-func (e empty) deleteImpl(key interface{}, h *hasher) (hamt, bool) {
-	return e, false
+func (e empty) deleteImpl(key interface{}, _ *hasher) (result hamt, old *entry) {
+	return e, nil
 }
 
 func (empty) validate() {}
@@ -89,13 +89,14 @@ func (f *full) count() int {
 	return c
 }
 
-func (f *full) put(key, value interface{}) hamt {
+func (f *full) put(key, value interface{}) (result hamt, old *entry) {
 	return f.putImpl(entry{key: key, value: value}, 0, newHasher(key, 0))
 }
 
-func (f *full) putImpl(e entry, depth int, h *hasher) hamt {
+func (f *full) putImpl(e entry, depth int, h *hasher) (result hamt, old *entry) {
 	offset := h.next()
-	return f.update(offset, f.base[offset].putImpl(e, depth+1, h))
+	r, old := f.base[offset].putImpl(e, depth+1, h)
+	return f.update(offset, r), old
 }
 
 func (f *full) get(key interface{}) (interface{}, bool) {
@@ -106,17 +107,16 @@ func (f *full) getImpl(key interface{}, h *hasher) (interface{}, bool) {
 	return f.base[h.next()].getImpl(key, h)
 }
 
-func (f *full) delete(key interface{}) hamt {
-	h, _ := f.deleteImpl(key, newHasher(key, 0))
-	return h
+func (f *full) delete(key interface{}) (result hamt, old *entry) {
+	return f.deleteImpl(key, newHasher(key, 0))
 }
 
-func (f *full) deleteImpl(key interface{}, h *hasher) (hamt, bool) {
+func (f *full) deleteImpl(key interface{}, h *hasher) (result hamt, old *entry) {
 	offset := h.next()
-	if child, deleted := f.base[offset].deleteImpl(key, h); deleted {
-		return f.update(offset, child), true
+	if child, old := f.base[offset].deleteImpl(key, h); old != nil {
+		return f.update(offset, child), old
 	}
-	return f, false
+	return f, nil
 }
 
 func (f *full) update(offset int, t hamt) *full {
@@ -161,17 +161,17 @@ func (e entry) count() int {
 	return 1
 }
 
-func (e entry) put(key, value interface{}) hamt {
+func (e entry) put(key, value interface{}) (result hamt, old *entry) {
 	return e.putImpl(entry{key: key, value: value}, 0, newHasher(key, 0))
 }
 
-func (e entry) putImpl(e2 entry, depth int, h *hasher) hamt {
+func (e entry) putImpl(e2 entry, depth int, h *hasher) (result hamt, old *entry) {
 	if equal(e.key, e2.key) {
-		return e2
+		return e2, &e
 	}
-	return newFull().
-		putImpl(e, depth, newHasher(e.key, depth)).(*full).
-		putImpl(e2, depth, h)
+	result, _ = newFull().putImpl(e, depth, newHasher(e.key, depth))
+	result, _ = result.(*full).putImpl(e2, depth, h)
+	return result, nil
 }
 
 func (e entry) get(key interface{}) (interface{}, bool) {
@@ -185,16 +185,15 @@ func (e entry) getImpl(key interface{}, _ *hasher) (interface{}, bool) {
 	return nil, false
 }
 
-func (e entry) delete(key interface{}) hamt {
-	h, _ := e.deleteImpl(key, nil)
-	return h
+func (e entry) delete(key interface{}) (result hamt, old *entry) {
+	return e.deleteImpl(key, nil)
 }
 
-func (e entry) deleteImpl(key interface{}, _ *hasher) (hamt, bool) {
+func (e entry) deleteImpl(key interface{}, _ *hasher) (result hamt, old *entry) {
 	if equal(key, e.key) {
-		return empty{}, true
+		return empty{}, &e
 	}
-	return e, false
+	return e, nil
 }
 
 func (e entry) validate() {}
