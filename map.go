@@ -1,5 +1,10 @@
 package frozen
 
+import (
+	"fmt"
+	"strings"
+)
+
 type KeyValue struct {
 	Key, Value interface{}
 }
@@ -50,11 +55,10 @@ func (m Map) With(key, value interface{}) Map {
 // Put returns a new Map with key associated with value and all other keys
 // retained from m.
 func (m Map) WithKVs(kvs ...KeyValue) Map {
-	result := EmptyMap()
 	for _, kv := range kvs {
-		result = result.With(kv.Key, kv.Value)
+		m = m.With(kv.Key, kv.Value)
 	}
-	return result
+	return m
 }
 
 // Put returns a new Map with all keys retained from m except key.
@@ -64,7 +68,7 @@ func (m Map) Without(keys ...interface{}) Map {
 	h := m.hash
 	for _, key := range keys {
 		var old *entry
-		result, old = m.t.delete(key)
+		result, old = result.delete(key)
 		if old != nil {
 			count--
 			h ^= hashKV(old.key, old.value)
@@ -132,12 +136,29 @@ func (m Map) Equal(i interface{}) bool {
 	return false
 }
 
+func (m Map) String() string {
+	var b strings.Builder
+	b.WriteByte('{')
+	for i := m.Range(); i.Next(); {
+		if i.Index() > 0 {
+			b.WriteString(", ")
+		}
+		fmt.Fprintf(&b, "%v: %v", i.Key(), i.Value())
+	}
+	b.WriteByte('}')
+	return b.String()
+}
+
 func (m Map) Range() *MapIter {
 	return &MapIter{i: m.t.iterator()}
 }
 
 type MapIter struct {
 	i *hamtIter
+}
+
+func (i *MapIter) Index() int {
+	return i.i.i
 }
 
 func (i *MapIter) Next() bool {

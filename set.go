@@ -1,5 +1,10 @@
 package frozen
 
+import (
+	"fmt"
+	"strings"
+)
+
 // Set holds a set of values. The zero value is the empty Set.
 type Set struct {
 	t     hamt
@@ -34,7 +39,7 @@ func (s Set) With(values ...interface{}) Set {
 	h := s.hash
 	for _, value := range values {
 		var old *entry
-		t, old = s.t.put(value, struct{}{})
+		t, old = t.put(value, struct{}{})
 		h ^= hash(value)
 		if old != nil {
 			h ^= hash(old.value)
@@ -52,7 +57,7 @@ func (s Set) Without(values ...interface{}) Set {
 	h := s.hash
 	for _, value := range values {
 		var old *entry
-		t, old = s.t.delete(value)
+		t, old = t.delete(value)
 		if old != nil {
 			count--
 			h ^= hash(old.value)
@@ -80,6 +85,19 @@ func (s Set) Equal(i interface{}) bool {
 	return false
 }
 
+func (s Set) String() string {
+	var b strings.Builder
+	b.WriteString("[")
+	for i := s.Range(); i.Next(); {
+		if i.Index() > 0 {
+			b.WriteString(", ")
+		}
+		fmt.Fprintf(&b, "%v", i.Value())
+	}
+	b.WriteString("]")
+	return b.String()
+}
+
 func (s Set) Minus(t Set) Set {
 	for i := t.Range(); i.Next(); {
 		s = s.Without(i.Value())
@@ -99,7 +117,7 @@ func (s Set) Intersection(t Set) Set {
 }
 
 func (s Set) SymmetricDifference(t Set) Set {
-	var r Set
+	r := EmptySet()
 	for i := s.Range(); i.Next(); {
 		r = r.With(i.Value())
 	}
@@ -110,7 +128,7 @@ func (s Set) SymmetricDifference(t Set) Set {
 }
 
 func (s Set) Union(t Set) Set {
-	var r Set
+	r := EmptySet()
 	for i := s.Range(); i.Next(); {
 		if !t.Has(i.Value()) {
 			r = r.With(i.Value())
@@ -128,9 +146,9 @@ func (s Set) Nest(attr interface{}, attrs ...interface{}) Set {
 	m := EmptyMap()
 	for i := s.Range(); i.Next(); {
 		t := i.Value().(Map)
-		key := t.Without(attrs)
-		nested := m.ValueElse(key, func() interface{} { return EmptySet() })
-		m = m.With(key, nested.(Set).With(t.Project(attrs)))
+		key := t.Without(attrs...)
+		nested := m.ValueElseFunc(key, func() interface{} { return EmptySet() })
+		m = m.With(key, nested.(Set).With(t.Project(attrs...)))
 	}
 	result := EmptySet()
 	for i := m.Range(); i.Next(); {
@@ -145,6 +163,10 @@ func (s Set) Range() *SetIter {
 
 type SetIter struct {
 	i *hamtIter
+}
+
+func (i *SetIter) Index() int {
+	return i.i.i
 }
 
 func (i *SetIter) Next() bool {

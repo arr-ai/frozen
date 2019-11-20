@@ -14,39 +14,23 @@ const (
 	hamtMask = hamtSize - 1
 )
 
-type hasher struct {
-	key  interface{}
-	h    uint64
-	n    int
-	seed int
-}
+type hasher uint64
 
 func newHasher(key interface{}, depth int) *hasher {
-	h := &hasher{
-		key:  key,
-		h:    hash(key),
-		n:    64,
-		seed: 0,
-	}
+	// Use the high four bits as the seed.
+	h := hasher(0b1111<<60 | hash(key))
 	for i := 0; i < depth; i++ {
-		h.next()
+		h.next(key)
 	}
-	return h
+	return &h
 }
 
-func (h *hasher) next() int {
-	if h.n < hamtBits {
-		type Seeded struct {
-			Seed int
-			Key  interface{}
-		}
-		h.h = hash(Seeded{Seed: h.seed, Key: h.key})
-		h.n = 64
-		h.seed++
+func (h *hasher) next(key interface{}) int {
+	if *h < 0b1_0000 {
+		*h = (*h-1)<<60 | hasher(hash([2]interface{}{int(*h), key})>>4)
 	}
-	i := h.h & hamtMask
-	h.h >>= hamtBits
-	h.n -= hamtBits
+	i := *h & hamtMask
+	*h >>= hamtBits
 	return int(i)
 }
 
@@ -82,6 +66,10 @@ func hash(key interface{}) uint64 {
 		return xxhash.Sum64((*(*[unsafe.Sizeof(k)]byte)(unsafe.Pointer(&k)))[:])
 	case string:
 		return xxhash.Sum64([]byte(k))
+	case []interface{}:
+		return hashInterfaceSlice(k, 17001635779303974173)
+	case [2]interface{}: // Optimisation for hasher.next
+		return hashInterfaceSlice(k[:], 9647128711510533157)
 	default:
 		v := reflect.ValueOf(k)
 		switch v.Kind() {
@@ -111,4 +99,11 @@ func hash64shift(key uint64) uint64 {
 	key = key ^ (key >> 28)
 	key = key + (key << 31)
 	return key
+}
+
+func hashInterfaceSlice(slice []interface{}, h uint64) uint64 {
+	for _, e := range slice {
+		h = 9926087995771043021*h + hash(e)
+	}
+	return h
 }

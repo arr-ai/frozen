@@ -2,19 +2,20 @@ package frozen
 
 import "testing"
 
-func TestAlgo(t *testing.T) {
+func TestNest(t *testing.T) {
 	t.Parallel()
 
-	ca1 := EmptyMap().With("c", 1).With("a", 10)
-	ca2 := EmptyMap().With("c", 1).With("a", 11)
-
 	ca := EmptySet().
-		With(ca1).
-		With(ca2).
-		With(EmptyMap().With("c", 2).With("a", 13)).
-		With(EmptyMap().With("c", 3).With("a", 11)).
-		With(EmptyMap().With("c", 4).With("a", 14)).
-		With(EmptyMap().With("c", 3).With("a", 10)).
-		With(EmptyMap().With("c", 4).With("a", 13))
-	t.Log(ca.Nest("aa", "a").Nest("cc", "c"))
+		With(NewMap(KV("c", 1), KV("a", 10))).
+		With(NewMap(KV("c", 1), KV("a", 11))).
+		With(NewMap(KV("c", 2), KV("a", 13))).
+		With(NewMap(KV("c", 3), KV("a", 11))).
+		With(NewMap(KV("c", 4), KV("a", 14))).
+		With(NewMap(KV("c", 3), KV("a", 10))).
+		With(NewMap(KV("c", 4), KV("a", 13)))
+	t.Log(ca)
+	caa := ca.Nest("aa", "a")
+	t.Log(caa)
+	aacc := caa.Nest("cc", "c")
+	t.Log(aacc)
 }

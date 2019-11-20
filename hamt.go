@@ -94,7 +94,7 @@ func (f *full) put(key, value interface{}) (result hamt, old *entry) {
 }
 
 func (f *full) putImpl(e entry, depth int, h *hasher) (result hamt, old *entry) {
-	offset := h.next()
+	offset := h.next(e.key)
 	r, old := f.base[offset].putImpl(e, depth+1, h)
 	return f.update(offset, r), old
 }
@@ -104,7 +104,7 @@ func (f *full) get(key interface{}) (interface{}, bool) {
 }
 
 func (f *full) getImpl(key interface{}, h *hasher) (interface{}, bool) {
-	return f.base[h.next()].getImpl(key, h)
+	return f.base[h.next(key)].getImpl(key, h)
 }
 
 func (f *full) delete(key interface{}) (result hamt, old *entry) {
@@ -112,7 +112,7 @@ func (f *full) delete(key interface{}) (result hamt, old *entry) {
 }
 
 func (f *full) deleteImpl(key interface{}, h *hasher) (result hamt, old *entry) {
-	offset := h.next()
+	offset := h.next(key)
 	if child, old := f.base[offset].deleteImpl(key, h); old != nil {
 		return f.update(offset, child), old
 	}
@@ -209,10 +209,11 @@ func (e entry) iterator() *hamtIter {
 type hamtIter struct {
 	stk [][]hamt
 	e   entry
+	i   int
 }
 
 func newHamtIter(base []hamt) *hamtIter {
-	return &hamtIter{stk: [][]hamt{base}}
+	return &hamtIter{stk: [][]hamt{base}, i: -1}
 }
 
 func (i *hamtIter) next() bool {
@@ -223,6 +224,7 @@ func (i *hamtIter) next() bool {
 			switch b := b.(type) {
 			case entry:
 				i.e = b
+				i.i++
 				return true
 			case *full:
 				i.stk = append(i.stk, b.base[:])
