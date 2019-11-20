@@ -109,6 +109,28 @@ func (m Map) Project(keys ...interface{}) Map {
 	return result
 }
 
+func (m Map) Where(pred func(key, value interface{}) bool) Map {
+	return m.Reduce(func(acc, key, value interface{}) interface{} {
+		if pred(key, value) {
+			return acc.(Map).With(key, value)
+		}
+		return acc
+	}, NewMap()).(Map)
+}
+
+func (m Map) Map(f func(key, value interface{}) interface{}) Map {
+	return m.Reduce(func(acc, key, value interface{}) interface{} {
+		return acc.(Map).With(key, f(key, value))
+	}, NewMap()).(Map)
+}
+
+func (m Map) Reduce(f func(acc, key, value interface{}) interface{}, acc interface{}) interface{} {
+	for i := m.Range(); i.Next(); {
+		acc = f(acc, i.Key(), i.Value())
+	}
+	return acc
+}
+
 // Hash computes a hash value for s.
 func (m Map) Hash() uint64 {
 	// go run github.com/marcelocantos/primal/cmd/random_primes 1

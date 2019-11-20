@@ -98,6 +98,28 @@ func (s Set) String() string {
 	return b.String()
 }
 
+func (s Set) Where(pred func(i interface{}) bool) Set {
+	return s.Reduce(func(r, i interface{}) interface{} {
+		if pred(i) {
+			return r.(Set).With(i)
+		}
+		return r
+	}, NewSet()).(Set)
+}
+
+func (s Set) Map(f func(i interface{}) interface{}) Set {
+	return s.Reduce(func(r, i interface{}) interface{} {
+		return r.(Set).With(f(i))
+	}, NewSet()).(Set)
+}
+
+func (s Set) Reduce(f func(acc, i interface{}) interface{}, acc interface{}) interface{} {
+	for i := s.Range(); i.Next(); {
+		acc = f(acc, i.Value())
+	}
+	return acc
+}
+
 func (s Set) Minus(t Set) Set {
 	for i := t.Range(); i.Next(); {
 		s = s.Without(i.Value())
@@ -140,21 +162,6 @@ func (s Set) Union(t Set) Set {
 		r = r.With(i.Value())
 	}
 	return r
-}
-
-func (s Set) Nest(attr interface{}, attrs ...interface{}) Set {
-	m := EmptyMap()
-	for i := s.Range(); i.Next(); {
-		t := i.Value().(Map)
-		key := t.Without(attrs...)
-		nested := m.ValueElseFunc(key, func() interface{} { return EmptySet() })
-		m = m.With(key, nested.(Set).With(t.Project(attrs...)))
-	}
-	result := EmptySet()
-	for i := m.Range(); i.Next(); {
-		result = result.With(i.Key().(Map).With(attr, i.Value()))
-	}
-	return result
 }
 
 func (s Set) Range() *SetIter {
