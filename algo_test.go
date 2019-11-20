@@ -19,9 +19,12 @@ func TestNest(t *testing.T) {
 		[]interface{}{3, 10},
 		[]interface{}{4, 13},
 	)
-	sharing := ca.Nest("aa", "a").Nest("cc", "c").Where(func(tuple interface{}) bool {
-		return tuple.(Map).MustGet("cc").(Set).Count() > 1
-	})
+	sharing := ca.
+		Nest("aa", "a").
+		Nest("cc", "c").
+		Where(func(tuple interface{}) bool {
+			return tuple.(Map).MustGet("cc").(Set).Count() > 1
+		})
 	expected := NewRelation(
 		[]interface{}{"aa", "cc"},
 		[]interface{}{
