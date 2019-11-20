@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNest(t *testing.T) {
@@ -21,9 +20,7 @@ func TestNest(t *testing.T) {
 		[]interface{}{4, 13},
 	)
 	sharing := ca.Nest("aa", "a").Nest("cc", "c").Where(func(tuple interface{}) bool {
-		cc, has := tuple.(Map).Value("cc")
-		require.True(t, has)
-		return cc.(Set).Count() > 1
+		return tuple.(Map).MustGet("cc").(Set).Count() > 1
 	})
 	expected := NewRelation(
 		[]interface{}{"aa", "cc"},

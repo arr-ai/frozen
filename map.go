@@ -77,21 +77,28 @@ func (m Map) Without(keys ...interface{}) Map {
 	return Map{t: result, count: count, hash: h}
 }
 
-// Value returns the value associated with key in m and true iff the key was
+// Get returns the value associated with key in m and true iff the key was
 // found.
-func (m Map) Value(key interface{}) (interface{}, bool) {
+func (m Map) Get(key interface{}) (interface{}, bool) {
 	return m.t.get(key)
 }
 
+func (m Map) MustGet(key interface{}) interface{} {
+	if value, has := m.t.get(key); has {
+		return value
+	}
+	panic(fmt.Sprintf("key not found: %q", key))
+}
+
 func (m Map) ValueElse(key interface{}, deflt interface{}) interface{} {
-	if value, has := m.Value(key); has {
+	if value, has := m.Get(key); has {
 		return value
 	}
 	return deflt
 }
 
 func (m Map) ValueElseFunc(key interface{}, deflt func() interface{}) interface{} {
-	if value, has := m.Value(key); has {
+	if value, has := m.Get(key); has {
 		return value
 	}
 	return deflt()
@@ -101,7 +108,7 @@ func (m Map) Project(keys ...interface{}) Map {
 	result := EmptyMap()
 	for i := m.Range(); i.Next(); {
 		for _, key := range keys {
-			if value, has := m.Value(key); has {
+			if value, has := m.Get(key); has {
 				result = result.With(key, value)
 			}
 		}
@@ -140,7 +147,7 @@ func (m Map) Hash() uint64 {
 func (m Map) Equal(i interface{}) bool {
 	if n, ok := i.(Map); ok {
 		for i := m.Range(); i.Next(); {
-			if value, has := n.Value(i.Key()); has {
+			if value, has := n.Get(i.Key()); has {
 				if !equal(value, i.Value()) {
 					return false
 				}
@@ -149,7 +156,7 @@ func (m Map) Equal(i interface{}) bool {
 			}
 		}
 		for i := n.Range(); i.Next(); {
-			if _, has := n.Value(i.Key()); !has {
+			if _, has := n.Get(i.Key()); !has {
 				return false
 			}
 		}
