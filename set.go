@@ -119,17 +119,6 @@ func (s Set) Intersection(t Set) Set {
 func (s Set) SymmetricDifference(t Set) Set {
 	r := EmptySet()
 	for i := s.Range(); i.Next(); {
-		r = r.With(i.Value())
-	}
-	for i := t.Range(); i.Next(); {
-		r = r.With(i.Value())
-	}
-	return r
-}
-
-func (s Set) Union(t Set) Set {
-	r := EmptySet()
-	for i := s.Range(); i.Next(); {
 		if !t.Has(i.Value()) {
 			r = r.With(i.Value())
 		}
@@ -138,6 +127,17 @@ func (s Set) Union(t Set) Set {
 		if !s.Has(i.Value()) {
 			r = r.With(i.Value())
 		}
+	}
+	return r
+}
+
+func (s Set) Union(t Set) Set {
+	r := EmptySet()
+	for i := s.Range(); i.Next(); {
+		r = r.With(i.Value())
+	}
+	for i := t.Range(); i.Next(); {
+		r = r.With(i.Value())
 	}
 	return r
 }
