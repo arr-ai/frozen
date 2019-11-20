@@ -1,5 +1,13 @@
 package frozen
 
+type KeyValue struct {
+	Key, Value interface{}
+}
+
+func KV(key, value interface{}) KeyValue {
+	return KeyValue{Key: key, Value: value}
+}
+
 // Map maps keys to values. The zero value is the empty Map.
 type Map struct {
 	t     hamt
@@ -11,6 +19,10 @@ var emptyMap = Map{t: empty{}}
 
 func EmptyMap() Map {
 	return emptyMap
+}
+
+func NewMap(kvs ...KeyValue) Map {
+	return EmptyMap().WithKVs(kvs...)
 }
 
 func (m Map) IsEmpty() bool {
@@ -32,23 +44,33 @@ func (m Map) With(key, value interface{}) Map {
 	} else {
 		count++
 	}
-	return Map{t: result}
+	return Map{t: result, count: count, hash: h}
+}
+
+// Put returns a new Map with key associated with value and all other keys
+// retained from m.
+func (m Map) WithKVs(kvs ...KeyValue) Map {
+	result := EmptyMap()
+	for _, kv := range kvs {
+		result = result.With(kv.Key, kv.Value)
+	}
+	return result
 }
 
 // Put returns a new Map with all keys retained from m except key.
 func (m Map) Without(keys ...interface{}) Map {
 	result := m.t
+	count := m.count
+	h := m.hash
 	for _, key := range keys {
 		var old *entry
 		result, old = m.t.delete(key)
-		count := m.count
-		h := m.hash
 		if old != nil {
 			count--
 			h ^= hashKV(old.key, old.value)
 		}
 	}
-	return Map{t: result}
+	return Map{t: result, count: count, hash: h}
 }
 
 // Value returns the value associated with key in m and true iff the key was

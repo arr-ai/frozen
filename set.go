@@ -15,6 +15,10 @@ func EmptySet() Set {
 	return emptySet
 }
 
+func NewSet(values ...interface{}) Set {
+	return EmptySet().With(values...)
+}
+
 func (s Set) IsEmpty() bool {
 	return s.t.isEmpty()
 }
