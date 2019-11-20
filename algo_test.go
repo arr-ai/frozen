@@ -42,3 +42,32 @@ func TestNest(t *testing.T) {
 	)
 	assert.True(t, sharing.Equal(expected))
 }
+
+func TestUnnest(t *testing.T) {
+	t.Parallel()
+
+	sharing := NewRelation(
+		[]interface{}{"aa", "cc"},
+		[]interface{}{
+			NewRelation(
+				[]interface{}{"a"},
+				[]interface{}{10},
+				[]interface{}{11},
+			),
+			NewRelation(
+				[]interface{}{"c"},
+				[]interface{}{1},
+				[]interface{}{3},
+			),
+		},
+	)
+	expected := NewRelation(
+		[]interface{}{"c", "a"},
+		[]interface{}{1, 10},
+		[]interface{}{1, 11},
+		[]interface{}{3, 11},
+		[]interface{}{3, 10},
+	)
+	assert.True(t, sharing.Unnest("cc", "aa").Equal(expected))
+	assert.True(t, sharing.Unnest("aa", "cc").Equal(expected))
+}

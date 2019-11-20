@@ -1,7 +1,7 @@
 package frozen
 
 func NewRelation(header []interface{}, rows ...[]interface{}) Set {
-	r := NewSet()
+	r := EmptySet()
 	for _, row := range rows {
 		if len(row) != len(header) {
 			panic("header/row size mismatch")
@@ -34,4 +34,17 @@ func (s Set) Nest(attr interface{}, attrs ...interface{}) Set {
 		result = result.With(i.Key().(Map).With(attr, i.Value()))
 	}
 	return result
+}
+
+func (s Set) Unnest(attrs ...interface{}) Set {
+	for _, attr := range attrs {
+		s = s.Reduce(func(acc, i interface{}) interface{} {
+			t := i.(Map)
+			key := t.Without(attr)
+			return acc.(Set).Union(t.MustGet(attr).(Set).Reduce(func(acc, i interface{}) interface{} {
+				return acc.(Set).With(key.Update(i.(Map)))
+			}, EmptySet()).(Set))
+		}, EmptySet()).(Set)
+	}
+	return s
 }

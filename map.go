@@ -138,6 +138,12 @@ func (m Map) Reduce(f func(acc, key, value interface{}) interface{}, acc interfa
 	return acc
 }
 
+func (m Map) Update(n Map) Map {
+	return n.Reduce(func(acc, key, value interface{}) interface{} {
+		return acc.(Map).With(key, value)
+	}, m).(Map)
+}
+
 // Hash computes a hash value for s.
 func (m Map) Hash() uint64 {
 	// go run github.com/marcelocantos/primal/cmd/random_primes 1
