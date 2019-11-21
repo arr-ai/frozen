@@ -15,19 +15,19 @@ func NewRelation(header []interface{}, rows ...[]interface{}) Set {
 	return r
 }
 
-func (s Set) Project(attrs ...interface{}) Set {
+func (s Set) Project(attrs Set) Set {
 	return s.Map(func(i interface{}) interface{} {
 		return i.(Map).Project(attrs)
 	})
 }
 
-func (s Set) Nest(attr interface{}, attrs ...interface{}) Set {
+func (s Set) Nest(attr interface{}, attrs Set) Set {
 	m := EmptyMap()
 	for i := s.Range(); i.Next(); {
 		t := i.Value().(Map)
-		key := t.Without(attrs...)
+		key := t.Without(attrs)
 		nested := m.ValueElseFunc(key, func() interface{} { return EmptySet() })
-		m = m.With(key, nested.(Set).With(t.Project(attrs...)))
+		m = m.With(key, nested.(Set).With(t.Project(attrs)))
 	}
 	result := EmptySet()
 	for i := m.Range(); i.Next(); {
@@ -36,11 +36,13 @@ func (s Set) Nest(attr interface{}, attrs ...interface{}) Set {
 	return result
 }
 
-func (s Set) Unnest(attrs ...interface{}) Set {
-	for _, attr := range attrs {
+func (s Set) Unnest(attrs Set) Set {
+	for a := attrs.Range(); a.Next(); {
+		attr := a.Value()
+		attrAsSet := NewSet(attr)
 		s = s.Reduce(func(acc, i interface{}) interface{} {
 			t := i.(Map)
-			key := t.Without(attr)
+			key := t.Without(attrAsSet)
 			return acc.(Set).Union(t.MustGet(attr).(Set).Reduce(func(acc, i interface{}) interface{} {
 				return acc.(Set).With(key.Update(i.(Map)))
 			}, EmptySet()).(Set))

@@ -2,7 +2,6 @@ package frozen
 
 import (
 	"fmt"
-	"strings"
 )
 
 type KeyValue struct {
@@ -62,13 +61,13 @@ func (m Map) WithKVs(kvs ...KeyValue) Map {
 }
 
 // Put returns a new Map with all keys retained from m except key.
-func (m Map) Without(keys ...interface{}) Map {
+func (m Map) Without(keys Set) Map {
 	result := m.t
 	count := m.count
 	h := m.hash
-	for _, key := range keys {
+	for k := keys.Range(); k.Next(); {
 		var old *entry
-		result, old = result.delete(key)
+		result, old = result.delete(k.Value())
 		if old != nil {
 			count--
 			h ^= hashKV(old.key, old.value)
@@ -87,7 +86,7 @@ func (m Map) MustGet(key interface{}) interface{} {
 	if value, has := m.t.get(key); has {
 		return value
 	}
-	panic(fmt.Sprintf("key not found: %q", key))
+	panic(fmt.Sprintf("key not found: %v", key))
 }
 
 func (m Map) ValueElse(key interface{}, deflt interface{}) interface{} {
@@ -104,16 +103,22 @@ func (m Map) ValueElseFunc(key interface{}, deflt func() interface{}) interface{
 	return deflt()
 }
 
-func (m Map) Project(keys ...interface{}) Map {
-	result := EmptyMap()
-	for i := m.Range(); i.Next(); {
-		for _, key := range keys {
-			if value, has := m.Get(key); has {
-				result = result.With(key, value)
-			}
-		}
-	}
-	return result
+func (m Map) Keys() Set {
+	return m.Reduce(func(acc, key, _ interface{}) interface{} {
+		return acc.(Set).With(key)
+	}, EmptySet()).(Set)
+}
+
+func (m Map) Values() Set {
+	return m.Reduce(func(acc, _, value interface{}) interface{} {
+		return acc.(Set).With(value)
+	}, EmptySet()).(Set)
+}
+
+func (m Map) Project(keys Set) Map {
+	return m.Where(func(key, value interface{}) bool {
+		return keys.Has(key)
+	})
 }
 
 func (m Map) Where(pred func(key, value interface{}) bool) Map {
@@ -172,16 +177,18 @@ func (m Map) Equal(i interface{}) bool {
 }
 
 func (m Map) String() string {
-	var b strings.Builder
-	b.WriteByte('{')
+	return fmt.Sprintf("%v", m)
+}
+
+func (m Map) Format(f fmt.State, _ rune) {
+	f.Write([]byte("{"))
 	for i := m.Range(); i.Next(); {
 		if i.Index() > 0 {
-			b.WriteString(", ")
+			f.Write([]byte(", "))
 		}
-		fmt.Fprintf(&b, "%v: %v", i.Key(), i.Value())
+		fmt.Fprintf(f, "%v: %v", i.Key(), i.Value())
 	}
-	b.WriteByte('}')
-	return b.String()
+	f.Write([]byte("}"))
 }
 
 func (m Map) Range() *MapIter {

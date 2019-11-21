@@ -20,8 +20,8 @@ func TestNest(t *testing.T) {
 		[]interface{}{4, 13},
 	)
 	sharing := ca.
-		Nest("aa", "a").
-		Nest("cc", "c").
+		Nest("aa", NewSet("a")).
+		Nest("cc", NewSet("c")).
 		Where(func(tuple interface{}) bool {
 			return tuple.(Map).MustGet("cc").(Set).Count() > 1
 		})
@@ -40,7 +40,16 @@ func TestNest(t *testing.T) {
 			),
 		},
 	)
-	assert.True(t, sharing.Equal(expected))
+	if !assert.True(t, sharing.Equal(expected)) {
+		t.Log(ca)
+		t.Log(ca.Nest("aa", NewSet("a")))
+		t.Log(ca.Nest("aa", NewSet("a")).Nest("cc", NewSet("c")))
+		t.Log(ca.Nest("aa", NewSet("a")).Nest("cc", NewSet("c")).
+			Where(func(tuple interface{}) bool {
+				return tuple.(Map).MustGet("cc").(Set).Count() > 1
+			}))
+		t.Log(expected)
+	}
 }
 
 func TestUnnest(t *testing.T) {
@@ -68,6 +77,6 @@ func TestUnnest(t *testing.T) {
 		[]interface{}{3, 11},
 		[]interface{}{3, 10},
 	)
-	assert.True(t, sharing.Unnest("cc", "aa").Equal(expected))
-	assert.True(t, sharing.Unnest("aa", "cc").Equal(expected))
+	assert.True(t, sharing.Unnest(NewSet("cc", "aa")).Equal(expected))
+	assert.True(t, sharing.Unnest(NewSet("aa", "cc")).Equal(expected))
 }

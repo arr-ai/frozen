@@ -2,7 +2,6 @@ package frozen
 
 import (
 	"fmt"
-	"strings"
 )
 
 // Set holds a set of values. The zero value is the empty Set.
@@ -72,6 +71,13 @@ func (s Set) Has(value interface{}) bool {
 	return has
 }
 
+func (s Set) Any() interface{} {
+	for i := s.Range(); i.Next(); {
+		return i.Value()
+	}
+	panic("empty set")
+}
+
 // Hash computes a hash value for s.
 func (s Set) Hash() uint64 {
 	// go run github.com/marcelocantos/primal/cmd/random_primes 1
@@ -86,16 +92,18 @@ func (s Set) Equal(i interface{}) bool {
 }
 
 func (s Set) String() string {
-	var b strings.Builder
-	b.WriteString("[")
+	return fmt.Sprintf("%v", s)
+}
+
+func (s Set) Format(f fmt.State, _ rune) {
+	f.Write([]byte("["))
 	for i := s.Range(); i.Next(); {
 		if i.Index() > 0 {
-			b.WriteString(", ")
+			f.Write([]byte(", "))
 		}
-		fmt.Fprintf(&b, "%v", i.Value())
+		fmt.Fprintf(f, "%v", i.Value())
 	}
-	b.WriteString("]")
-	return b.String()
+	f.Write([]byte("]"))
 }
 
 func (s Set) Where(pred func(i interface{}) bool) Set {
@@ -139,29 +147,21 @@ func (s Set) Intersection(t Set) Set {
 }
 
 func (s Set) SymmetricDifference(t Set) Set {
-	r := EmptySet()
-	for i := s.Range(); i.Next(); {
-		if !t.Has(i.Value()) {
-			r = r.With(i.Value())
-		}
-	}
 	for i := t.Range(); i.Next(); {
-		if !s.Has(i.Value()) {
-			r = r.With(i.Value())
+		if s.Has(i.Value()) {
+			s = s.Without(i.Value())
+		} else {
+			s = s.With(i.Value())
 		}
 	}
-	return r
+	return s
 }
 
 func (s Set) Union(t Set) Set {
-	r := EmptySet()
-	for i := s.Range(); i.Next(); {
-		r = r.With(i.Value())
-	}
 	for i := t.Range(); i.Next(); {
-		r = r.With(i.Value())
+		s = s.With(i.Value())
 	}
-	return r
+	return s
 }
 
 func (s Set) Range() *SetIter {
