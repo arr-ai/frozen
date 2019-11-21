@@ -13,18 +13,19 @@ type Set struct {
 
 var _ Key = Set{}
 
-var emptySet = Set{t: empty{}}
-
-func EmptySet() Set {
-	return emptySet
+func NewSet(values ...interface{}) Set {
+	return Set{}.With(values...)
 }
 
-func NewSet(values ...interface{}) Set {
-	return EmptySet().With(values...)
+func (s Set) hamt() hamt {
+	if s.t == nil {
+		return empty{}
+	}
+	return s.t
 }
 
 func (s Set) IsEmpty() bool {
-	return s.t.isEmpty()
+	return s.hamt().isEmpty()
 }
 
 func (s Set) Count() int {
@@ -33,7 +34,7 @@ func (s Set) Count() int {
 
 // With returns a new Set containing value and all other values retained from m.
 func (s Set) With(values ...interface{}) Set {
-	t := s.t
+	t := s.hamt()
 	count := s.count
 	h := s.hash
 	for _, value := range values {
@@ -51,7 +52,7 @@ func (s Set) With(values ...interface{}) Set {
 
 // Put returns a new Set with all values retained from Set except value.
 func (s Set) Without(values ...interface{}) Set {
-	t := s.t
+	t := s.hamt()
 	count := s.count
 	h := s.hash
 	for _, value := range values {
@@ -67,7 +68,7 @@ func (s Set) Without(values ...interface{}) Set {
 
 // Has returns the value associated with key and true iff the key was found.
 func (s Set) Has(value interface{}) bool {
-	_, has := s.t.get(value)
+	_, has := s.hamt().get(value)
 	return has
 }
 
@@ -165,7 +166,7 @@ func (s Set) Union(t Set) Set {
 }
 
 func (s Set) Range() *SetIter {
-	return &SetIter{i: s.t.iterator()}
+	return &SetIter{i: s.hamt().iterator()}
 }
 
 type SetIter struct {

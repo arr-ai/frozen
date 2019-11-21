@@ -19,18 +19,19 @@ type Map struct {
 	hash  uint64
 }
 
-var emptyMap = Map{t: empty{}}
-
-func EmptyMap() Map {
-	return emptyMap
+func NewMap(kvs ...KeyValue) Map {
+	return Map{}.WithKVs(kvs...)
 }
 
-func NewMap(kvs ...KeyValue) Map {
-	return EmptyMap().WithKVs(kvs...)
+func (m Map) hamt() hamt {
+	if m.t == nil {
+		return empty{}
+	}
+	return m.t
 }
 
 func (m Map) IsEmpty() bool {
-	return m.t.isEmpty()
+	return m.hamt().isEmpty()
 }
 
 func (m Map) Count() int {
@@ -40,7 +41,7 @@ func (m Map) Count() int {
 // Put returns a new Map with key associated with value and all other keys
 // retained from m.
 func (m Map) With(key, value interface{}) Map {
-	result, old := m.t.put(key, value)
+	result, old := m.hamt().put(key, value)
 	count := m.count
 	h := m.hash ^ hashKV(key, value)
 	if old != nil {
@@ -62,7 +63,7 @@ func (m Map) WithKVs(kvs ...KeyValue) Map {
 
 // Put returns a new Map with all keys retained from m except key.
 func (m Map) Without(keys Set) Map {
-	result := m.t
+	result := m.hamt()
 	count := m.count
 	h := m.hash
 	for k := keys.Range(); k.Next(); {
@@ -79,11 +80,11 @@ func (m Map) Without(keys Set) Map {
 // Get returns the value associated with key in m and true iff the key was
 // found.
 func (m Map) Get(key interface{}) (interface{}, bool) {
-	return m.t.get(key)
+	return m.hamt().get(key)
 }
 
 func (m Map) MustGet(key interface{}) interface{} {
-	if value, has := m.t.get(key); has {
+	if value, has := m.hamt().get(key); has {
 		return value
 	}
 	panic(fmt.Sprintf("key not found: %v", key))
@@ -106,13 +107,13 @@ func (m Map) ValueElseFunc(key interface{}, deflt func() interface{}) interface{
 func (m Map) Keys() Set {
 	return m.Reduce(func(acc, key, _ interface{}) interface{} {
 		return acc.(Set).With(key)
-	}, EmptySet()).(Set)
+	}, Set{}).(Set)
 }
 
 func (m Map) Values() Set {
 	return m.Reduce(func(acc, _, value interface{}) interface{} {
 		return acc.(Set).With(value)
-	}, EmptySet()).(Set)
+	}, Set{}).(Set)
 }
 
 func (m Map) Project(keys Set) Map {
@@ -192,7 +193,7 @@ func (m Map) Format(f fmt.State, _ rune) {
 }
 
 func (m Map) Range() *MapIter {
-	return &MapIter{i: m.t.iterator()}
+	return &MapIter{i: m.hamt().iterator()}
 }
 
 type MapIter struct {
