@@ -22,18 +22,15 @@ func (s Set) Project(attrs Set) Set {
 }
 
 func (s Set) Nest(attr interface{}, attrs Set) Set {
-	m := EmptyMap()
-	for i := s.Range(); i.Next(); {
-		t := i.Value().(Map)
+	m := s.Reduce(func(acc, i interface{}) interface{} {
+		t := i.(Map)
 		key := t.Without(attrs)
-		nested := m.ValueElseFunc(key, func() interface{} { return EmptySet() })
-		m = m.With(key, nested.(Set).With(t.Project(attrs)))
-	}
-	result := EmptySet()
-	for i := m.Range(); i.Next(); {
-		result = result.With(i.Key().(Map).With(attr, i.Value()))
-	}
-	return result
+		nested := acc.(Map).ValueElseFunc(key, func() interface{} { return EmptySet() })
+		return acc.(Map).With(key, nested.(Set).With(t.Project(attrs)))
+	}, EmptyMap()).(Map)
+	return m.Reduce(func(acc, key, value interface{}) interface{} {
+		return acc.(Set).With(key.(Map).With(attr, value))
+	}, EmptySet()).(Set)
 }
 
 func (s Set) Unnest(attrs Set) Set {
