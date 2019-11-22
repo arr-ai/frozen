@@ -165,7 +165,7 @@ func benchmarkInsertMapInt(b *testing.B, N int) {
 	}
 }
 
-func BenchmarkInsertMapInt(b *testing.B) {
+func BenchmarkInsertMapInt0(b *testing.B) {
 	benchmarkInsertMapInt(b, 0)
 }
 
@@ -184,7 +184,7 @@ func benchmarkInsertMapInterface(b *testing.B, N int) {
 	}
 }
 
-func BenchmarkInsertMapInterface(b *testing.B) {
+func BenchmarkInsertMapInterface0(b *testing.B) {
 	benchmarkInsertMapInterface(b, 0)
 }
 
@@ -211,7 +211,7 @@ func benchmarkInsertFrozen(b *testing.B, N int) {
 	}
 }
 
-func BenchmarkInsertFrozen(b *testing.B) {
+func BenchmarkInsertFrozen0(b *testing.B) {
 	benchmarkInsertFrozen(b, 0)
 }
 
@@ -230,7 +230,7 @@ var mediocrePrepop = map[int]*seq.HashMap{
 	}(),
 }
 
-func BenchmarkInsertMediocre(b *testing.B) {
+func BenchmarkInsertMediocre0(b *testing.B) {
 	benchmarkInsertMediocre(b, 0)
 }
 
