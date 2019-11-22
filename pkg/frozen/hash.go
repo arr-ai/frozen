@@ -16,22 +16,24 @@ const (
 
 type hasher uint64
 
-func newHasher(key interface{}, depth int) *hasher {
+func newHasher(key interface{}, depth int) hasher {
 	// Use the high four bits as the seed.
 	h := hasher(0b1111<<60 | hash(key))
 	for i := 0; i < depth; i++ {
-		h.next(key)
+		h = h.next(key)
 	}
-	return &h
+	return h
 }
 
-func (h *hasher) next(key interface{}) int {
-	if *h < 0b1_0000 {
-		*h = (*h-1)<<60 | hasher(hash([2]interface{}{int(*h), key})>>4)
+func (h hasher) next(key interface{}) hasher {
+	if h >>= hamtBits; h < 0b1_0000 {
+		return (h-1)<<60 | hasher(hash([2]interface{}{int(h), key})>>4)
 	}
-	i := *h & hamtMask
-	*h >>= hamtBits
-	return int(i)
+	return h
+}
+
+func (h hasher) hash() int {
+	return int(h & hamtMask)
 }
 
 func hash(key interface{}) uint64 {
