@@ -38,7 +38,7 @@ BenchmarkInsertMediocre10k-8      	    7867	    257561 ns/op
 ```
 
 
-![https://docs.google.com/spreadsheets/d/1Sq48pT4sKLHx2uY_nSljfbFpEJijXhNAeoB-BbDlrsI/edit?usp=sharing](https://docs.google.com/spreadsheets/d/e/2PACX-1vQHj9jtHqlQ_aHpTUTk9dQ_VfCw77_3QR4j5M76T-e6TtxhM77CfbvhDzB8IHKm29iP-L1TJqrPkOPa/pubchart?oid=301271241&format=image)
+![https://docs.google.com/spreadsheets/d/1Sq48pT4sKLHx2uY_nSljfbFpEJijXhNAeoB-BbDlrsI/edit?usp=sharing](assets/benchmarks.png)
 
 ## Bugs
 
