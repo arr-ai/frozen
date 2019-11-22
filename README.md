@@ -27,14 +27,14 @@ slowest) the implementations are as follows:
 In all cases, ints are mapped to ints.
 
 ```
-BenchmarkInsertMapInt0-8          	 5409126	       234 ns/op
-BenchmarkInsertMapInt1M-8         	 5233239	       218 ns/op
-BenchmarkInsertMapInterface0-8    	 2130547	       542 ns/op
-BenchmarkInsertMapInterface1M-8   	 3082635	       642 ns/op
-BenchmarkInsertFrozen0-8          	 1000000	      2085 ns/op
-BenchmarkInsertFrozen1M-8         	  764451	      2232 ns/op
-BenchmarkInsertMediocre0-8        	   14215	    127258 ns/op
-BenchmarkInsertMediocre10k-8      	    7867	    257561 ns/op
+BenchmarkInsertMapInt0-8          	 5082399	       236 ns/op	      69 B/op	       0 allocs/op
+BenchmarkInsertMapInt1M-8         	 5285689	       204 ns/op	      53 B/op	       0 allocs/op
+BenchmarkInsertMapInterface0-8    	 2111479	       533 ns/op	     170 B/op	       2 allocs/op
+BenchmarkInsertMapInterface1M-8   	 3187671	       606 ns/op	     169 B/op	       2 allocs/op
+BenchmarkInsertFrozen0-8          	 1000000	      1865 ns/op	    1028 B/op	      11 allocs/op
+BenchmarkInsertFrozen1M-8         	  746131	      2001 ns/op	    1103 B/op	      11 allocs/op
+BenchmarkInsertMediocre0-8        	   14637	    118630 ns/op	   73455 B/op	     463 allocs/op
+BenchmarkInsertMediocre10k-8      	    9183	    261775 ns/op	  146185 B/op	     917 allocs/op
 ```
 
 
