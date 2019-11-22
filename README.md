@@ -38,7 +38,7 @@ BenchmarkInsertMediocre10k-8      	    7867	    257561 ns/op
 ```
 
 
-![https://docs.google.com/spreadsheets/d/1Sq48pT4sKLHx2uY_nSljfbFpEJijXhNAeoB-BbDlrsI/edit?usp=sharing](assets/benchmarks.png)
+[![](assets/benchmarks.png)](https://docs.google.com/spreadsheets/d/1Sq48pT4sKLHx2uY_nSljfbFpEJijXhNAeoB-BbDlrsI/edit?usp=sharing)
 
 ## Bugs
 
