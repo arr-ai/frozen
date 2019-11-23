@@ -77,6 +77,10 @@ func TestUnnest(t *testing.T) {
 		[]interface{}{3, 11},
 		[]interface{}{3, 10},
 	)
-	assert.True(t, sharing.Unnest(NewSet("cc", "aa")).Equal(expected))
-	assert.True(t, sharing.Unnest(NewSet("aa", "cc")).Equal(expected))
+
+	actual := sharing.Unnest(NewSet("cc", "aa"))
+	assert.True(t, actual.Equal(expected), "%v !=\n%v", expected, actual)
+
+	actual = sharing.Unnest(NewSet("aa", "cc"))
+	assert.True(t, actual.Equal(expected), "%v !=\n%v", expected, actual)
 }
