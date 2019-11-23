@@ -77,8 +77,7 @@ func newFull() *full {
 }
 
 func (f *full) isEmpty() bool {
-	return f.base[0].isEmpty() && f.base[1].isEmpty() && f.base[2].isEmpty() && f.base[3].isEmpty() &&
-		f.base[4].isEmpty() && f.base[5].isEmpty() && f.base[6].isEmpty() && f.base[7].isEmpty()
+	return false
 }
 
 func (f *full) count() int {
@@ -119,7 +118,16 @@ func (f *full) deleteImpl(key interface{}, h hasher) (result hamt, old *entry) {
 	return f, nil
 }
 
-func (f *full) update(offset int, t hamt) *full {
+func (f *full) update(offset int, t hamt) hamt {
+	if t.isEmpty() {
+		for i, b := range f.base {
+			if i != offset && !b.isEmpty() {
+				goto notempty
+			}
+		}
+		return empty{}
+	}
+notempty:
 	h := newFull()
 	copy(h.base[:], f.base[:])
 	h.base[offset] = t
