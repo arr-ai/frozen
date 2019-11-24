@@ -1,5 +1,7 @@
 # Frozen
 
+![Go build status](https://github.com/marcelocantos/frozen/workflows/Go/badge.svg)
+
 Efficient immutable data types.
 
 ## Types
