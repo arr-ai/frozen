@@ -22,5 +22,5 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Get dependencies
+    - name: Test
       run: go test -race -cover ./...
