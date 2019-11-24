@@ -3,32 +3,26 @@ package frozen
 import (
 	"testing"
 
-	"github.com/mediocregopher/seq"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestHamtEmpty(t *testing.T) {
 	t.Parallel()
 
 	var h hamt = empty{}
-	assert.Zero(t, h.count())
+	assert.True(t, h.isEmpty())
 }
 
 func TestHamtSmall(t *testing.T) {
 	t.Parallel()
 
 	var h hamt = empty{}
-	assert.Zero(t, h.count())
 	assert.True(t, h.isEmpty())
-	h, _ = h.put("foo", 42)
-	assert.Equal(t, 1, h.count())
+	h, _ = h.put(KV("foo", 42), newBuffer(0))
 	assert.False(t, h.isEmpty())
-	h, _ = h.put("bar", 43)
-	assert.Equal(t, 2, h.count())
+	h, _ = h.put(KV("bar", 43), newBuffer(1))
 	assert.False(t, h.isEmpty())
-	h, _ = h.put("foo", 44)
-	assert.Equal(t, 2, h.count())
+	h, _ = h.put(KV("foo", 44), newBuffer(2))
 	assert.False(t, h.isEmpty())
 }
 
@@ -37,13 +31,19 @@ func TestHamtLarge(t *testing.T) {
 
 	hh := []hamt{}
 	var h hamt = empty{}
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 500; i++ {
 		hh = append(hh, h)
-		h, _ = h.put(i, 42)
+		h, _ = h.put(KV(i, i*i), newBuffer(i))
 	}
 	for i, h := range hh {
-		assert.Equal(t, i, h.count())
-		assert.Equal(t, h.count() == 0, h.isEmpty())
+		for j := 0; j < i; j++ {
+			v, has := h.get(KV(j, nil))
+			if assert.True(t, has, "i=%v j=%v", i, j) {
+				assert.Equal(t, j*j, v.(KeyValue).Value, "i=%v j=%v", i, j)
+			}
+		}
+		kv, has := h.get(KV(i, nil))
+		assert.False(t, has, "i=%v v=%v", i, kv)
 	}
 }
 
@@ -52,30 +52,30 @@ func TestHamtGet(t *testing.T) {
 
 	hh := []hamt{}
 	var h hamt = empty{}
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 500; i++ {
 		hh = append(hh, h)
-		var v interface{}
+		var kv interface{}
 		var has bool
 		if assert.NotPanics(t, func() {
-			v, has = h.get(i)
+			kv, has = h.get(i)
 		}, "i=%v", i) {
-			assert.False(t, has, "i=%v v=%v", i, v)
+			assert.False(t, has, "i=%v v=%v", i, kv)
 		} else {
 			h.get(i)
 		}
 		hOld := h
-		h, _ = h.put(i, i*i)
-		if v2, has := h.get(i); assert.True(t, has, "i=%v", i) {
-			if !assert.Equal(t, i*i, v2, "i=%v", i) {
-				hOld.put(i, i*i)
-				h.get(i)
+		h, _ = h.put(KV(i, i*i), newBuffer(i))
+		if kv, has := h.get(KV(i, nil)); assert.True(t, has, "i=%v", i) {
+			if !assert.Equal(t, i*i, kv.(KeyValue).Value, "i=%v", i) {
+				hOld.put(KV(i, i*i), newBuffer(i))
+				h.get(KV(i, nil))
 			}
 		}
 	}
 	for i, h := range hh {
 		for j := 0; j < i; j++ {
-			if v, has := h.get(j); assert.True(t, has, "i=%v j=%v", i, j) {
-				assert.Equal(t, j*j, v, "i=%v j=%v", i, j)
+			if kv, has := h.get(KV(j, nil)); assert.True(t, has, "i=%v j=%v", i, j) {
+				assert.Equal(t, j*j, kv.(KeyValue).Value, "i=%v j=%v kv=%v", i, j, kv)
 			}
 		}
 	}
@@ -87,161 +87,90 @@ func TestHamtDelete(t *testing.T) {
 	var h hamt = empty{}
 	const N = 1000
 	for i := 0; i < N; i++ {
-		h, _ = h.put(i, i*i)
+		h, _ = h.put(i, newBuffer(i))
 	}
 
 	d := h
 	for i := 0; i < N; i++ {
-		assert.Equal(t, N-i, d.count())
 		assert.False(t, h.isEmpty())
 		_, has := d.get(i)
 		if assert.True(t, has, "i=%v", i) {
-			d, _ = d.delete(i)
+			d, _ = d.delete(i, newBuffer(N-i))
 			v, has := d.get(i)
 			assert.False(t, has, "i=%v v=%v", i, v)
-		} else {
-			d.get(i)
 		}
 	}
-	assert.Zero(t, d.count())
 	assert.True(t, d.isEmpty())
 
 	d = h
 	for i := N; i > 0; {
-		assert.Equal(t, i, d.count())
 		i--
 		assert.False(t, h.isEmpty())
 		_, has := d.get(i)
 		if assert.True(t, has, "i=%v", i) {
-			d, _ = d.delete(i)
+			d, _ = d.delete(i, newBuffer(i-1))
 			v, has := d.get(i)
 			assert.False(t, has, "i=%v, v=%v", i, v)
 		}
 	}
-	assert.Zero(t, d.count())
 	assert.True(t, d.isEmpty())
 }
 
 func TestHamtDeleteMissing(t *testing.T) {
 	t.Parallel()
 
-	h, _ := empty{}.put("foo", 42)
-	h, _ = h.delete("bar")
-	assert.Equal(t, 1, h.count())
-	h, _ = h.delete("foo")
-	assert.Equal(t, 0, h.count())
+	h, _ := empty{}.put("foo", newBuffer(0))
+	h, _ = h.delete("bar", newBuffer(0))
+	assert.False(t, h.isEmpty())
+	h, _ = h.delete("foo", newBuffer(0))
+	assert.True(t, h.isEmpty())
 }
 
 func TestHamtIter(t *testing.T) {
 	t.Parallel()
 
-	a := make([]int, 18)
 	var h hamt = empty{}
-	for i := range a {
-		h, _ = h.put(i, i*i)
-		a[i] = -1
+	for i := 0; i < 64; i++ {
+		h, _ = h.put(i, newBuffer(i))
 	}
+
+	var a uint64 = 0
 	n := 0
 	for it := h.iterator(); it.next(); n++ {
-		i := it.e.key.(int)
-		v := it.e.value.(int)
-		a[i] = v
-		assert.Equal(t, i*i, v, "it=%v, h=%v", it, h)
+		i := it.e.elem.(int)
+		a |= uint64(1) << i
 	}
-	require.Equal(t, len(a), n, "h=%v a=%v", h, a)
-	for i, v := range a {
-		assert.Equal(t, i*i, v, "i=%v", i)
-	}
+	assert.Equal(t, 64, n, "h=%v a=%b", h, a)
+	assert.Zero(t, ^a)
 }
 
-func benchmarkInsertMapInt(b *testing.B, N int) {
-	m := map[int]int{}
-	for i := 0; i < N; i++ {
-		m[i] = i * i
-	}
-	b.ResetTimer()
-	for i := N; i < N+b.N; i++ {
-		m[i] = i * i
-	}
-}
-
-func BenchmarkInsertMapInt0(b *testing.B) {
-	benchmarkInsertMapInt(b, 0)
-}
-
-func BenchmarkInsertMapInt1M(b *testing.B) {
-	benchmarkInsertMapInt(b, 1_000_000)
-}
-
-func benchmarkInsertMapInterface(b *testing.B, N int) {
-	m := map[interface{}]interface{}{}
-	for i := 0; i < N; i++ {
-		m[i] = i * i
-	}
-	b.ResetTimer()
-	for i := N; i < N+b.N; i++ {
-		m[i] = i * i
-	}
-}
-
-func BenchmarkInsertMapInterface0(b *testing.B) {
-	benchmarkInsertMapInterface(b, 0)
-}
-
-func BenchmarkInsertMapInterface1M(b *testing.B) {
-	benchmarkInsertMapInterface(b, 1_000_000)
-}
-
-var hamtPrepop = map[int]hamt{
-	0: empty{},
-	1_000_000: func() hamt {
+var hamtPrepop = func() map[int]hamt {
+	prepop := map[int]hamt{}
+	for _, n := range []int{0, 1 << 10, 1 << 20} {
 		var h hamt = empty{}
-		for i := 0; i < 1_000_000; i++ {
-			h, _ = h.put(i, i*i)
+		for i := 0; i < n; i++ {
+			h, _ = h.put(KV(i, i*i), newBuffer(i))
 		}
-		return h
-	}(),
-}
+		prepop[n] = h
+	}
+	return prepop
+}()
 
-func benchmarkInsertFrozen(b *testing.B, N int) {
-	h := hamtPrepop[N]
-	b.ResetTimer()
-	for i := N; i < N+b.N; i++ {
-		h, _ = h.put(i, i*i)
+func benchmarkInsertFrozenHamt(b *testing.B, n int) {
+	h := hamtPrepop[n]
+	for i := n; i < n+b.N; i++ {
+		h.put(KV(i, i*i), newBuffer(i))
 	}
 }
 
-func BenchmarkInsertFrozen0(b *testing.B) {
-	benchmarkInsertFrozen(b, 0)
+func BenchmarkInsertFrozenHamt0(b *testing.B) {
+	benchmarkInsertFrozenHamt(b, 0)
 }
 
-func BenchmarkInsertFrozen1M(b *testing.B) {
-	benchmarkInsertFrozen(b, 1_000_000)
+func BenchmarkInsertFrozenHamt1k(b *testing.B) {
+	benchmarkInsertFrozenHamt(b, 1<<10)
 }
 
-var mediocrePrepop = map[int]*seq.HashMap{
-	0: seq.NewHashMap(),
-	10_000: func() *seq.HashMap {
-		s := seq.NewHashMap()
-		for i := 0; i < 10_000; i++ {
-			s, _ = s.Set(i, i*i)
-		}
-		return s
-	}(),
-}
-
-func BenchmarkInsertMediocre0(b *testing.B) {
-	benchmarkInsertMediocre(b, 0)
-}
-
-func BenchmarkInsertMediocre10k(b *testing.B) {
-	benchmarkInsertMediocre(b, 10_000)
-}
-
-func benchmarkInsertMediocre(b *testing.B, N int) {
-	s := mediocrePrepop[N]
-	b.ResetTimer()
-	for i := N; i < N+b.N; i++ {
-		s, _ = s.Set(i, i*i)
-	}
+func BenchmarkInsertFrozenHamt1M(b *testing.B) {
+	benchmarkInsertFrozenHamt(b, 1<<20)
 }

@@ -8,7 +8,6 @@ import (
 type Set struct {
 	t     hamt
 	count int
-	hash  uint64
 }
 
 var _ Key = Set{}
@@ -36,34 +35,42 @@ func (s Set) Count() int {
 func (s Set) With(values ...interface{}) Set {
 	t := s.hamt()
 	count := s.count
-	h := s.hash
+	// h := s.hash
 	for _, value := range values {
-		var old *entry
-		t, old = t.put(value, struct{}{})
-		h ^= hash(value)
+		var old element
+		t, old = t.put(element(value), newBuffer(s.count))
+		// h ^= hash(value)
 		if old != nil {
-			h ^= hash(old.value)
+			// h ^= hash(old.value)
 		} else {
 			count++
 		}
 	}
-	return Set{t: t, count: count, hash: h}
+	return Set{
+		t:     t,
+		count: count,
+		// hash: h,
+	}
 }
 
 // Put returns a new Set with all values retained from Set except value.
 func (s Set) Without(values ...interface{}) Set {
 	t := s.hamt()
 	count := s.count
-	h := s.hash
+	// h := s.hash
 	for _, value := range values {
-		var old *entry
-		t, old = t.delete(value)
+		var old element
+		t, old = t.delete(value, newBuffer(s.count-1))
 		if old != nil {
 			count--
-			h ^= hash(old.value)
+			// h ^= hash(old.value)
 		}
 	}
-	return Set{t: t, count: count, hash: h}
+	return Set{
+		t:     t,
+		count: count,
+		// hash:  h,
+	}
 }
 
 // Has returns the value associated with key and true iff the key was found.
@@ -81,12 +88,18 @@ func (s Set) Any() interface{} {
 
 // Hash computes a hash value for s.
 func (s Set) Hash() uint64 {
-	// go run github.com/marcelocantos/primal/cmd/random_primes 1
-	return 10538386443025343807 ^ s.hash
+	var h uint64 = 10538386443025343807
+	for i := s.Range(); i.Next(); {
+		h ^= hash(i.Value())
+	}
+	return h
 }
 
 func (s Set) Equal(i interface{}) bool {
 	if t, ok := i.(Set); ok {
+		if s.Hash() != t.Hash() {
+			return false
+		}
 		return s.SymmetricDifference(t).IsEmpty()
 	}
 	return false
@@ -182,5 +195,5 @@ func (i *SetIter) Next() bool {
 }
 
 func (i *SetIter) Value() interface{} {
-	return i.i.e.key
+	return i.i.e.elem
 }

@@ -12,11 +12,21 @@ func KV(key, value interface{}) KeyValue {
 	return KeyValue{Key: key, Value: value}
 }
 
+func (kv KeyValue) Hash() uint64 {
+	return hash(kv.Key)
+}
+
+func (kv KeyValue) Equal(i interface{}) bool {
+	if kv2, ok := i.(KeyValue); ok {
+		return equal(kv.Key, kv2.Key)
+	}
+	return false
+}
+
 // Map maps keys to values. The zero value is the empty Map.
 type Map struct {
 	t     hamt
 	count int
-	hash  uint64
 }
 
 func NewMap(kvs ...KeyValue) Map {
@@ -41,15 +51,12 @@ func (m Map) Count() int {
 // Put returns a new Map with key associated with value and all other keys
 // retained from m.
 func (m Map) With(key, value interface{}) Map {
-	result, old := m.hamt().put(key, value)
+	result, old := m.hamt().put(KV(key, value), newBuffer(m.count))
 	count := m.count
-	h := m.hash ^ hashKV(key, value)
-	if old != nil {
-		h ^= hashKV(old.key, old.value)
-	} else {
+	if old == nil {
 		count++
 	}
-	return Map{t: result, count: count, hash: h}
+	return Map{t: result, count: count}
 }
 
 // Put returns a new Map with key associated with value and all other keys
@@ -65,26 +72,30 @@ func (m Map) WithKVs(kvs ...KeyValue) Map {
 func (m Map) Without(keys Set) Map {
 	result := m.hamt()
 	count := m.count
-	h := m.hash
 	for k := keys.Range(); k.Next(); {
-		var old *entry
-		result, old = result.delete(k.Value())
+		var old element
+		result, old = result.delete(KV(k.Value(), nil), newBuffer(m.count-1))
 		if old != nil {
 			count--
-			h ^= hashKV(old.key, old.value)
 		}
 	}
-	return Map{t: result, count: count, hash: h}
+	if result == (empty{}) {
+		result = nil
+	}
+	return Map{t: result, count: count}
 }
 
 // Get returns the value associated with key in m and true iff the key was
 // found.
 func (m Map) Get(key interface{}) (interface{}, bool) {
-	return m.hamt().get(key)
+	if kv, has := m.hamt().get(KV(key, nil)); has {
+		return kv.(KeyValue).Value, true
+	}
+	return nil, false
 }
 
 func (m Map) MustGet(key interface{}) interface{} {
-	if value, has := m.hamt().get(key); has {
+	if value, has := m.Get(key); has {
 		return value
 	}
 	panic(fmt.Sprintf("key not found: %v", key))
@@ -152,12 +163,18 @@ func (m Map) Update(n Map) Map {
 
 // Hash computes a hash value for s.
 func (m Map) Hash() uint64 {
-	// go run github.com/marcelocantos/primal/cmd/random_primes 1
-	return 3167960924819262823 ^ m.hash
+	var h uint64 = 3167960924819262823
+	for i := m.Range(); i.Next(); {
+		h ^= 12012876008735959943*hash(i.Key()) + hash(i.Value())
+	}
+	return h
 }
 
 func (m Map) Equal(i interface{}) bool {
 	if n, ok := i.(Map); ok {
+		if m.Hash() != n.Hash() {
+			return false
+		}
 		for i := m.Range(); i.Next(); {
 			if value, has := n.Get(i.Key()); has {
 				if !equal(value, i.Value()) {
@@ -197,7 +214,8 @@ func (m Map) Range() *MapIter {
 }
 
 type MapIter struct {
-	i *hamtIter
+	i  *hamtIter
+	kv KeyValue
 }
 
 func (i *MapIter) Index() int {
@@ -205,18 +223,17 @@ func (i *MapIter) Index() int {
 }
 
 func (i *MapIter) Next() bool {
-	return i.i.next()
+	if i.i.next() {
+		i.kv = i.i.e.elem.(KeyValue)
+		return true
+	}
+	return false
 }
 
 func (i *MapIter) Key() interface{} {
-	return i.i.e.key
+	return i.kv.Key
 }
 
 func (i *MapIter) Value() interface{} {
-	return i.i.e.value
-}
-
-func hashKV(key, value interface{}) uint64 {
-	// go run github.com/marcelocantos/primal/cmd/random_primes 1
-	return hash(struct{ Key, Value interface{} }{Key: key, Value: value})
+	return i.kv.Value
 }

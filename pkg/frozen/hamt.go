@@ -5,16 +5,45 @@ import (
 	"strings"
 )
 
+const (
+	hamtBits = 2
+	hamtSize = 1 << hamtBits
+	hamtMask = hamtSize - 1
+)
+
+type hasher uint64
+
+// TODO: make lazy if depth == 0.
+func newHasher(key interface{}, depth int) hasher {
+	// Use the high four bits as the seed.
+	h := hasher(0b1111<<60 | hash(key))
+	for i := 0; i < depth; i++ {
+		h = h.next(key)
+	}
+	return h
+}
+
+func (h hasher) next(key interface{}) hasher {
+	if h >>= hamtBits; h < 0b1_0000 {
+		return (h-1)<<60 | hasher(hash([2]interface{}{int(h), key})>>4)
+	}
+	return h
+}
+
+func (h hasher) hash() int {
+	return int(h & hamtMask)
+}
+
+type element interface{}
+
 type hamt interface {
 	isEmpty() bool
-	count() int
-	put(key, value interface{}) (result hamt, old *entry)
-	putImpl(e entry, depth int, h hasher) (result hamt, old *entry)
-	get(key interface{}) (interface{}, bool)
-	getImpl(key interface{}, h hasher) (interface{}, bool)
-	delete(key interface{}) (result hamt, old *entry)
-	deleteImpl(key interface{}, h hasher) (result hamt, old *entry)
-	validate()
+	put(elem element, pool *buffer) (result hamt, old element)
+	putImpl(elem element, pool *buffer, depth int, h hasher) (result hamt, old element)
+	get(elem element) (element, bool)
+	getImpl(elem element, h hasher) (element, bool)
+	delete(elem element, pool *buffer) (result hamt, old element)
+	deleteImpl(elem element, pool *buffer, h hasher) (result hamt, old element)
 	String() string
 	iterator() *hamtIter
 }
@@ -29,31 +58,29 @@ func (empty) count() int {
 	return 0
 }
 
-func (e empty) put(key, value interface{}) (result hamt, old *entry) {
-	return e.putImpl(entry{key: key, value: value}, 0, 0)
+func (e empty) put(elem element, pool *buffer) (result hamt, old element) {
+	return e.putImpl(elem, pool, 0, 0)
 }
 
-func (empty) putImpl(e entry, _ int, _ hasher) (result hamt, old *entry) {
-	return e, nil
+func (empty) putImpl(elem element, pool *buffer, _ int, _ hasher) (result hamt, old element) {
+	return entry{elem: elem}, nil
 }
 
-func (empty) get(key interface{}) (interface{}, bool) {
+func (empty) get(elem element) (element, bool) {
 	return nil, false
 }
 
-func (empty) getImpl(key interface{}, _ hasher) (interface{}, bool) {
+func (empty) getImpl(elem element, _ hasher) (element, bool) {
 	return nil, false
 }
 
-func (e empty) delete(key interface{}) (result hamt, old *entry) {
-	return e.deleteImpl(key, 0)
+func (e empty) delete(elem element, pool *buffer) (result hamt, old element) {
+	return e.deleteImpl(elem, pool, 0)
 }
 
-func (e empty) deleteImpl(key interface{}, _ hasher) (result hamt, old *entry) {
+func (e empty) deleteImpl(elem element, pool *buffer, _ hasher) (result hamt, old element) {
 	return e, nil
 }
-
-func (empty) validate() {}
 
 func (empty) String() string {
 	return "∅"
@@ -65,56 +92,41 @@ func (empty) iterator() *hamtIter {
 
 type full [hamtSize]hamt
 
-func newFull() *full {
-	return &full{
-		empty{}, empty{}, empty{}, empty{},
-		empty{}, empty{}, empty{}, empty{},
-	}
-}
-
 func (f *full) isEmpty() bool {
 	return false
 }
 
-func (f *full) count() int {
-	c := 0
-	for _, b := range f {
-		c += b.count()
-	}
-	return c
+func (f *full) put(elem element, pool *buffer) (result hamt, old element) {
+	return f.putImpl(elem, pool, 0, newHasher(elem, 0))
 }
 
-func (f *full) put(key, value interface{}) (result hamt, old *entry) {
-	return f.putImpl(entry{key: key, value: value}, 0, newHasher(key, 0))
-}
-
-func (f *full) putImpl(e entry, depth int, h hasher) (result hamt, old *entry) {
+func (f *full) putImpl(elem element, pool *buffer, depth int, h hasher) (result hamt, old element) {
 	offset := h.hash()
-	r, old := f[offset].putImpl(e, depth+1, h.next(e.key))
-	return f.update(offset, r), old
+	t, old := f[offset].putImpl(elem, pool, depth+1, h.next(elem))
+	return f.update(offset, t, elem, pool), old
 }
 
-func (f *full) get(key interface{}) (interface{}, bool) {
-	return f.getImpl(key, newHasher(key, 0))
+func (f *full) get(elem element) (element, bool) {
+	return f.getImpl(elem, newHasher(elem, 0))
 }
 
-func (f *full) getImpl(key interface{}, h hasher) (interface{}, bool) {
-	return f[h.hash()].getImpl(key, h.next(key))
+func (f *full) getImpl(elem element, h hasher) (element, bool) {
+	return f[h.hash()].getImpl(elem, h.next(elem))
 }
 
-func (f *full) delete(key interface{}) (result hamt, old *entry) {
-	return f.deleteImpl(key, newHasher(key, 0))
+func (f *full) delete(elem element, pool *buffer) (result hamt, old element) {
+	return f.deleteImpl(elem, pool, newHasher(elem, 0))
 }
 
-func (f *full) deleteImpl(key interface{}, h hasher) (result hamt, old *entry) {
+func (f *full) deleteImpl(elem element, pool *buffer, h hasher) (result hamt, old element) {
 	offset := h.hash()
-	if child, old := f[offset].deleteImpl(key, h.next(key)); old != nil {
-		return f.update(offset, child), old
+	if child, old := f[offset].deleteImpl(elem, pool, h.next(elem)); old != nil {
+		return f.update(offset, child, elem, pool), old
 	}
 	return f, nil
 }
 
-func (f *full) update(offset int, t hamt) hamt {
+func (f *full) update(offset int, t hamt, elem element, pool *buffer) hamt {
 	if t.isEmpty() {
 		for i, b := range f {
 			if i != offset && !b.isEmpty() {
@@ -124,16 +136,9 @@ func (f *full) update(offset int, t hamt) hamt {
 		return empty{}
 	}
 notempty:
-	h := newFull()
-	copy(h[:], f[:])
+	h := pool.copy(f)
 	h[offset] = t
 	return h
-}
-
-func (f *full) validate() {
-	for _, v := range f {
-		v.validate()
-	}
 }
 
 func (f *full) String() string {
@@ -154,56 +159,63 @@ func (f *full) iterator() *hamtIter {
 }
 
 type entry struct {
-	key, value interface{}
+	elem interface{}
 }
 
-func (e entry) isEmpty() bool {
+func (entry) isEmpty() bool {
 	return false
 }
 
-func (e entry) count() int {
+func (entry) count() int {
 	return 1
 }
 
-func (e entry) put(key, value interface{}) (result hamt, old *entry) {
-	return e.putImpl(entry{key: key, value: value}, 0, newHasher(key, 0))
+func (e entry) put(elem element, pool *buffer) (result hamt, old element) {
+	return e.putImpl(elem, pool, 0, newHasher(elem, 0))
 }
 
-func (e entry) putImpl(e2 entry, depth int, h hasher) (result hamt, old *entry) {
-	if equal(e.key, e2.key) {
-		return e2, &e
+var empties = func() *full {
+	f := &full{}
+	for i := range f {
+		f[i] = empty{}
 	}
-	result, _ = newFull().putImpl(e, depth, newHasher(e.key, depth))
-	result, _ = result.(*full).putImpl(e2, depth, h)
+	return f
+}()
+
+func (e entry) putImpl(elem element, pool *buffer, depth int, h hasher) (result hamt, old element) {
+	if equal(elem, e.elem) {
+		return entry{elem: elem}, e.elem
+	}
+
+	result, _ = pool.copy(empties).putImpl(e.elem, pool, depth, newHasher(e.elem, depth))
+	result, _ = result.(*full).putImpl(elem, pool, depth, h)
 	return result, nil
 }
 
-func (e entry) get(key interface{}) (interface{}, bool) {
-	return e.getImpl(key, 0)
+func (e entry) get(elem element) (element, bool) {
+	return e.getImpl(elem, 0)
 }
 
-func (e entry) getImpl(key interface{}, _ hasher) (interface{}, bool) {
-	if equal(key, e.key) {
-		return e.value, true
+func (e entry) getImpl(elem element, _ hasher) (element, bool) {
+	if equal(elem, e.elem) {
+		return e.elem, true
 	}
 	return nil, false
 }
 
-func (e entry) delete(key interface{}) (result hamt, old *entry) {
-	return e.deleteImpl(key, 0)
+func (e entry) delete(elem element, pool *buffer) (result hamt, old element) {
+	return e.deleteImpl(elem, pool, 0)
 }
 
-func (e entry) deleteImpl(key interface{}, _ hasher) (result hamt, old *entry) {
-	if equal(key, e.key) {
-		return empty{}, &e
+func (e entry) deleteImpl(elem element, pool *buffer, _ hasher) (result hamt, old element) {
+	if equal(elem, e.elem) {
+		return empty{}, e.elem
 	}
 	return e, nil
 }
 
-func (e entry) validate() {}
-
 func (e entry) String() string {
-	return fmt.Sprintf("%v:%v", e.key, e.value)
+	return fmt.Sprintf("%v", e.elem)
 }
 
 func (e entry) iterator() *hamtIter {
