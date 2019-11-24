@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+
+import collections
+import re
+import sys
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+def benchmark(prefix):
+    return os.popen(
+        'go test -run ^$ -cpuprofile cpu.prof -memprofile mem.prof -benchmem -bench ^BenchmarkInsert ./...',
+        'r',
+    )
+
+def main():
+    input = sys.stdin if not sys.stdin.isatty() else benchmark()
+
+    lineRE = re.compile('BenchmarkInsert([a-zA-Z]*)(\d+)([kM]?)-\d+\s+\d+\s+([\d\.]+)\s+ns/op')
+
+    mults = {
+        '': 1,
+        'k': 1<<10,
+        'M': 1<<20,
+    }
+
+    renames = {
+        'FrozenHamt': 'frozen.hamt',
+        'FrozenMap': 'frozen.Map',
+        'FrozenSet': 'frozen.Set',
+        'MapInt': 'map[int]int',
+        'MapInterface': 'map[interface{}]interface{}',
+        'MediocreHashMap': 'seq.HashMap',
+        'MediocreSet': 'seq.Set',
+        'SetInt': 'set = map[int]struct{}',
+        'SetInterface': 'set = map[interface{}]struct{}',
+    }
+
+    data = collections.defaultdict(dict)
+    xes = set()
+    for line in input.readlines():
+        m = lineRE.match(line)
+        if m:
+            [label, n, m, t] = m.groups()
+            label = renames[label]
+            n = float(n) * mults[m] or 1
+            t = float(t)
+            data[label][n] = t
+            xes.add(n)
+
+    plt.loglog()
+    for label in sorted(data.keys()):
+        xys = sorted(data[label].items())
+        plt.plot(*zip(*xys), label=label, marker='.')
+    plt.ylim(100, 50000)
+    plt.grid(True, axis='x')
+    plt.grid(True, which='major', axis='y')
+    plt.grid(True, which='minor', axis='y', alpha=0.5)
+    plt.figlegend()
+    plt.savefig('assets/benchmarks.png')
+
+if __name__ == '__main__':
+    main()
