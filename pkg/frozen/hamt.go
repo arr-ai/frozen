@@ -3,17 +3,18 @@ package frozen
 import (
 	"fmt"
 	"strings"
+
+	"github.com/marcelocantos/frozen/pkg/value"
 )
 
 const (
-	hamtBits = 2
+	hamtBits = 3
 	hamtSize = 1 << hamtBits
 	hamtMask = hamtSize - 1
 )
 
 type hasher uint64
 
-// TODO: make lazy if depth == 0.
 func newHasher(key interface{}, depth int) hasher {
 	// Use the high four bits as the seed.
 	h := hasher(0b1111<<60 | hash(key))
@@ -34,117 +35,103 @@ func (h hasher) hash() int {
 	return int(h & hamtMask)
 }
 
-type element interface{}
-
-type hamt interface {
-	isEmpty() bool
-	put(elem element, pool *buffer) (result hamt, old element)
-	putImpl(elem element, pool *buffer, depth int, h hasher) (result hamt, old element)
-	get(elem element) (element, bool)
-	getImpl(elem element, h hasher) (element, bool)
-	delete(elem element, pool *buffer) (result hamt, old element)
-	deleteImpl(elem element, pool *buffer, h hasher) (result hamt, old element)
-	String() string
-	iterator() *hamtIter
+type node struct {
+	mask     uint
+	children [hamtSize]*node
+	elem     interface{}
 }
 
-type empty struct{}
-
-func (empty) isEmpty() bool {
-	return true
+func (n *node) put(elem interface{}) (result *node, old interface{}) {
+	return n.putImpl(elem, 0, newHasher(elem, 0))
 }
 
-func (empty) count() int {
-	return 0
-}
-
-func (e empty) put(elem element, pool *buffer) (result hamt, old element) {
-	return e.putImpl(elem, pool, 0, 0)
-}
-
-func (empty) putImpl(elem element, pool *buffer, _ int, _ hasher) (result hamt, old element) {
-	return entry{elem: elem}, nil
-}
-
-func (empty) get(elem element) (element, bool) {
-	return nil, false
-}
-
-func (empty) getImpl(elem element, _ hasher) (element, bool) {
-	return nil, false
-}
-
-func (e empty) delete(elem element, pool *buffer) (result hamt, old element) {
-	return e.deleteImpl(elem, pool, 0)
-}
-
-func (e empty) deleteImpl(elem element, pool *buffer, _ hasher) (result hamt, old element) {
-	return e, nil
-}
-
-func (empty) String() string {
-	return "∅"
-}
-
-func (empty) iterator() *hamtIter {
-	return newHamtIter(nil)
-}
-
-type full [hamtSize]hamt
-
-func (f *full) isEmpty() bool {
-	return false
-}
-
-func (f *full) put(elem element, pool *buffer) (result hamt, old element) {
-	return f.putImpl(elem, pool, 0, newHasher(elem, 0))
-}
-
-func (f *full) putImpl(elem element, pool *buffer, depth int, h hasher) (result hamt, old element) {
-	offset := h.hash()
-	t, old := f[offset].putImpl(elem, pool, depth+1, h.next(elem))
-	return f.update(offset, t, elem, pool), old
-}
-
-func (f *full) get(elem element) (element, bool) {
-	return f.getImpl(elem, newHasher(elem, 0))
-}
-
-func (f *full) getImpl(elem element, h hasher) (element, bool) {
-	return f[h.hash()].getImpl(elem, h.next(elem))
-}
-
-func (f *full) delete(elem element, pool *buffer) (result hamt, old element) {
-	return f.deleteImpl(elem, pool, newHasher(elem, 0))
-}
-
-func (f *full) deleteImpl(elem element, pool *buffer, h hasher) (result hamt, old element) {
-	offset := h.hash()
-	if child, old := f[offset].deleteImpl(elem, pool, h.next(elem)); old != nil {
-		return f.update(offset, child, elem, pool), old
-	}
-	return f, nil
-}
-
-func (f *full) update(offset int, t hamt, elem element, pool *buffer) hamt {
-	if t.isEmpty() {
-		for i, b := range f {
-			if i != offset && !b.isEmpty() {
-				goto notempty
-			}
+func (n *node) putImpl(elem interface{}, depth int, h hasher) (result *node, old interface{}) {
+	switch {
+	case n == nil:
+		return &node{elem: elem}, nil
+	case n.elem != nil:
+		if value.Equal(elem, n.elem) {
+			return &node{elem: elem}, n.elem
 		}
-		return empty{}
+		offset := newHasher(n.elem, depth).hash()
+		result = &node{mask: 1 << offset}
+		result.children[offset] = n
+		return result.putImpl(elem, depth, h)
+	default:
+		offset := h.hash()
+		t, old := n.children[offset].putImpl(elem, depth+1, h.next(elem))
+		return n.update(offset, t), old
 	}
-notempty:
-	h := pool.copy(f)
-	h[offset] = t
-	return h
 }
 
-func (f *full) String() string {
+func (n *node) get(elem interface{}) interface{} {
+	return n.getImpl(elem, newHasher(elem, 0))
+}
+
+func (n *node) getImpl(elem interface{}, h hasher) interface{} {
+	switch {
+	case n == nil:
+		return nil
+	case n.elem != nil:
+		if value.Equal(elem, n.elem) {
+			return n.elem
+		}
+		return nil
+	default:
+		return n.children[h.hash()].getImpl(elem, h.next(elem))
+	}
+}
+
+func (n *node) delete(elem interface{}) (result *node, old interface{}) {
+	return n.deleteImpl(elem, newHasher(elem, 0))
+}
+
+func (n *node) deleteImpl(elem interface{}, h hasher) (result *node, old interface{}) {
+	switch {
+	case n == nil:
+	case n.elem != nil:
+		if value.Equal(elem, n.elem) {
+			return nil, n.elem
+		}
+	default:
+		offset := h.hash()
+		if child, old := n.children[offset].deleteImpl(elem, h.next(elem)); old != nil {
+			return n.update(offset, child), old
+		}
+	}
+	return n, nil
+}
+
+func (n *node) update(offset int, child *node) *node {
+	mask := uint(1) << offset
+	if n.mask&^mask == 0 {
+		if child == nil {
+			return nil
+		}
+		if child.elem != nil {
+			return child
+		}
+	}
+	result := *n
+	result.children[offset] = child
+	if child != nil {
+		result.mask |= mask
+	} else {
+		result.mask &= ^mask
+	}
+	return &result
+}
+
+func (n *node) String() string {
+	if n == nil {
+		return "∅"
+	}
+	if n.elem != nil {
+		return fmt.Sprintf("%v", n.elem)
+	}
 	var b strings.Builder
 	b.WriteString("[")
-	for i, v := range f {
+	for i, v := range n.children {
 		if i > 0 {
 			b.WriteString(",")
 		}
@@ -154,98 +141,40 @@ func (f *full) String() string {
 	return b.String()
 }
 
-func (f *full) iterator() *hamtIter {
-	return newHamtIter(f[:])
-}
-
-type entry struct {
-	elem interface{}
-}
-
-func (entry) isEmpty() bool {
-	return false
-}
-
-func (entry) count() int {
-	return 1
-}
-
-func (e entry) put(elem element, pool *buffer) (result hamt, old element) {
-	return e.putImpl(elem, pool, 0, newHasher(elem, 0))
-}
-
-var empties = func() *full {
-	f := &full{}
-	for i := range f {
-		f[i] = empty{}
+func (n *node) iterator() *hamtIter {
+	if n == nil {
+		return newHamtIter(nil)
 	}
-	return f
-}()
-
-func (e entry) putImpl(elem element, pool *buffer, depth int, h hasher) (result hamt, old element) {
-	if equal(elem, e.elem) {
-		return entry{elem: elem}, e.elem
+	if n.elem != nil {
+		return newHamtIter([]*node{n})
 	}
-
-	result, _ = pool.copy(empties).putImpl(e.elem, pool, depth, newHasher(e.elem, depth))
-	result, _ = result.(*full).putImpl(elem, pool, depth, h)
-	return result, nil
-}
-
-func (e entry) get(elem element) (element, bool) {
-	return e.getImpl(elem, 0)
-}
-
-func (e entry) getImpl(elem element, _ hasher) (element, bool) {
-	if equal(elem, e.elem) {
-		return e.elem, true
-	}
-	return nil, false
-}
-
-func (e entry) delete(elem element, pool *buffer) (result hamt, old element) {
-	return e.deleteImpl(elem, pool, 0)
-}
-
-func (e entry) deleteImpl(elem element, pool *buffer, _ hasher) (result hamt, old element) {
-	if equal(elem, e.elem) {
-		return empty{}, e.elem
-	}
-	return e, nil
-}
-
-func (e entry) String() string {
-	return fmt.Sprintf("%v", e.elem)
-}
-
-func (e entry) iterator() *hamtIter {
-	return newHamtIter([]hamt{e})
+	return newHamtIter(n.children[:])
 }
 
 type hamtIter struct {
-	stk [][]hamt
-	e   entry
-	i   int
+	stk  [][]*node
+	elem interface{}
 }
 
-func newHamtIter(base []hamt) *hamtIter {
-	return &hamtIter{stk: [][]hamt{base}, i: -1}
+func newHamtIter(base []*node) *hamtIter {
+	return &hamtIter{stk: [][]*node{base}}
 }
 
 func (i *hamtIter) next() bool {
 	for {
-		if basep := &i.stk[len(i.stk)-1]; len(*basep) > 0 {
-			b := (*basep)[0]
-			*basep = (*basep)[1:]
-			switch b := b.(type) {
-			case entry:
-				i.e = b
-				i.i++
+		if nodesp := &i.stk[len(i.stk)-1]; len(*nodesp) > 0 {
+			b := (*nodesp)[0]
+			*nodesp = (*nodesp)[1:]
+			switch {
+			case b == nil:
+			case b.elem != nil:
+				i.elem = b.elem
 				return true
-			case *full:
-				i.stk = append(i.stk, b[:])
+			default:
+				i.stk = append(i.stk, b.children[:])
 			}
 		} else if i.stk = i.stk[:len(i.stk)-1]; len(i.stk) == 0 {
+			i.elem = nil
 			return false
 		}
 	}

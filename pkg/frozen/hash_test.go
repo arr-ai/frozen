@@ -100,9 +100,11 @@ var cornucopia = func() []interface{} {
 	type uintptrBar int64
 
 	for _, i := range []uint64{0, 42} {
-		result = append(result, uint(i), uint8(i), uint16(i), uint32(i), uint64(i))
+		result = append(result, uint(i), uint8(i), uint16(i), uint32(i), i)
 		result = append(result, uintFoo(i), uint8Foo(i), uint16Foo(i), uint32Foo(i), uint64Foo(i))
+		result = append(result, uintptrFoo(i))
 		result = append(result, uintBar(i), uint8Bar(i), uint16Bar(i), uint32Bar(i), uint64Bar(i))
+		result = append(result, uintptrBar(i))
 	}
 
 	type float32Foo float32
@@ -117,7 +119,7 @@ var cornucopia = func() []interface{} {
 	}
 
 	for _, f := range floats {
-		result = append(result, float32(f), float64(f))
+		result = append(result, float32(f), f)
 		result = append(result, float32Foo(f), float64Foo(f))
 		result = append(result, float32Bar(f), float64Bar(f))
 	}
@@ -133,7 +135,7 @@ var cornucopia = func() []interface{} {
 		for _, im := range floats {
 			result = append(result, c64(re, im), c128(re, im))
 			result = append(result, complex64Foo(c64(re, im)), complex128Foo(c128(re, im)))
-			result = append(result, complex64Bar(c64(re, im)), complex64Bar(c128(re, im)))
+			result = append(result, complex64Bar(c64(re, im)), complex128Bar(c128(re, im)))
 		}
 	}
 
@@ -160,7 +162,6 @@ var cornucopia = func() []interface{} {
 		m[i] = struct{}{}
 	}
 
-	result = result[:]
 	for i := range m {
 		result = append(result, i)
 	}

@@ -4,77 +4,82 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-
-func TestHamtEmpty(t *testing.T) {
-	t.Parallel()
-
-	var h hamt = empty{}
-	assert.True(t, h.isEmpty())
-}
 
 func TestHamtSmall(t *testing.T) {
 	t.Parallel()
 
-	var h hamt = empty{}
-	assert.True(t, h.isEmpty())
-	h, _ = h.put(KV("foo", 42), newBuffer(0))
-	assert.False(t, h.isEmpty())
-	h, _ = h.put(KV("bar", 43), newBuffer(1))
-	assert.False(t, h.isEmpty())
-	h, _ = h.put(KV("foo", 44), newBuffer(2))
-	assert.False(t, h.isEmpty())
+	var h *node
+	h, _ = h.put(KV("foo", 42))
+	assert.NotNil(t, h)
+	h, _ = h.put(KV("bar", 43))
+	assert.NotNil(t, h)
+	h, _ = h.put(KV("foo", 44))
+	assert.NotNil(t, h)
 }
 
 func TestHamtLarge(t *testing.T) {
 	t.Parallel()
 
-	hh := []hamt{}
-	var h hamt = empty{}
+	hh := []*node{}
+	var h *node
 	for i := 0; i < 500; i++ {
 		hh = append(hh, h)
-		h, _ = h.put(KV(i, i*i), newBuffer(i))
+		for j := 0; j < i; j++ {
+			kv := h.get(KV(j, nil))
+			if assert.NotNil(t, kv, "i=%v j=%v", i, j) {
+				assert.Equal(t, j*j, kv.(KeyValue).Value, "i=%v j=%v", i, j)
+			}
+		}
+		kv := h.get(KV(i, nil))
+		if !assert.Nil(t, kv, "i=%v v=%v", i, kv) {
+			h.get(KV(i, nil))
+		}
+		h, _ = h.put(KV(i, i*i))
 	}
 	for i, h := range hh {
 		for j := 0; j < i; j++ {
-			v, has := h.get(KV(j, nil))
-			if assert.True(t, has, "i=%v j=%v", i, j) {
-				assert.Equal(t, j*j, v.(KeyValue).Value, "i=%v j=%v", i, j)
+			kv := h.get(KV(j, nil))
+			if assert.NotNil(t, kv, "i=%v j=%v", i, j) {
+				assert.Equal(t, j*j, kv.(KeyValue).Value, "i=%v j=%v", i, j)
+			} else {
+				h.get(KV(j, nil))
 			}
 		}
-		kv, has := h.get(KV(i, nil))
-		assert.False(t, has, "i=%v v=%v", i, kv)
+		kv := h.get(KV(i, nil))
+		assert.Nil(t, kv, "i=%v v=%v", i, kv)
 	}
 }
 
 func TestHamtGet(t *testing.T) {
 	t.Parallel()
 
-	hh := []hamt{}
-	var h hamt = empty{}
+	hh := []*node{}
+	var h *node
 	for i := 0; i < 500; i++ {
+		i := i
 		hh = append(hh, h)
 		var kv interface{}
-		var has bool
 		if assert.NotPanics(t, func() {
-			kv, has = h.get(i)
+			kv = h.get(i)
 		}, "i=%v", i) {
-			assert.False(t, has, "i=%v v=%v", i, kv)
+			assert.Nil(t, kv, "i=%v v=%v", i, kv)
 		} else {
 			h.get(i)
 		}
 		hOld := h
-		h, _ = h.put(KV(i, i*i), newBuffer(i))
-		if kv, has := h.get(KV(i, nil)); assert.True(t, has, "i=%v", i) {
+		h, _ = h.put(KV(i, i*i))
+		if kv := h.get(KV(i, nil)); assert.NotNil(t, kv, "i=%v", i) {
 			if !assert.Equal(t, i*i, kv.(KeyValue).Value, "i=%v", i) {
-				hOld.put(KV(i, i*i), newBuffer(i))
+				hOld.put(KV(i, i*i))
 				h.get(KV(i, nil))
 			}
 		}
 	}
 	for i, h := range hh {
 		for j := 0; j < i; j++ {
-			if kv, has := h.get(KV(j, nil)); assert.True(t, has, "i=%v j=%v", i, j) {
+			if kv := h.get(KV(j, nil)); assert.NotNil(t, kv, "i=%v j=%v", i, j) {
 				assert.Equal(t, j*j, kv.(KeyValue).Value, "i=%v j=%v kv=%v", i, j, kv)
 			}
 		}
@@ -84,82 +89,78 @@ func TestHamtGet(t *testing.T) {
 func TestHamtDelete(t *testing.T) {
 	t.Parallel()
 
-	var h hamt = empty{}
+	var h *node
 	const N = 1000
 	for i := 0; i < N; i++ {
-		h, _ = h.put(i, newBuffer(i))
+		h, _ = h.put(i)
 	}
 
 	d := h
 	for i := 0; i < N; i++ {
-		assert.False(t, h.isEmpty())
-		_, has := d.get(i)
-		if assert.True(t, has, "i=%v", i) {
-			d, _ = d.delete(i, newBuffer(N-i))
-			v, has := d.get(i)
-			assert.False(t, has, "i=%v v=%v", i, v)
-		}
+		assert.NotNil(t, h)
+		require.NotNil(t, d.get(i), "i=%v", i)
+		d, _ = d.delete(i)
+		assert.Nil(t, d.get(i), "i=%v", i)
 	}
-	assert.True(t, d.isEmpty())
+	assert.Nil(t, d)
 
 	d = h
 	for i := N; i > 0; {
 		i--
-		assert.False(t, h.isEmpty())
-		_, has := d.get(i)
-		if assert.True(t, has, "i=%v", i) {
-			d, _ = d.delete(i, newBuffer(i-1))
-			v, has := d.get(i)
-			assert.False(t, has, "i=%v, v=%v", i, v)
+		assert.NotNil(t, h)
+		v := d.get(i)
+		if assert.NotNil(t, v, "i=%v", i) {
+			d, _ = d.delete(i)
+			v := d.get(i)
+			assert.Nil(t, v, "i=%v", i)
 		}
 	}
-	assert.True(t, d.isEmpty())
+	assert.Nil(t, d)
 }
 
 func TestHamtDeleteMissing(t *testing.T) {
 	t.Parallel()
 
-	h, _ := empty{}.put("foo", newBuffer(0))
-	h, _ = h.delete("bar", newBuffer(0))
-	assert.False(t, h.isEmpty())
-	h, _ = h.delete("foo", newBuffer(0))
-	assert.True(t, h.isEmpty())
+	h, _ := ((*node)(nil)).put("foo")
+	h, _ = h.delete("bar")
+	assert.NotNil(t, h)
+	h, _ = h.delete("foo")
+	assert.True(t, h == nil)
 }
 
 func TestHamtIter(t *testing.T) {
 	t.Parallel()
 
-	var h hamt = empty{}
+	var h *node
 	for i := 0; i < 64; i++ {
-		h, _ = h.put(i, newBuffer(i))
+		h, _ = h.put(i)
 	}
 
 	var a uint64 = 0
 	n := 0
 	for it := h.iterator(); it.next(); n++ {
-		i := it.e.elem.(int)
+		i, ok := it.elem.(int)
+		require.True(t, ok)
 		a |= uint64(1) << i
 	}
 	assert.Equal(t, 64, n, "h=%v a=%b", h, a)
 	assert.Zero(t, ^a)
 }
 
-var hamtPrepop = func() map[int]hamt {
-	prepop := map[int]hamt{}
-	for _, n := range []int{0, 1 << 10, 1 << 20} {
-		var h hamt = empty{}
-		for i := 0; i < n; i++ {
-			h, _ = h.put(KV(i, i*i), newBuffer(i))
-		}
-		prepop[n] = h
+var prepopHamt = memoizePrepop(func(n int) interface{} {
+	var h *node
+	for i := 0; i < n; i++ {
+		h, _ = h.put(KV(i, i*i))
 	}
-	return prepop
-}()
+	return h
+})
 
 func benchmarkInsertFrozenHamt(b *testing.B, n int) {
-	h := hamtPrepop[n]
+	h := prepopHamt(n).(*node)
+	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
-		h.put(KV(i, i*i), newBuffer(i))
+		kv := KV(i, i*i)
+		h.put(kv)
 	}
 }
 

@@ -2,29 +2,24 @@ package frozen
 
 import (
 	"fmt"
+
+	"github.com/marcelocantos/frozen/pkg/value"
 )
 
 // Set holds a set of values. The zero value is the empty Set.
 type Set struct {
-	t     hamt
+	n     *node
 	count int
 }
 
-var _ Key = Set{}
+var _ value.Key = Set{}
 
 func NewSet(values ...interface{}) Set {
 	return Set{}.With(values...)
 }
 
-func (s Set) hamt() hamt {
-	if s.t == nil {
-		return empty{}
-	}
-	return s.t
-}
-
 func (s Set) IsEmpty() bool {
-	return s.hamt().isEmpty()
+	return s.n == nil
 }
 
 func (s Set) Count() int {
@@ -33,50 +28,41 @@ func (s Set) Count() int {
 
 // With returns a new Set containing value and all other values retained from m.
 func (s Set) With(values ...interface{}) Set {
-	t := s.hamt()
+	t := s.n
 	count := s.count
-	// h := s.hash
 	for _, value := range values {
-		var old element
-		t, old = t.put(element(value), newBuffer(s.count))
-		// h ^= hash(value)
-		if old != nil {
-			// h ^= hash(old.value)
-		} else {
+		var old interface{}
+		t, old = t.put(value)
+		if old == nil {
 			count++
 		}
 	}
 	return Set{
-		t:     t,
+		n:     t,
 		count: count,
-		// hash: h,
 	}
 }
 
 // Put returns a new Set with all values retained from Set except value.
 func (s Set) Without(values ...interface{}) Set {
-	t := s.hamt()
+	t := s.n
 	count := s.count
-	// h := s.hash
 	for _, value := range values {
-		var old element
-		t, old = t.delete(value, newBuffer(s.count-1))
+		var old interface{}
+		t, old = t.delete(value)
 		if old != nil {
 			count--
-			// h ^= hash(old.value)
 		}
 	}
 	return Set{
-		t:     t,
+		n:     t,
 		count: count,
-		// hash:  h,
 	}
 }
 
 // Has returns the value associated with key and true iff the key was found.
-func (s Set) Has(value interface{}) bool {
-	_, has := s.hamt().get(value)
-	return has
+func (s Set) Has(val interface{}) bool {
+	return s.n.get(val) != nil
 }
 
 func (s Set) Any() interface{} {
@@ -111,8 +97,8 @@ func (s Set) String() string {
 
 func (s Set) Format(f fmt.State, _ rune) {
 	f.Write([]byte("["))
-	for i := s.Range(); i.Next(); {
-		if i.Index() > 0 {
+	for i, n := s.Range(), 0; i.Next(); n++ {
+		if n > 0 {
 			f.Write([]byte(", "))
 		}
 		fmt.Fprintf(f, "%v", i.Value())
@@ -152,8 +138,8 @@ func (s Set) Minus(t Set) Set {
 func (s Set) Intersection(t Set) Set {
 	var r Set
 	for i := s.Range(); i.Next(); {
-		value := i.Value()
-		if t.Has(value) {
+		val := i.Value()
+		if t.Has(val) {
 			r = r.With(i.Value())
 		}
 	}
@@ -179,15 +165,11 @@ func (s Set) Union(t Set) Set {
 }
 
 func (s Set) Range() *SetIter {
-	return &SetIter{i: s.hamt().iterator()}
+	return &SetIter{i: s.n.iterator()}
 }
 
 type SetIter struct {
 	i *hamtIter
-}
-
-func (i *SetIter) Index() int {
-	return i.i.i
 }
 
 func (i *SetIter) Next() bool {
@@ -195,5 +177,5 @@ func (i *SetIter) Next() bool {
 }
 
 func (i *SetIter) Value() interface{} {
-	return i.i.e.elem
+	return i.i.elem
 }

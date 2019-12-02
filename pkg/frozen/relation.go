@@ -28,8 +28,8 @@ func (s Set) Nest(attr interface{}, attrs Set) Set {
 		nested := acc.(Map).ValueElse(key, Set{})
 		return acc.(Map).With(key, nested.(Set).With(t.Project(attrs)))
 	}, Map{}).(Map)
-	return m.Reduce(func(acc, key, value interface{}) interface{} {
-		return acc.(Set).With(key.(Map).With(attr, value))
+	return m.Reduce(func(acc, key, val interface{}) interface{} {
+		return acc.(Set).With(key.(Map).With(attr, val))
 	}, Set{}).(Set)
 }
 

@@ -6,6 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/cespare/xxhash"
+	"github.com/marcelocantos/frozen/pkg/value"
 )
 
 type HashMixer struct {
@@ -20,14 +21,23 @@ func (m HashMixer) Hash(h uint64) HashMixer {
 	return HashMixer{seed: (m.seed + h) * 11694109732069118083}
 }
 
+func (m HashMixer) HashValue(h uint64) uint64 {
+	return m.Hash(h).Value()
+}
+
 func (m HashMixer) Interface(i interface{}) HashMixer {
 	return m.Hash(hash(i))
+}
+
+func (m HashMixer) InterfaceValue(h uint64) uint64 {
+	return m.Interface(h).Value()
 }
 
 func (m HashMixer) Value() uint64 {
 	return m.seed
 }
 
+//nolint:gochecknoglobals
 var (
 	// These mixers exist primarily to ensure that different types with the same
 	// numeric values yield different hashes. We include all primitive types for
@@ -51,88 +61,51 @@ var (
 	stringMixer     = valueMixer(reflect.ValueOf(string(0)))
 )
 
+//nolint:gocyclo,funlen
 func hash(i interface{}) uint64 {
 	switch k := i.(type) {
-	case Hashable:
+	case value.Hashable:
 		return k.Hash()
 	case [2]interface{}: // Optimisation for hasher.next
-		return NewHashMixer(9647128711510533157).Hash(hashInterfaceSlice(k[:])).Value()
+		return NewHashMixer(9647128711510533157).HashValue(hashInterfaceSlice(k[:]))
 	case bool:
-		return boolMixer.Hash(hashBool(k)).Value()
+		return boolMixer.HashValue(hashBool(k))
 	case int:
-		return intMixer.Hash(hashInt(int64(k))).Value()
+		return intMixer.HashValue(hashInt(int64(k)))
 	case int8:
-		return int8Mixer.Hash(hashInt(int64(k))).Value()
+		return int8Mixer.HashValue(hashInt(int64(k)))
 	case int16:
-		return int16Mixer.Hash(hashInt(int64(k))).Value()
+		return int16Mixer.HashValue(hashInt(int64(k)))
 	case int32:
-		return int32Mixer.Hash(hashInt(int64(k))).Value()
+		return int32Mixer.HashValue(hashInt(int64(k)))
 	case int64:
-		return int64Mixer.Hash(hashInt(k)).Value()
+		return int64Mixer.HashValue(hashInt(k))
 	case uint:
-		return uintMixer.Hash(hashUint(uint64(k))).Value()
+		return uintMixer.HashValue(hashUint(uint64(k)))
 	case uint8:
-		return uint8Mixer.Hash(hashUint(uint64(k))).Value()
+		return uint8Mixer.HashValue(hashUint(uint64(k)))
 	case uint16:
-		return uint16Mixer.Hash(hashUint(uint64(k))).Value()
+		return uint16Mixer.HashValue(hashUint(uint64(k)))
 	case uint32:
-		return uint32Mixer.Hash(hashUint(uint64(k))).Value()
+		return uint32Mixer.HashValue(hashUint(uint64(k)))
 	case uint64:
-		return uint64Mixer.Hash(hashUint(k)).Value()
+		return uint64Mixer.HashValue(hashUint(k))
 	case uintptr:
-		return uintptrMixer.Hash(hashUint(uint64(k))).Value()
+		return uintptrMixer.HashValue(hashUint(uint64(k)))
 	case float32:
-		return float32Mixer.Hash(hashFloat(float64(k))).Value()
+		return float32Mixer.HashValue(hashFloat(float64(k)))
 	case float64:
-		return float64Mixer.Hash(hashFloat(k)).Value()
+		return float64Mixer.HashValue(hashFloat(k))
 	case complex64:
-		return complex64Mixer.Hash(hashComplex(complex128(k))).Value()
+		return complex64Mixer.HashValue(hashComplex(complex128(k)))
 	case complex128:
-		return complex128Mixer.Hash(hashComplex(k)).Value()
+		return complex128Mixer.HashValue(hashComplex(k))
 	case string:
-		return stringMixer.Hash(hashString(k)).Value()
+		return stringMixer.HashValue(hashString(k))
 	case []interface{}:
-		return NewHashMixer(17001635779303974173).Hash(hashInterfaceSlice(k)).Value()
+		return NewHashMixer(17001635779303974173).HashValue(hashInterfaceSlice(k))
 	default:
-		v := reflect.ValueOf(k)
-		switch v.Kind() {
-		case reflect.Bool:
-			return valueMixer(v).Hash(hashBool(v.Bool())).Value()
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			return valueMixer(v).Hash(hashInt(v.Int())).Value()
-		case reflect.Uint, reflect.Uintptr, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			return valueMixer(v).Hash(hashUint(v.Uint())).Value()
-		case reflect.UnsafePointer:
-			return valueMixer(v).Hash(hashUint(uint64(v.Pointer()))).Value()
-		case reflect.Float32, reflect.Float64:
-			return valueMixer(v).Hash(hashFloat(v.Float())).Value()
-		case reflect.Complex64, reflect.Complex128:
-			return valueMixer(v).Hash(hashComplex(v.Complex())).Value()
-		case reflect.String:
-			return valueMixer(v).Hash(hashString(v.String())).Value()
-		case reflect.Struct:
-			t := v.Type()
-			mixer := valueMixer(v)
-			for i := v.NumField(); i > 0; {
-				i--
-				f := v.Field(i)
-				mixer = mixer.Hash(hashString(t.Field(i).Name))
-				mixer = mixer.Interface(f.Interface())
-			}
-			return mixer.Value()
-		case reflect.Array:
-			mixer := valueMixer(v)
-			for i := v.Len(); i > 0; {
-				i--
-				mixer = mixer.Interface(v.Index(i).Interface())
-			}
-			return mixer.Value()
-		case reflect.Ptr:
-			mixer := valueMixer(v)
-			mixer = mixer.Hash(hashUint(uint64(v.Pointer())))
-			return mixer.Value()
-		}
-		panic(fmt.Sprintf("value %v has unhashable type %[1]T", i))
+		return hashValue(reflect.ValueOf(k))
 	}
 }
 
@@ -149,13 +122,13 @@ func hashInt(i int64) uint64 {
 
 // https://gist.github.com/badboy/6267743
 func hashUint(u uint64) uint64 {
-	u = (^u) + (u << 21) // i = (i << 21) - i - 1;
-	u = u ^ (u >> 24)
-	u = (u + (u << 3)) + (u << 8) // i * 265
-	u = u ^ (u >> 14)
-	u = (u + (u << 2)) + (u << 4) // i * 21
-	u = u ^ (u >> 28)
-	u = u + (u << 31)
+	u = ^u + u<<21
+	u ^= u >> 24
+	u *= 265
+	u ^= u >> 14
+	u *= 21
+	u ^= u >> 28
+	u *= 1 + 1<<31
 	return u
 }
 
@@ -171,6 +144,53 @@ func hashString(s string) uint64 {
 	return xxhash.Sum64([]byte(s))
 }
 
+func hashValue(v reflect.Value) uint64 {
+	switch v.Kind() {
+	case reflect.Bool:
+		return valueMixer(v).HashValue(hashBool(v.Bool()))
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return valueMixer(v).HashValue(hashInt(v.Int()))
+	case reflect.Uint, reflect.Uintptr, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return valueMixer(v).HashValue(hashUint(v.Uint()))
+	case reflect.UnsafePointer:
+		return valueMixer(v).HashValue(hashUint(uint64(v.Pointer())))
+	case reflect.Float32, reflect.Float64:
+		return valueMixer(v).HashValue(hashFloat(v.Float()))
+	case reflect.Complex64, reflect.Complex128:
+		return valueMixer(v).HashValue(hashComplex(v.Complex()))
+	case reflect.String:
+		return valueMixer(v).HashValue(hashString(v.String()))
+	case reflect.Struct:
+		return hashStruct(v)
+	case reflect.Array:
+		return hashArray(v)
+	case reflect.Ptr:
+		return valueMixer(v).HashValue(hashUint(uint64(v.Pointer())))
+	}
+	panic(fmt.Sprintf("value %v has unhashable type %v", v, v.Type()))
+}
+
+func hashStruct(v reflect.Value) uint64 {
+	t := v.Type()
+	mixer := valueMixer(v)
+	for i := v.NumField(); i > 0; {
+		i--
+		f := v.Field(i)
+		mixer = mixer.Hash(hashString(t.Field(i).Name))
+		mixer = mixer.Interface(f.Interface())
+	}
+	return mixer.Value()
+}
+
+func hashArray(v reflect.Value) uint64 {
+	mixer := valueMixer(v)
+	for i := v.Len(); i > 0; {
+		i--
+		mixer = mixer.Interface(v.Index(i).Interface())
+	}
+	return mixer.Value()
+}
+
 func hashInterfaceSlice(slice []interface{}) uint64 {
 	mixer := NewHashMixer(8687379964562119237)
 	for _, elem := range slice {
@@ -179,8 +199,8 @@ func hashInterfaceSlice(slice []interface{}) uint64 {
 	return mixer.Value()
 }
 
-func valueMixer(value reflect.Value) HashMixer {
-	t := value.Type()
+func valueMixer(val reflect.Value) HashMixer {
+	t := val.Type()
 	return NewHashMixer(756276936141926161).
 		Hash(hashUint(uint64(t.Kind()))).
 		Hash(hashString(t.PkgPath())).

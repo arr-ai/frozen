@@ -2,15 +2,18 @@ package frozen
 
 import (
 	"testing"
-
-	"github.com/mediocregopher/seq"
 )
 
-func benchmarkInsertSetInt(b *testing.B, n int) {
+var prepopSetInt = memoizePrepop(func(n int) interface{} {
 	m := map[int]struct{}{}
 	for i := 0; i < n; i++ {
 		m[i] = struct{}{}
 	}
+	return m
+})
+
+func benchmarkInsertSetInt(b *testing.B, n int) {
+	m := prepopSetInt(n).(map[int]struct{})
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
 		m[i] = struct{}{}
@@ -29,11 +32,16 @@ func BenchmarkInsertSetInt1M(b *testing.B) {
 	benchmarkInsertSetInt(b, 1<<20)
 }
 
-func benchmarkInsertSetInterface(b *testing.B, n int) {
+var prepopSetInterface = memoizePrepop(func(n int) interface{} {
 	m := map[interface{}]struct{}{}
 	for i := 0; i < n; i++ {
 		m[i] = struct{}{}
 	}
+	return m
+})
+
+func benchmarkInsertSetInterface(b *testing.B, n int) {
+	m := prepopSetInterface(n).(map[interface{}]struct{})
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
 		m[i] = struct{}{}
@@ -52,20 +60,16 @@ func BenchmarkInsertSetInterface1M(b *testing.B) {
 	benchmarkInsertSetInterface(b, 1<<20)
 }
 
-var frozenSetPrepop = func() map[int]Set {
-	prepop := map[int]Set{}
-	for _, n := range []int{0, 1 << 10, 1 << 20} {
-		var s Set
-		for i := 0; i < n; i++ {
-			s = s.With(i)
-		}
-		prepop[n] = s
+var prepopFrozenSet = memoizePrepop(func(n int) interface{} {
+	var s Set
+	for i := 0; i < n; i++ {
+		s = s.With(i)
 	}
-	return prepop
-}()
+	return s
+})
 
 func benchmarkInsertFrozenSet(b *testing.B, n int) {
-	s := frozenSetPrepop[n]
+	s := prepopFrozenSet(n).(Set)
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
 		s.With(i)
@@ -82,36 +86,4 @@ func BenchmarkInsertFrozenSet1k(b *testing.B) {
 
 func BenchmarkInsertFrozenSet1M(b *testing.B) {
 	benchmarkInsertFrozenSet(b, 1<<20)
-}
-
-var mediocreSetPrepop = func() map[int]*seq.Set {
-	prepop := map[int]*seq.Set{}
-	for _, n := range []int{0, 10, 10 << 10} {
-		s := seq.NewSet()
-		for i := 0; i < n; i++ {
-			s, _ = s.SetVal(i)
-		}
-		prepop[n] = s
-	}
-	return prepop
-}()
-
-func benchmarkInsertMediocreSet(b *testing.B, n int) {
-	s := mediocreSetPrepop[n]
-	b.ResetTimer()
-	for i := n; i < n+b.N; i++ {
-		s.SetVal(i)
-	}
-}
-
-func BenchmarkInsertMediocreSet0(b *testing.B) {
-	benchmarkInsertMediocreSet(b, 0)
-}
-
-func BenchmarkInsertMediocreSet10(b *testing.B) {
-	benchmarkInsertMediocreSet(b, 10)
-}
-
-func BenchmarkInsertMediocreSet10k(b *testing.B) {
-	benchmarkInsertMediocreSet(b, 10<<10)
 }

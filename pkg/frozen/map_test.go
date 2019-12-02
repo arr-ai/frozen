@@ -3,7 +3,6 @@ package frozen
 import (
 	"testing"
 
-	"github.com/mediocregopher/seq"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,11 +15,16 @@ func TestEmptyMap(t *testing.T) {
 	assert.True(t, m.IsEmpty())
 }
 
-func benchmarkInsertMapInt(b *testing.B, n int) {
+var prepopMapInt = memoizePrepop(func(n int) interface{} {
 	m := map[int]int{}
 	for i := 0; i < n; i++ {
 		m[i] = i * i
 	}
+	return m
+})
+
+func benchmarkInsertMapInt(b *testing.B, n int) {
+	m := prepopMapInt(n).(map[int]int)
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
 		m[i] = i * i
@@ -39,11 +43,16 @@ func BenchmarkInsertMapInt1M(b *testing.B) {
 	benchmarkInsertMapInt(b, 1<<20)
 }
 
-func benchmarkInsertMapInterface(b *testing.B, n int) {
+var prepopMapInterface = memoizePrepop(func(n int) interface{} {
 	m := map[interface{}]interface{}{}
 	for i := 0; i < n; i++ {
 		m[i] = i * i
 	}
+	return m
+})
+
+func benchmarkInsertMapInterface(b *testing.B, n int) {
+	m := prepopMapInterface(n).(map[interface{}]interface{})
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
 		m[i] = i * i
@@ -62,20 +71,16 @@ func BenchmarkInsertMapInterface1M(b *testing.B) {
 	benchmarkInsertMapInterface(b, 1<<20)
 }
 
-var frozenMapPrepop = func() map[int]Map {
-	prepop := map[int]Map{}
-	for _, n := range []int{0, 1 << 10, 1 << 20} {
-		var m Map
-		for i := 0; i < n; i++ {
-			m = m.With(i, i*i)
-		}
-		prepop[n] = m
+var prepopFrozenMap = memoizePrepop(func(n int) interface{} {
+	var m Map
+	for i := 0; i < n; i++ {
+		m = m.With(i, i*i)
 	}
-	return prepop
-}()
+	return m
+})
 
 func benchmarkInsertFrozenMap(b *testing.B, n int) {
-	m := frozenMapPrepop[n]
+	m := prepopFrozenMap(n).(Map)
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
 		m.With(i, i*i)
@@ -92,36 +97,4 @@ func BenchmarkInsertFrozenMap1k(b *testing.B) {
 
 func BenchmarkInsertFrozenMap1M(b *testing.B) {
 	benchmarkInsertFrozenMap(b, 1<<20)
-}
-
-var mediocreHashMapPrepop = func() map[int]*seq.HashMap {
-	prepop := map[int]*seq.HashMap{}
-	for _, n := range []int{0, 10, 10 << 10} {
-		m := seq.NewHashMap()
-		for i := 0; i < n; i++ {
-			m, _ = m.Set(i, i*i)
-		}
-		prepop[n] = m
-	}
-	return prepop
-}()
-
-func benchmarkInsertMediocreHashMap(b *testing.B, n int) {
-	m := mediocreHashMapPrepop[n]
-	b.ResetTimer()
-	for i := n; i < n+b.N; i++ {
-		m.Set(i, i*i)
-	}
-}
-
-func BenchmarkInsertMediocreHashMap0(b *testing.B) {
-	benchmarkInsertMediocreHashMap(b, 0)
-}
-
-func BenchmarkInsertMediocreHashMap10(b *testing.B) {
-	benchmarkInsertMediocreHashMap(b, 10)
-}
-
-func BenchmarkInsertMediocreHashMap10k(b *testing.B) {
-	benchmarkInsertMediocreHashMap(b, 10<<10)
 }
