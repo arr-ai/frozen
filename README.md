@@ -59,7 +59,7 @@ BenchmarkInsertFrozenSet1M-8          959947          1518 ns/op         861 B/o
 ⋮
 ```
 
-[![](assets/benchmarks.png)](https://docs.google.com/spreadsheets/d/1Sq48pT4sKLHx2uY_nSljfbFpEJijXhNAeoB-BbDlrsI/edit?usp=sharing)
+![](assets/benchmarks.png)
 
 ## Bugs
 
