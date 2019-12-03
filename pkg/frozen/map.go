@@ -208,7 +208,7 @@ func (m Map) Range() *MapIter {
 }
 
 type MapIter struct {
-	i  *hamtIter
+	i  *nodeIter
 	kv KeyValue
 }
 

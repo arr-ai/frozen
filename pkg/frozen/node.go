@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	hamtBits = 3
-	hamtSize = 1 << hamtBits
-	hamtMask = hamtSize - 1
+	nodeBits = 3
+	nodeSize = 1 << nodeBits
+	nodeMask = nodeSize - 1
 )
 
 type hasher uint64
@@ -25,19 +25,19 @@ func newHasher(key interface{}, depth int) hasher {
 }
 
 func (h hasher) next(key interface{}) hasher {
-	if h >>= hamtBits; h < 0b1_0000 {
+	if h >>= nodeBits; h < 0b1_0000 {
 		return (h-1)<<60 | hasher(hash([2]interface{}{int(h), key})>>4)
 	}
 	return h
 }
 
 func (h hasher) hash() int {
-	return int(h & hamtMask)
+	return int(h & nodeMask)
 }
 
 type node struct {
 	mask     uint
-	children [hamtSize]*node
+	children [nodeSize]*node
 	elem     interface{}
 }
 
@@ -141,26 +141,26 @@ func (n *node) String() string {
 	return b.String()
 }
 
-func (n *node) iterator() *hamtIter {
+func (n *node) iterator() *nodeIter {
 	if n == nil {
-		return newHamtIter(nil)
+		return newNodeIter(nil)
 	}
 	if n.elem != nil {
-		return newHamtIter([]*node{n})
+		return newNodeIter([]*node{n})
 	}
-	return newHamtIter(n.children[:])
+	return newNodeIter(n.children[:])
 }
 
-type hamtIter struct {
+type nodeIter struct {
 	stk  [][]*node
 	elem interface{}
 }
 
-func newHamtIter(base []*node) *hamtIter {
-	return &hamtIter{stk: [][]*node{base}}
+func newNodeIter(base []*node) *nodeIter {
+	return &nodeIter{stk: [][]*node{base}}
 }
 
-func (i *hamtIter) next() bool {
+func (i *nodeIter) next() bool {
 	for {
 		if nodesp := &i.stk[len(i.stk)-1]; len(*nodesp) > 0 {
 			b := (*nodesp)[0]

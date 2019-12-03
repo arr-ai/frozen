@@ -169,7 +169,7 @@ func (s Set) Range() *SetIter {
 }
 
 type SetIter struct {
-	i *hamtIter
+	i *nodeIter
 }
 
 func (i *SetIter) Next() bool {

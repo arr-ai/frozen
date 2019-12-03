@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHamtSmall(t *testing.T) {
+func TestNodeSmall(t *testing.T) {
 	t.Parallel()
 
 	var h *node
@@ -19,7 +19,7 @@ func TestHamtSmall(t *testing.T) {
 	assert.NotNil(t, h)
 }
 
-func TestHamtLarge(t *testing.T) {
+func TestNodeLarge(t *testing.T) {
 	t.Parallel()
 
 	hh := []*node{}
@@ -52,7 +52,7 @@ func TestHamtLarge(t *testing.T) {
 	}
 }
 
-func TestHamtGet(t *testing.T) {
+func TestNodeGet(t *testing.T) {
 	t.Parallel()
 
 	hh := []*node{}
@@ -86,7 +86,7 @@ func TestHamtGet(t *testing.T) {
 	}
 }
 
-func TestHamtDelete(t *testing.T) {
+func TestNodeDelete(t *testing.T) {
 	t.Parallel()
 
 	var h *node
@@ -118,7 +118,7 @@ func TestHamtDelete(t *testing.T) {
 	assert.Nil(t, d)
 }
 
-func TestHamtDeleteMissing(t *testing.T) {
+func TestNodeDeleteMissing(t *testing.T) {
 	t.Parallel()
 
 	h, _ := ((*node)(nil)).put("foo")
@@ -128,7 +128,7 @@ func TestHamtDeleteMissing(t *testing.T) {
 	assert.True(t, h == nil)
 }
 
-func TestHamtIter(t *testing.T) {
+func TestNodeIter(t *testing.T) {
 	t.Parallel()
 
 	var h *node
@@ -147,7 +147,7 @@ func TestHamtIter(t *testing.T) {
 	assert.Zero(t, ^a)
 }
 
-var prepopHamt = memoizePrepop(func(n int) interface{} {
+var prepopNode = memoizePrepop(func(n int) interface{} {
 	var h *node
 	for i := 0; i < n; i++ {
 		h, _ = h.put(KV(i, i*i))
@@ -155,8 +155,8 @@ var prepopHamt = memoizePrepop(func(n int) interface{} {
 	return h
 })
 
-func benchmarkInsertFrozenHamt(b *testing.B, n int) {
-	h := prepopHamt(n).(*node)
+func benchmarkInsertFrozenNode(b *testing.B, n int) {
+	h := prepopNode(n).(*node)
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
 		kv := KV(i, i*i)
@@ -164,14 +164,14 @@ func benchmarkInsertFrozenHamt(b *testing.B, n int) {
 	}
 }
 
-func BenchmarkInsertFrozenHamt0(b *testing.B) {
-	benchmarkInsertFrozenHamt(b, 0)
+func BenchmarkInsertFrozenNode0(b *testing.B) {
+	benchmarkInsertFrozenNode(b, 0)
 }
 
-func BenchmarkInsertFrozenHamt1k(b *testing.B) {
-	benchmarkInsertFrozenHamt(b, 1<<10)
+func BenchmarkInsertFrozenNode1k(b *testing.B) {
+	benchmarkInsertFrozenNode(b, 1<<10)
 }
 
-func BenchmarkInsertFrozenHamt1M(b *testing.B) {
-	benchmarkInsertFrozenHamt(b, 1<<20)
+func BenchmarkInsertFrozenNode1M(b *testing.B) {
+	benchmarkInsertFrozenNode(b, 1<<20)
 }
