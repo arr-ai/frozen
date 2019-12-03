@@ -9,7 +9,7 @@ import numpy as np
 
 def benchmark(prefix):
     return os.popen(
-        'go test -run ^$ -cpuprofile cpu.prof -memprofile mem.prof -benchmem -bench ^BenchmarkInsert ./...',
+        'go test -run ^$ -cpuprofile cpu.prof -memprofile mem.prof -benchmem -bench ^BenchmarkInsert ./pkg/frozen',
         'r',
     )
 
@@ -25,13 +25,11 @@ def main():
     }
 
     renames = {
-        'FrozenHamt': 'frozen.hamt',
+        'FrozenNode': 'frozen.node',
         'FrozenMap': 'frozen.Map',
         'FrozenSet': 'frozen.Set',
         'MapInt': 'map[int]int',
         'MapInterface': 'map[interface{}]interface{}',
-        'MediocreHashMap': 'seq.HashMap',
-        'MediocreSet': 'seq.Set',
         'SetInt': 'set = map[int]struct{}',
         'SetInterface': 'set = map[interface{}]struct{}',
     }
@@ -52,7 +50,7 @@ def main():
     for label in sorted(data.keys()):
         xys = sorted(data[label].items())
         plt.plot(*zip(*xys), label=label, marker='.')
-    plt.ylim(100, 50000)
+    plt.ylim(100, 5000)
     plt.grid(True, axis='x')
     plt.grid(True, which='major', axis='y')
     plt.grid(True, which='minor', axis='y', alpha=0.5)
