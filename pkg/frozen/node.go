@@ -3,6 +3,7 @@ package frozen
 import (
 	"fmt"
 	"strings"
+	"unsafe"
 
 	"github.com/marcelocantos/frozen/pkg/value"
 )
@@ -35,10 +36,23 @@ func (h hasher) hash() int {
 	return int(h & nodeMask)
 }
 
+type entry struct {
+	_    uintptr
+	elem interface{}
+	_    [nodeSize - 2]*node
+}
+
+func (e *entry) node() *node {
+	return (*node)(unsafe.Pointer(e))
+}
+
 type node struct {
-	mask     uint
+	mask     uintptr
 	children [nodeSize]*node
-	elem     interface{}
+}
+
+func (n *node) entry() *entry {
+	return (*entry)(unsafe.Pointer(n))
 }
 
 func (n *node) put(elem interface{}) (result *node, old interface{}) {
@@ -48,12 +62,13 @@ func (n *node) put(elem interface{}) (result *node, old interface{}) {
 func (n *node) putImpl(elem interface{}, depth int, h hasher) (result *node, old interface{}) {
 	switch {
 	case n == nil:
-		return &node{elem: elem}, nil
-	case n.elem != nil:
-		if value.Equal(elem, n.elem) {
-			return &node{elem: elem}, n.elem
+		return (&entry{elem: elem}).node(), nil
+	case n.mask == 0:
+		e := n.entry()
+		if value.Equal(elem, e.elem) {
+			return (&entry{elem: elem}).node(), e.elem
 		}
-		offset := newHasher(n.elem, depth).hash()
+		offset := newHasher(e.elem, depth).hash()
 		result = &node{mask: 1 << offset}
 		result.children[offset] = n
 		return result.putImpl(elem, depth, h)
@@ -72,9 +87,10 @@ func (n *node) getImpl(elem interface{}, h hasher) interface{} {
 	switch {
 	case n == nil:
 		return nil
-	case n.elem != nil:
-		if value.Equal(elem, n.elem) {
-			return n.elem
+	case n.mask == 0:
+		e := n.entry()
+		if value.Equal(elem, e.elem) {
+			return e.elem
 		}
 		return nil
 	default:
@@ -89,9 +105,10 @@ func (n *node) delete(elem interface{}) (result *node, old interface{}) {
 func (n *node) deleteImpl(elem interface{}, h hasher) (result *node, old interface{}) {
 	switch {
 	case n == nil:
-	case n.elem != nil:
-		if value.Equal(elem, n.elem) {
-			return nil, n.elem
+	case n.mask == 0:
+		e := n.entry()
+		if value.Equal(elem, e.elem) {
+			return nil, e.elem
 		}
 	default:
 		offset := h.hash()
@@ -103,12 +120,12 @@ func (n *node) deleteImpl(elem interface{}, h hasher) (result *node, old interfa
 }
 
 func (n *node) update(offset int, child *node) *node {
-	mask := uint(1) << offset
+	mask := uintptr(1) << offset
 	if n.mask&^mask == 0 {
 		if child == nil {
 			return nil
 		}
-		if child.elem != nil {
+		if child.mask == 0 {
 			return child
 		}
 	}
@@ -126,8 +143,9 @@ func (n *node) String() string {
 	if n == nil {
 		return "∅"
 	}
-	if n.elem != nil {
-		return fmt.Sprintf("%v", n.elem)
+	if n.mask == 0 {
+		e := n.entry()
+		return fmt.Sprintf("%v", e.elem)
 	}
 	var b strings.Builder
 	b.WriteString("[")
@@ -145,7 +163,7 @@ func (n *node) iterator() *nodeIter {
 	if n == nil {
 		return newNodeIter(nil)
 	}
-	if n.elem != nil {
+	if n.mask == 0 {
 		return newNodeIter([]*node{n})
 	}
 	return newNodeIter(n.children[:])
@@ -167,8 +185,9 @@ func (i *nodeIter) next() bool {
 			*nodesp = (*nodesp)[1:]
 			switch {
 			case b == nil:
-			case b.elem != nil:
-				i.elem = b.elem
+			case b.mask == 0:
+				e := b.entry()
+				i.elem = e.elem
 				return true
 			default:
 				i.stk = append(i.stk, b.children[:])
