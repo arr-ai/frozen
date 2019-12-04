@@ -18,7 +18,7 @@ type hasher uint64
 
 func newHasher(key interface{}, depth int) hasher {
 	// Use the high four bits as the seed.
-	h := hasher(0b1111<<60 | hash(key))
+	h := hasher(0b1111<<60 | value.Hash(key))
 	for i := 0; i < depth; i++ {
 		h = h.next(key)
 	}
@@ -27,7 +27,7 @@ func newHasher(key interface{}, depth int) hasher {
 
 func (h hasher) next(key interface{}) hasher {
 	if h >>= nodeBits; h < 0b1_0000 {
-		return (h-1)<<60 | hasher(hash([2]interface{}{int(h), key})>>4)
+		return (h-1)<<60 | hasher(value.Hash([2]interface{}{int(h), key})>>4)
 	}
 	return h
 }

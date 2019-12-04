@@ -76,7 +76,7 @@ func (s Set) Any() interface{} {
 func (s Set) Hash() uint64 {
 	var h uint64 = 10538386443025343807
 	for i := s.Range(); i.Next(); {
-		h ^= hash(i.Value())
+		h ^= value.Hash(i.Value())
 	}
 	return h
 }

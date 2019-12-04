@@ -15,7 +15,7 @@ func KV(key, val interface{}) KeyValue {
 }
 
 func (kv KeyValue) Hash() uint64 {
-	return hash(kv.Key)
+	return value.Hash(kv.Key)
 }
 
 func (kv KeyValue) Equal(i interface{}) bool {
@@ -159,7 +159,7 @@ func (m Map) Update(n Map) Map {
 func (m Map) Hash() uint64 {
 	var h uint64 = 3167960924819262823
 	for i := m.Range(); i.Next(); {
-		h ^= 12012876008735959943*hash(i.Key()) + hash(i.Value())
+		h ^= 12012876008735959943*value.Hash(i.Key()) + value.Hash(i.Value())
 	}
 	return h
 }

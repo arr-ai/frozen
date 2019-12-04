@@ -1,4 +1,4 @@
-package frozen
+package value
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"unsafe"
 
 	"github.com/cespare/xxhash"
-	"github.com/marcelocantos/frozen/pkg/value"
 )
 
 type HashMixer struct {
@@ -26,7 +25,7 @@ func (m HashMixer) HashValue(h uint64) uint64 {
 }
 
 func (m HashMixer) Interface(i interface{}) HashMixer {
-	return m.Hash(hash(i))
+	return m.Hash(Hash(i))
 }
 
 func (m HashMixer) InterfaceValue(h uint64) uint64 {
@@ -62,9 +61,9 @@ var (
 )
 
 //nolint:gocyclo,funlen
-func hash(i interface{}) uint64 {
+func Hash(i interface{}) uint64 {
 	switch k := i.(type) {
-	case value.Hashable:
+	case Hashable:
 		return k.Hash()
 	case [2]interface{}: // Optimisation for hasher.next
 		return NewHashMixer(9647128711510533157).HashValue(hashInterfaceSlice(k[:]))

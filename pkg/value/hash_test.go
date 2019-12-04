@@ -1,4 +1,4 @@
-package frozen
+package value
 
 import (
 	"math"
@@ -10,13 +10,13 @@ import (
 )
 
 func TestHash64(t *testing.T) {
-	if hash(uint64(0)) == 0 {
+	if Hash(uint64(0)) == 0 {
 		t.Error()
 	}
 }
 
 func TestHash64String(t *testing.T) {
-	if hash("hello") == 0 {
+	if Hash("hello") == 0 {
 		t.Error()
 	}
 }
@@ -28,9 +28,9 @@ func TestHashMatchesEquality(t *testing.T) {
 	for _, a := range cornucopia {
 		for _, b := range cornucopia {
 			if a == b {
-				assert.Equal(t, hash(a), hash(b), "a=%v b=%v hash(a)=%v hash(b)=%v", a, b, hash(a), hash(b))
-			} else if hash(a) == hash(b) {
-				t.Logf("hash(%#v %[1]T) == hash(%#v %[2]T) == %d", a, b, hash(a))
+				assert.Equal(t, Hash(a), Hash(b), "a=%v b=%v hash(a)=%v hash(b)=%v", a, b, Hash(a), Hash(b))
+			} else if Hash(a) == Hash(b) {
+				t.Logf("hash(%#v %[1]T) == hash(%#v %[2]T) == %d", a, b, Hash(a))
 				falsePositives++
 			}
 			total++
@@ -42,7 +42,7 @@ func TestHashMatchesEquality(t *testing.T) {
 func BenchmarkHash(b *testing.B) {
 	r := rand.New(rand.NewSource(0))
 	for i := 0; i < b.N; i++ {
-		hash(cornucopia[r.Int()%len(cornucopia)])
+		Hash(cornucopia[r.Int()%len(cornucopia)])
 	}
 }
 
