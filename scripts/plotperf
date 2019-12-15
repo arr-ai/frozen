@@ -50,7 +50,7 @@ def main():
     for label in sorted(data.keys()):
         xys = sorted(data[label].items())
         plt.plot(*zip(*xys), label=label, marker='.')
-    plt.ylim(100, 5000)
+    plt.ylim(100, 3000)
     plt.grid(True, axis='x')
     plt.grid(True, which='major', axis='y')
     plt.grid(True, which='minor', axis='y', alpha=0.5)
