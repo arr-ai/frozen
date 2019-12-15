@@ -15,18 +15,18 @@ Map and Set both use a hashed array trie.
 
 The following benchmarks test the base node implementation against several other
 key-value map implementations. All implementations are tested for insertions
-against an empty map and a map prepopulated with one million elements. In order
-of appearance in the benchmark, the implementations are as follows:
+against an empty map, a map prepopulated with 1k elements and one prepopulated
+with 1M elements. The implementations are as follows:
 
 | Benchmark       | Type                           |
 | --------------- | ------------------------------ |
-| FrozenNode      | frozen.node                    |
-| FrozenMap       | frozen.Map                     |
-| FrozenSet       | frozen.Set                     |
 | MapInt          | map[int]int                    |
 | MapInterface    | map[interface{}]interface{}    |
+| FrozenMap       | frozen.Map                     |
+| FrozenNode      | frozen.node                    |
 | SetInt          | set = map[int]struct{}         |
 | SetInterface    | set = map[interface{}]struct{} |
+| FrozenSet       | frozen.Set                     |
 
 In all cases, ints are mapped to ints.
 
