@@ -2,6 +2,7 @@ package frozen
 
 import "encoding/json"
 
+// MarshalJSON implements json.Marshaler.
 func (m Map) MarshalJSON() ([]byte, error) {
 	proxy := map[string]interface{}{}
 	for i := m.Range(); i.Next(); {
@@ -13,6 +14,9 @@ func (m Map) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(proxy)
 }
+
+// Ensure that Map implements json.Marshaler.
+var _ json.Marshaler = Map{}
 
 func (m Map) marshalJSONArray() ([]byte, error) {
 	proxy := make([]interface{}, 0, m.Count())

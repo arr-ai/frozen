@@ -8,63 +8,51 @@ import (
 
 // Set holds a set of values. The zero value is the empty Set.
 type Set struct {
-	n     *node
+	root  *node
 	count int
 }
 
-var _ value.Key = Set{}
+// Iterator provides for iterating over a Set.
+type Iterator interface {
+	Next() bool
+	Value() interface{}
+}
 
+// NewSet creates a new Set with values as elements.
 func NewSet(values ...interface{}) Set {
-	return Set{}.With(values...)
+	var b SetBuilder
+	for _, value := range values {
+		b.Add(value)
+	}
+	return b.Finish()
 }
 
+// IsEmpty returns true iff the Set has no elements.
 func (s Set) IsEmpty() bool {
-	return s.n == nil
+	return s.root == nil
 }
 
+// Count returns the number of elements in the Set.
 func (s Set) Count() int {
 	return s.count
 }
 
-// With returns a new Set containing value and all other values retained from m.
+// With returns a new Set retaining all the elements of the Set as well as values.
 func (s Set) With(values ...interface{}) Set {
-	t := s.n
-	count := s.count
-	for _, value := range values {
-		var old interface{}
-		t, old = t.put(value)
-		if old == nil {
-			count++
-		}
-	}
-	return Set{
-		n:     t,
-		count: count,
-	}
+	return s.Union(NewSet(values...))
 }
 
-// Put returns a new Set with all values retained from Set except value.
+// Without returns a new Set with all values retained from Set except values.
 func (s Set) Without(values ...interface{}) Set {
-	t := s.n
-	count := s.count
-	for _, value := range values {
-		var old interface{}
-		t, old = t.delete(value)
-		if old != nil {
-			count--
-		}
-	}
-	return Set{
-		n:     t,
-		count: count,
-	}
+	return s.Minus(NewSet(values...))
 }
 
 // Has returns the value associated with key and true iff the key was found.
 func (s Set) Has(val interface{}) bool {
-	return s.n.get(val) != nil
+	return s.root.get(val) != nil
 }
 
+// Any returns an arbitrary element from the Set.
 func (s Set) Any() interface{} {
 	for i := s.Range(); i.Next(); {
 		return i.Value()
@@ -81,32 +69,36 @@ func (s Set) Hash() uint64 {
 	return h
 }
 
+// Equal returns true iff i is a Set with all the same elements as this Set.
 func (s Set) Equal(i interface{}) bool {
 	if t, ok := i.(Set); ok {
-		if s.Hash() != t.Hash() {
-			return false
+		if s.root == nil || t.root == nil {
+			return s.root == nil && t.root == nil
 		}
-		return s.SymmetricDifference(t).IsEmpty()
+		return s.root.equal(t.root, value.Equal)
 	}
 	return false
 }
 
+// String returns a string representation of the Set.
 func (s Set) String() string {
 	return fmt.Sprintf("%v", s)
 }
 
-func (s Set) Format(f fmt.State, _ rune) {
-	f.Write([]byte("["))
+// Format writes a string representation of the Set into state.
+func (s Set) Format(state fmt.State, _ rune) {
+	state.Write([]byte("{"))
 	for i, n := s.Range(), 0; i.Next(); n++ {
 		if n > 0 {
-			f.Write([]byte(", "))
+			state.Write([]byte(", "))
 		}
-		fmt.Fprintf(f, "%v", i.Value())
+		fmt.Fprintf(state, "%v", i.Value())
 	}
-	f.Write([]byte("]"))
+	state.Write([]byte("}"))
 }
 
-func (s Set) Where(pred func(i interface{}) bool) Set {
+// Where returns a Set with all elements that are in s and satisfy pred.
+func (s Set) Where(pred func(el interface{}) bool) Set {
 	return s.Reduce(func(r, i interface{}) interface{} {
 		if pred(i) {
 			return r.(Set).With(i)
@@ -115,67 +107,89 @@ func (s Set) Where(pred func(i interface{}) bool) Set {
 	}, NewSet()).(Set)
 }
 
-func (s Set) Map(f func(i interface{}) interface{}) Set {
+// Map returns a Set with all the results of applying f to all elements in s.
+func (s Set) Map(f func(el interface{}) interface{}) Set {
 	return s.Reduce(func(r, i interface{}) interface{} {
 		return r.(Set).With(f(i))
 	}, NewSet()).(Set)
 }
 
-func (s Set) Reduce(f func(acc, i interface{}) interface{}, acc interface{}) interface{} {
+// Reduce returns the result of applying f to each element of s. The result of
+// each call is used as the acc argument for the next element.
+func (s Set) Reduce(f func(acc, el interface{}) interface{}, acc interface{}) interface{} {
 	for i := s.Range(); i.Next(); {
 		acc = f(acc, i.Value())
 	}
 	return acc
 }
 
-func (s Set) Minus(t Set) Set {
-	for i := t.Range(); i.Next(); {
-		s = s.Without(i.Value())
-	}
-	return s
-}
-
+// Intersection returns a Set with all elements that are in both s and t.
 func (s Set) Intersection(t Set) Set {
-	var r Set
-	for i := s.Range(); i.Next(); {
-		val := i.Value()
-		if t.Has(val) {
-			r = r.With(i.Value())
-		}
-	}
-	return r
+	return s.merge(t, newIntersectionComposer())
 }
 
-func (s Set) SymmetricDifference(t Set) Set {
-	for i := t.Range(); i.Next(); {
-		if s.Has(i.Value()) {
-			s = s.Without(i.Value())
-		} else {
-			s = s.With(i.Value())
-		}
-	}
-	return s
-}
-
+// Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
-	for i := t.Range(); i.Next(); {
-		s = s.With(i.Value())
+	return s.merge(t, newUnionComposer(s.Count()+t.Count()))
+}
+
+// SymmetricDifference returns a Set with all elements that are s or t, but not
+// both.
+func (s Set) SymmetricDifference(t Set) Set {
+	return s.merge(t, newSymmetricDifferenceComposer(s.Count()+t.Count()))
+}
+
+// Minus returns a Set with all elements that are s but not in t.
+func (s Set) Minus(t Set) Set {
+	return s.merge(t, newMinusComposer(s.Count()))
+}
+
+// GroupBy returns a Map that groups elements in the Set by their key.
+func (s Set) GroupBy(key func(el interface{}) interface{}) Map {
+	var builders MapBuilder
+	for i := s.Range(); i.Next(); {
+		v := i.Value()
+		k := key(v)
+		var b *SetBuilder
+		if builder, has := builders.Get(k); has {
+			b = builder.(*SetBuilder)
+		} else {
+			b = &SetBuilder{}
+			builders.Put(k, b)
+		}
+		b.Add(v)
 	}
-	return s
+	var result MapBuilder
+	for i := builders.Finish().Range(); i.Next(); {
+		result.Put(i.Key(), i.Value().(*SetBuilder).Finish())
+	}
+	return result.Finish()
 }
 
-func (s Set) Range() *SetIter {
-	return &SetIter{i: s.n.iterator()}
+func (s Set) merge(t Set, c *composer) Set {
+	n := s.root.merge(t.root, c)
+	return Set{root: n, count: c.count()}
 }
 
-type SetIter struct {
+// Range returns an Iterator over the Set.
+func (s Set) Range() Iterator {
+	return &setIter{i: s.root.iterator()}
+}
+
+// RangeBy returns a SetIterator for the Set that iterates over the elements in
+// a specified order.
+func (s Set) RangeBy(less func(a, b interface{}) bool) Iterator {
+	return s.root.orderedIterator(less, s.Count())
+}
+
+type setIter struct {
 	i *nodeIter
 }
 
-func (i *SetIter) Next() bool {
+func (i *setIter) Next() bool {
 	return i.i.next()
 }
 
-func (i *SetIter) Value() interface{} {
+func (i *setIter) Value() interface{} {
 	return i.i.elem
 }
