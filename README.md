@@ -60,8 +60,4 @@ PASS
 ok  	github.com/marcelocantos/frozen/pkg/frozen	65.909s
 ```
 
-![](assets/benchmarks.png)
-
-## Bugs
-
-Test coverage is sparse.
+![Benchmarks Graph](assets/benchmarks.png)
