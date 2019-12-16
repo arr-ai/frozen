@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/marcelocantos/frozen/pkg/value"
+	"github.com/marcelocantos/hash"
 )
 
 // Set holds a set of values. The zero value is the empty Set.
@@ -11,6 +12,8 @@ type Set struct {
 	root  *node
 	count int
 }
+
+var _ value.Key = Set{}
 
 // Iterator provides for iterating over a Set.
 type Iterator interface {
@@ -61,10 +64,10 @@ func (s Set) Any() interface{} {
 }
 
 // Hash computes a hash value for s.
-func (s Set) Hash() uint64 {
-	var h uint64 = 10538386443025343807
+func (s Set) Hash(seed uintptr) uintptr {
+	h := hash.Uintptr(10538386443025343807, seed)
 	for i := s.Range(); i.Next(); {
-		h ^= value.Hash(i.Value())
+		h = hash.Interface(i.Value(), h)
 	}
 	return h
 }

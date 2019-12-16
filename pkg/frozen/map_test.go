@@ -70,7 +70,11 @@ func TestMapNestBug(t *testing.T) {
 		),
 		NewSet(NewMap(KV("c", 3))),
 	)
-	require.Equal(t, "(aa: {(a: 11), (a: 10)}):{(c: 3)}", a.String())
+	require.Contains(t,
+		[]string{
+			"(aa: {(a: 10), (a: 11)}):{(c: 3)}",
+			"(aa: {(a: 11), (a: 10)}):{(c: 3)}",
+		}, a.String())
 	b := KV(
 		NewMap(
 			KV("aa", NewSet(
@@ -80,8 +84,12 @@ func TestMapNestBug(t *testing.T) {
 		),
 		NewSet(NewMap(KV("c", 1))),
 	)
-	require.Equal(t, "(aa: {(a: 11), (a: 10)}):{(c: 1)}", b.String())
-	assert.Equal(t, a.Hash() == b.Hash(), a.Equal(b))
+	require.Contains(t,
+		[]string{
+			"(aa: {(a: 10), (a: 11)}):{(c: 1)}",
+			"(aa: {(a: 11), (a: 10)}):{(c: 1)}",
+		}, b.String())
+	assert.Equal(t, a.Hash(0) == b.Hash(0), a.Equal(b))
 
 	// The bug actually caused an endless loop, but there's not way to assert
 	// for that
@@ -322,8 +330,8 @@ func TestMapHashAndEqual(t *testing.T) {
 	for i, a := range maps {
 		for j, b := range maps {
 			assert.Equal(t, i == j, a.Equal(b), "i=%v j=%v a=%v b=%v", i, j, a, b)
-			assert.Equal(t, i == j, a.Hash() == b.Hash(),
-				"i=%v j=%v a=%v b=%v a.Hash()=%v b.Hash()=%v", i, j, a, b, a.Hash(), b.Hash())
+			assert.Equal(t, i == j, a.Hash(0) == b.Hash(0),
+				"i=%v j=%v a=%v b=%v a.Hash()=%v b.Hash()=%v", i, j, a, b, a.Hash(0), b.Hash(0))
 		}
 		assert.False(t, a.Equal(42))
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/marcelocantos/frozen/pkg/value"
+	"github.com/marcelocantos/hash"
 )
 
 // KeyValue represents a key-value pair for insertion into a Map.
@@ -17,8 +18,8 @@ func KV(key, val interface{}) KeyValue {
 }
 
 // Hash computes a hash for a KeyValue.
-func (kv KeyValue) Hash() uint64 {
-	return value.Hash(kv.Key)
+func (kv KeyValue) Hash(seed uintptr) uintptr {
+	return hash.Interface(kv.Key, seed)
 }
 
 // Equal returns true iff i is a KeyValue whose key equals this KeyValue's key.
@@ -40,7 +41,7 @@ type Map struct {
 	count int
 }
 
-var _ value.Key = Set{}
+var _ value.Key = Map{}
 
 // NewMap create a new Map with kvs as keys and values.
 func NewMap(kvs ...KeyValue) Map {
@@ -195,10 +196,10 @@ func (m Map) merge(n Map, compose func(a, b interface{}) interface{}) Map {
 }
 
 // Hash computes a hash val for s.
-func (m Map) Hash() uint64 {
-	var h uint64 = 3167960924819262823
+func (m Map) Hash(seed uintptr) uintptr {
+	h := hash.Uintptr(3167960924819262823, seed)
 	for i := m.Range(); i.Next(); {
-		h ^= 12012876008735959943*value.Hash(i.Key()) + value.Hash(i.Value())
+		h = hash.Interface(i.Value(), hash.Interface(i.Key(), h))
 	}
 	return h
 }
