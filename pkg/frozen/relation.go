@@ -1,6 +1,27 @@
 package frozen
 
-import "fmt"
+// Join returns the n-ary join of a Set of Sets.
+// TODO: Maybe implement directly instead of chaining binary joins.
+func Join(relations Set) Set {
+	if i := relations.Range(); i.Next() {
+		result := i.Value().(Set)
+		for i.Next() {
+			result = result.Join(i.Value().(Set))
+		}
+		return result
+	}
+	panic("Cannot join no sets")
+}
+
+// Union returns the n-ary union of a Set of Sets.
+// TODO: Maybe implement directly instead of chaining binary unions.
+func Union(relations Set) Set {
+	var result Set
+	for i := relations.Range(); i.Next(); {
+		result = result.Union(i.Value().(Set))
+	}
+	return result
+}
 
 // NewRelation returns a new set of maps, each having the same keys.
 func NewRelation(header []interface{}, rows ...[]interface{}) Set {
@@ -32,12 +53,6 @@ func (s Set) Project(attrs Set) Set {
 //   z: keys unique to maps in t
 // It is assumed that all maps in s have the same keys and likewise for t.
 func (s Set) Join(t Set) Set {
-	var logs []string
-	logf := func(format string, args ...interface{}) {
-		logs = append(logs, fmt.Sprintf(format, args...))
-	}
-	logf("t=%v", t)
-
 	if s.IsEmpty() || t.IsEmpty() {
 		return Set{}
 	}
@@ -50,18 +65,14 @@ func (s Set) Join(t Set) Set {
 		return s.GroupBy(func(tuple interface{}) interface{} {
 			return tuple.(Map).Project(commonAttrs)
 		}).Map(func(_, val interface{}) interface{} {
-			logf("val=%s val{%v}=%v", val, attrs, val.(Set).Project(attrs))
 			return val.(Set).Project(attrs)
 		})
 	}
 	sGroup := group(s, sOnlyAttrs)
-	logf("sGroup=%v", sGroup)
 	tGroup := group(t, tOnlyAttrs)
-	logf("tGroup=%v", tGroup)
 	joiner := sGroup.Merge(tGroup, func(_, a, b interface{}) interface{} {
 		return [2]Set{a.(Set), b.(Set)}
 	})
-	logf("joiner=%v", joiner)
 
 	var result Set
 	for i := joiner.Range(); i.Next(); {
@@ -71,7 +82,6 @@ func (s Set) Join(t Set) Set {
 				sTuple := commonTuple.Update(j.Value().(Map))
 				for k := sets[1].Range(); k.Next(); {
 					row := sTuple.Update(k.Value().(Map))
-					logf("%v", row)
 					result = result.With(row)
 				}
 			}
@@ -81,30 +91,46 @@ func (s Set) Join(t Set) Set {
 }
 
 // Nest ...
-func (s Set) Nest(attr interface{}, attrs Set) Set {
-	m := s.Reduce(func(acc, i interface{}) interface{} {
-		t := i.(Map)
-		key := t.Without(attrs)
-		nested := acc.(Map).GetElse(key, Set{})
-		return acc.(Map).With(key, nested.(Set).With(t.Project(attrs)))
-	}, Map{}).(Map)
-	return m.Reduce(func(acc, key, val interface{}) interface{} {
-		return acc.(Set).With(key.(Map).With(attr, val))
-	}, Set{}).(Set)
+func (s Set) Nest(attrAttrs Map) Set {
+	var mb MapBuilder
+	keyAttrs := Union(attrAttrs.Values())
+	nestAttrs := attrAttrs.Keys()
+	for i := s.Range(); i.Next(); {
+		t := i.Value().(Map)
+		key := t.Without(keyAttrs)
+		var msb Map // Map<?, *SetBuilder>
+		if val, has := mb.Get(key); has {
+			msb = val.(Map)
+		} else {
+			msb = NewMapFromKeys(nestAttrs, func(_ interface{}) interface{} {
+				return &SetBuilder{}
+			})
+			mb.Put(key, msb)
+		}
+		for a := attrAttrs.Range(); a.Next(); {
+			msb.MustGet(a.Key()).(*SetBuilder).Add(t.Project(a.Value().(Set)))
+		}
+	}
+
+	var sb SetBuilder
+	for i := mb.Finish().Range(); i.Next(); {
+		key := i.Key().(Map)
+		for j := i.Value().(Map).Range(); j.Next(); {
+			key = key.With(j.Key(), j.Value().(*SetBuilder).Finish())
+		}
+		sb.Add(key)
+	}
+	return sb.Finish()
 }
 
 // Unnest ...
 func (s Set) Unnest(attrs Set) Set {
-	for a := attrs.Range(); a.Next(); {
-		attr := a.Value()
-		attrAsSet := NewSet(attr)
-		s = s.Reduce(func(acc, i interface{}) interface{} {
-			t := i.(Map)
-			key := t.Without(attrAsSet)
-			return acc.(Set).Union(t.MustGet(attr).(Set).Reduce(func(acc, i interface{}) interface{} {
-				return acc.(Set).With(key.Update(i.(Map)))
-			}, Set{}).(Set))
-		}, Set{}).(Set)
+	var b SetBuilder
+	for i := s.Range(); i.Next(); {
+		t := i.Value().(Map)
+		for j := Join(t.Project(attrs).Values().With(NewSet(t.Without(attrs)))).Range(); j.Next(); {
+			b.Add(j.Value())
+		}
 	}
-	return s
+	return b.Finish()
 }

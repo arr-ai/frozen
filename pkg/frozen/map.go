@@ -43,11 +43,21 @@ type Map struct {
 
 var _ value.Key = Map{}
 
-// NewMap create a new Map with kvs as keys and values.
+// NewMap creates a new Map with kvs as keys and values.
 func NewMap(kvs ...KeyValue) Map {
 	var b MapBuilder
 	for _, kv := range kvs {
 		b.Put(kv.Key, kv.Value)
+	}
+	return b.Finish()
+}
+
+// NewMapFromKeys creates a new Map in which values are computed from keys.
+func NewMapFromKeys(keys Set, f func(key interface{}) interface{}) Map {
+	var b MapBuilder
+	for i := keys.Range(); i.Next(); {
+		val := i.Value()
+		b.Put(val, f(val))
 	}
 	return b.Finish()
 }
@@ -123,16 +133,20 @@ func (m Map) GetElseFunc(key interface{}, deflt func() interface{}) interface{} 
 
 // Keys returns a Set with all the keys in the Map.
 func (m Map) Keys() Set {
-	return m.Reduce(func(acc, key, _ interface{}) interface{} {
-		return acc.(Set).With(key)
-	}, Set{}).(Set)
+	var b SetBuilder
+	for i := m.Range(); i.Next(); {
+		b.Add(i.Key())
+	}
+	return b.Finish()
 }
 
 // Values returns a Set with all the Values in the Map.
 func (m Map) Values() Set {
-	return m.Reduce(func(acc, _, val interface{}) interface{} {
-		return acc.(Set).With(val)
-	}, Set{}).(Set)
+	var b SetBuilder
+	for i := m.Range(); i.Next(); {
+		b.Add(i.Value())
+	}
+	return b.Finish()
 }
 
 // Project returns a Map with only keys included from this Map.
@@ -144,20 +158,24 @@ func (m Map) Project(keys Set) Map {
 
 // Where returns a Map with only key-value pairs satisfying pred.
 func (m Map) Where(pred func(key, val interface{}) bool) Map {
-	return m.Reduce(func(acc, key, val interface{}) interface{} {
-		if pred(key, val) {
-			return acc.(Map).With(key, val)
+	var b MapBuilder
+	for i := m.Range(); i.Next(); {
+		if key, val := i.Entry(); pred(key, val) {
+			b.Put(key, val)
 		}
-		return acc
-	}, NewMap()).(Map)
+	}
+	return b.Finish()
 }
 
 // Map returns a Map with keys from this Map, but the values replaced by the
 // result of calling f.
 func (m Map) Map(f func(key, val interface{}) interface{}) Map {
-	return m.Reduce(func(acc, key, val interface{}) interface{} {
-		return acc.(Map).With(key, f(key, val))
-	}, NewMap()).(Map)
+	var b MapBuilder
+	for i := m.Range(); i.Next(); {
+		key, val := i.Entry()
+		b.Put(key, f(key, val))
+	}
+	return b.Finish()
 }
 
 // Reduce returns the result of applying f to each key-value pair on the Map.
@@ -268,7 +286,7 @@ func (i *MapIterator) Value() interface{} {
 	return i.kv.Value
 }
 
-// Item returns the current key-value pair as two return values.
-func (i *MapIterator) Item() (key, value interface{}) {
+// Entry returns the current key-value pair as two return values.
+func (i *MapIterator) Entry() (key, value interface{}) {
 	return i.kv.Key, i.kv.Value
 }

@@ -354,7 +354,7 @@ func TestMapRange(t *testing.T) {
 	m := NewMap(KV(1, 2), KV(3, 4), KV(4, 5), KV(6, 7))
 	output := map[int]int{}
 	for i := m.Range(); i.Next(); {
-		k, v := i.Item()
+		k, v := i.Entry()
 		output[k.(int)] = v.(int)
 	}
 

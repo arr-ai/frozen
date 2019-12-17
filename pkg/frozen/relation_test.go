@@ -136,8 +136,8 @@ func TestNest(t *testing.T) {
 		[]interface{}{4, 13},
 	)
 	sharing := ca.
-		Nest("aa", NewSet("a")).
-		Nest("cc", NewSet("c")).
+		Nest(NewMap(KV("aa", NewSet("a")))).
+		Nest(NewMap(KV("cc", NewSet("c")))).
 		Where(func(tuple interface{}) bool {
 			return tuple.(Map).MustGet("cc").(Set).Count() > 1
 		})
