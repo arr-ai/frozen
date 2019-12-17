@@ -14,9 +14,10 @@ linters-settings:
   depguard:
     list-type: whitelist
     packages:
-    - github.com/cespare/xxhash
-    - github.com/marcelocantos/frozen/pkg/*
-    - github.com/stretchr/testify/*
+    - "github.com/cespare/xxhash"
+    - "github.com/marcelocantos/frozen/pkg/*"
+    - "github.com/stretchr/testify/*"
+    - "github.com/marcelocantos/hash"
   lll:
     line-length: 120
   goimports:

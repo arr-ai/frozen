@@ -1,7 +1,6 @@
 package frozen
 
 // Join returns the n-ary join of a Set of Sets.
-// TODO: Maybe implement directly instead of chaining binary joins.
 func Join(relations Set) Set {
 	if i := relations.Range(); i.Next() {
 		result := i.Value().(Set)
@@ -11,16 +10,6 @@ func Join(relations Set) Set {
 		return result
 	}
 	panic("Cannot join no sets")
-}
-
-// Union returns the n-ary union of a Set of Sets.
-// TODO: Maybe implement directly instead of chaining binary unions.
-func Union(relations Set) Set {
-	var result Set
-	for i := relations.Range(); i.Next(); {
-		result = result.Union(i.Value().(Set))
-	}
-	return result
 }
 
 // NewRelation returns a new set of maps, each having the same keys.
@@ -90,7 +79,34 @@ func (s Set) Join(t Set) Set {
 	return result
 }
 
-// Nest ...
+// Nest returns a relation with some attributes nested as subrelations.
+//
+// Example:
+//
+//   input:
+//     / c | a  \
+//     | 1 | 10 |
+//     | 1 | 11 |
+//     | 2 | 13 |
+//     | 3 | 11 |
+//     | 4 | 14 |
+//     | 3 | 10 |
+//     \ 4 | 13 /
+//
+//   nest(input, ("aa": {"a"})):
+//     / c | aa     \
+//     | 1 | / a  \ |
+//     |   | | 10 | |
+//     |   | \ 11 / |
+//     | 2 | / a  \ |
+//     |   | \ 13 / |
+//     | 3 | / a  \ |
+//     |   | | 10 | |
+//     |   | \ 11 / |
+//     | 4 | / a  \ |
+//     |   | | 13 | |
+//     \   | \ 14 / /
+//
 func (s Set) Nest(attrAttrs Map) Set {
 	var mb MapBuilder
 	keyAttrs := Union(attrAttrs.Values())
@@ -123,7 +139,8 @@ func (s Set) Nest(attrAttrs Map) Set {
 	return sb.Finish()
 }
 
-// Unnest ...
+// Unnest returns a relation with some subrelations unnested. This is the
+// reverse of Nest.
 func (s Set) Unnest(attrs Set) Set {
 	var b SetBuilder
 	for i := s.Range(); i.Next(); {

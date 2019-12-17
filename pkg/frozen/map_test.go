@@ -172,7 +172,7 @@ func TestMapGetElseFunc(t *testing.T) {
 	assert.Equal(t, 30, m.GetElseFunc(3, val(30)))
 }
 
-func TestMapKeys(t *testing.T) {
+func TestMapKeys(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	var m Map
@@ -187,7 +187,7 @@ func TestMapKeys(t *testing.T) {
 	assertSetEqual(t, Set{}, m.Keys())
 }
 
-func TestMapValues(t *testing.T) {
+func TestMapValues(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	var m Map
@@ -315,7 +315,7 @@ func TestMapHashAndEqual(t *testing.T) {
 	t.Parallel()
 
 	maps := []Map{
-		Map{},
+		{},
 		NewMap(KV(1, 2)),
 		NewMap(KV(1, 3)),
 		NewMap(KV(3, 4)),

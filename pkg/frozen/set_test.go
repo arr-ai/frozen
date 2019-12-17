@@ -66,7 +66,7 @@ func TestSetHash(t *testing.T) {
 	t.Parallel()
 
 	maps := []Set{
-		Set{},
+		{},
 		NewSet(1, 2),
 		NewSet(1, 3),
 		NewSet(3, 4),
@@ -92,7 +92,7 @@ func TestSetEqual(t *testing.T) {
 	t.Parallel()
 
 	sets := []Set{
-		Set{},
+		{},
 		NewSet(1),
 		NewSet(2),
 		NewSet(1, 2),
@@ -165,15 +165,15 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 	t.Parallel()
 
 	m := map[uint64]struct{}{
-		0b000000000000000: struct{}{},
-		0b000000000000001: struct{}{},
-		0b000000000000010: struct{}{},
-		0b000001000010000: struct{}{},
-		0b111111111111111: struct{}{},
-		0b010101010101010: struct{}{},
-		0b100100100100100: struct{}{},
-		0b000100010001000: struct{}{},
-		0b100001000010000: struct{}{},
+		0b000000000000000: {},
+		0b000000000000001: {},
+		0b000000000000010: {},
+		0b000001000010000: {},
+		0b111111111111111: {},
+		0b010101010101010: {},
+		0b100100100100100: {},
+		0b000100010001000: {},
+		0b100001000010000: {},
 	}
 	for i := 0; i < 100; i++ {
 		m[uint64(i)] = struct{}{}

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"math/bits"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestJoinSimple(t *testing.T) {
@@ -27,65 +25,68 @@ func TestJoinSimple(t *testing.T) {
 	assertSetEqual(t, expected, actual)
 }
 
-func TestJoinExhaustive(t *testing.T) {
-	t.Parallel()
+// We use numbers as follows to represent tuples:
+// 0bZZYYXX = (x:XX, y:YY, z:ZZ).
+// When XX, YY or ZZ are zero, they are considered to be not in the map.
+// Relations are numbers with multiple sequences of the above pattern.
+//   - 0b001001_001110 = {(x:1, y:2), (x:2, y:3)}
+//   - 0b101000_110100 = {(y:1, z:3), (y:2, z:2)}
+type bitRelation uint64
 
-	// We use numbers as follows to represent tuples:
-	// 0bZZYYXX = (x:XX, y:YY, z:ZZ).
-	// When XX, YY or ZZ are zero, they are considered to be not in the map.
-	// Relations are numbers with multiple sequences of the above pattern.
-	//   - 0b001001_001110 = {(x:1, y:2), (x:2, y:3)}
-	//   - 0b101000_110100 = {(y:1, z:3), (y:2, z:2)}
-
-	// Since we work with a{x, y} and b{y, z} as inputs, we will initially
-	// work with the 0bYYXX pattern and expand it to 0b00YYXX or 0bZZYY00.
-	expand := func(a uint64, offset uint64) uint64 {
-		result := uint64(0)
-		for ; a != 0; a >>= 4 {
-			// If XX or YY is zero, discard the whole relation.
-			if a&0b0011 == 0 || a&0b1100 == 0 || a&0b1111 < result&0b1111 {
-				return 0
-			}
-			result = result<<6 | a&0b1111
+// Since we work with a{x, y} and b{y, z} as inputs, we will initially
+// work with the 0bYYXX pattern and expandBinaryToTernaryBitRelation it to 0b00YYXX or 0bZZYY00.
+func expandBinaryToTernaryBitRelation(a, offset uint64) bitRelation {
+	result := uint64(0)
+	for ; a != 0; a >>= 4 {
+		// If XX or YY is zero, discard the whole relation.
+		if a&0b0011 == 0 || a&0b1100 == 0 || a&0b1111 < result&0b1111 {
+			return 0
 		}
-		return result << offset
+		result = result<<6 | a&0b1111
 	}
+	return bitRelation(result << offset)
+}
 
+func (a bitRelation) toRelation() Set {
 	header := []interface{}{"x", "y", "z"}
 
-	relation := func(a uint64) Set {
-		lo, hi := 0, len(header)
-		if a&3 == 0 {
-			lo++
-		}
-		if a>>4&3 == 0 {
-			hi--
-		}
-		h := header[lo:hi]
-		rows := make([][]interface{}, 0, (bits.Len(uint(a))+5)/6)
-		for ; a != 0; a >>= 6 {
-			require.NotZero(t, a&0b001100, "a=%b", a)
-			row := make([]interface{}, 0, hi-lo)
-			for i := 2 * lo; i < 2*hi; i += 2 {
-				row = append(row, a>>i&3)
-			}
-			rows = append(rows, row)
-		}
-		return NewRelation(h, rows...)
+	lo, hi := 0, len(header)
+	if a&3 == 0 {
+		lo++
 	}
+	if a>>4&3 == 0 {
+		hi--
+	}
+	h := header[lo:hi]
+	rows := make([][]interface{}, 0, (bits.Len(uint(a))+5)/6)
+	for ; a != 0; a >>= 6 {
+		if a&0b001100 == 0 {
+			panic(fmt.Sprintf("a=%b", a))
+		}
+		row := make([]interface{}, 0, hi-lo)
+		for i := 2 * lo; i < 2*hi; i += 2 {
+			row = append(row, a>>i&3)
+		}
+		rows = append(rows, row)
+	}
+	return NewRelation(h, rows...)
+}
 
-	join := func(a, b uint64) uint64 {
-		const yMask = 0b001100_001100_001100
-		result := uint64(0)
-		for i := a; i != 0; i >>= 6 {
-			for j := b; j != 0; j >>= 6 {
-				if i&0b001100 == j&0b001100 {
-					result = result<<6 | (i|j)&0b111111
-				}
+func (a bitRelation) join(b bitRelation) bitRelation {
+	result := bitRelation(0)
+	for i := a; i != 0; i >>= 6 {
+		for j := b; j != 0; j >>= 6 {
+			if i&0b001100 == j&0b001100 {
+				result = result<<6 | (i|j)&0b111111
 			}
 		}
-		return result
 	}
+	return result
+}
+
+//nolint:gocognit
+func TestJoinExhaustive(t *testing.T) {
+	t.Parallel()
 
 	outerTotal := 0
 	for i0 := uint64(1); i0 < 0b1_0000_0000; i0++ {
@@ -98,21 +99,25 @@ func TestJoinExhaustive(t *testing.T) {
 
 			innerTotal := 0
 			for i := i0; i < 0b1_0000_0000_0000; i += 0b1_0000_0000 {
-				if a := expand(i, 0); a != 0 {
-					for j := uint64(1); j < 0b1_0000_0000_0000; j++ {
-						if b := expand(j, 2); b != 0 {
-							c := join(a, b)
-							setA := relation(a)
-							setB := relation(b)
-							setC := relation(c)
-							if !assertSetEqual(t, setC, setA.Join(setB), "a=%b=%v b=%b=%v", a, setA, b, setB) {
-								join(a, b)
-								setA.Join(setB)
-								t.FailNow()
-							}
-							innerTotal++
-						}
+				a := expandBinaryToTernaryBitRelation(i, 0)
+				if a == 0 {
+					continue
+				}
+				for j := uint64(1); j < 0b1_0000_0000_0000; j++ {
+					b := expandBinaryToTernaryBitRelation(j, 2)
+					if b == 0 {
+						continue
 					}
+					c := a.join(b)
+					setA := a.toRelation()
+					setB := b.toRelation()
+					setC := c.toRelation()
+					if !assertSetEqual(t, setC, setA.Join(setB), "a=%b=%v b=%b=%v", a, setA, b, setB) {
+						_ = a.join(b)
+						setA.Join(setB)
+						t.FailNow()
+					}
+					innerTotal++
 				}
 			}
 			t.Logf("%d scenarios tested", innerTotal)

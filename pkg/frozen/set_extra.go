@@ -1,8 +1,9 @@
 package frozen
 
-import "encoding/json"
-
-import "math/bits"
+import (
+	"encoding/json"
+	"math/bits"
+)
 
 // Iota returns Iota3(0, stop, 1).
 func Iota(stop int) Set {

@@ -88,6 +88,7 @@ func TestNodeLarge(t *testing.T) {
 	var h *node
 	putter := newUnionComposer(0)
 	for i := 0; i < 500; i++ {
+		i := i
 		hh = append(hh, h)
 		for j := 0; j < i; j++ {
 			kv := h.get(KV(j, nil))

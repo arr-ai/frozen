@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/bits"
 	"strings"
-
 )
 
 const (
@@ -48,6 +47,7 @@ func (n *node) apply(c *composer, elem interface{}) *node {
 	return n.applyImpl(elem, c, 0, newHasher(elem, 0))
 }
 
+//nolint:funlen,gocognit
 func (n *node) applyImpl(elem interface{}, c *composer, depth int, h hasher) *node {
 	switch {
 	case n == nil:
@@ -114,8 +114,8 @@ func (n *node) applyImpl(elem interface{}, c *composer, depth int, h hasher) *no
 				mask = n.mask &^ mask
 			}
 			if mask&(mask-1) == 0 {
-				if child := n.children[bits.TrailingZeros64(uint64(mask))]; child.isLeaf() {
-					return child
+				if onlyChild := n.children[bits.TrailingZeros64(uint64(mask))]; onlyChild.isLeaf() {
+					return onlyChild
 				}
 			}
 			if c.mutate {
@@ -263,8 +263,8 @@ func (i *nodeIter) next() bool {
 	}
 }
 
-func (n *node) orderedIterator(less func(a, b interface{}) bool, cap int) *ordered {
-	o := &ordered{less: less, elems: make([]interface{}, 0, cap)}
+func (n *node) orderedIterator(less func(a, b interface{}) bool, capacity int) *ordered {
+	o := &ordered{less: less, elems: make([]interface{}, 0, capacity)}
 	for i := n.iterator(); i.next(); {
 		heap.Push(o, i.elem)
 	}
