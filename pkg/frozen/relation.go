@@ -108,35 +108,17 @@ func (s Set) Join(t Set) Set {
 //     \   | \ 14 / /
 //
 func (s Set) Nest(attrAttrs Map) Set {
-	var mb MapBuilder
 	keyAttrs := Union(attrAttrs.Values())
-	nestAttrs := attrAttrs.Keys()
-	for i := s.Range(); i.Next(); {
-		t := i.Value().(Map)
-		key := t.Without(keyAttrs)
-		var msb Map // Map<?, *SetBuilder>
-		if val, has := mb.Get(key); has {
-			msb = val.(Map)
-		} else {
-			msb = NewMapFromKeys(nestAttrs, func(_ interface{}) interface{} {
-				return &SetBuilder{}
-			})
-			mb.Put(key, msb)
-		}
-		for a := attrAttrs.Range(); a.Next(); {
-			msb.MustGet(a.Key()).(*SetBuilder).Add(t.Project(a.Value().(Set)))
-		}
-	}
-
-	var sb SetBuilder
-	for i := mb.Finish().Range(); i.Next(); {
-		key := i.Key().(Map)
-		for j := i.Value().(Map).Range(); j.Next(); {
-			key = key.With(j.Key(), j.Value().(*SetBuilder).Finish())
-		}
-		sb.Add(key)
-	}
-	return sb.Finish()
+	return s.
+		GroupBy(func(el interface{}) interface{} {
+			return el.(Map).Without(keyAttrs)
+		}).
+		Map(func(key, group interface{}) interface{} {
+			return attrAttrs.Map(func(_, attrs interface{}) interface{} {
+				return group.(Set).Project(attrs.(Set))
+			}).Update(key.(Map))
+		}).
+		Values()
 }
 
 // Unnest returns a relation with some subrelations unnested. This is the
