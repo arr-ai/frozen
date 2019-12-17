@@ -3,7 +3,6 @@ package frozen
 import (
 	"fmt"
 
-	"github.com/marcelocantos/frozen/pkg/value"
 	"github.com/marcelocantos/hash"
 )
 
@@ -13,7 +12,7 @@ type Set struct {
 	count int
 }
 
-var _ value.Key = Set{}
+var _ Key = Set{}
 
 // Iterator provides for iterating over a Set.
 type Iterator interface {
@@ -78,7 +77,7 @@ func (s Set) Equal(i interface{}) bool {
 		if s.root == nil || t.root == nil {
 			return s.root == nil && t.root == nil
 		}
-		return s.root.equal(t.root, value.Equal)
+		return s.root.equal(t.root, Equal)
 	}
 	return false
 }

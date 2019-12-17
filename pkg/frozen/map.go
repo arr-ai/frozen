@@ -3,7 +3,6 @@ package frozen
 import (
 	"fmt"
 
-	"github.com/marcelocantos/frozen/pkg/value"
 	"github.com/marcelocantos/hash"
 )
 
@@ -25,7 +24,7 @@ func (kv KeyValue) Hash(seed uintptr) uintptr {
 // Equal returns true iff i is a KeyValue whose key equals this KeyValue's key.
 func (kv KeyValue) Equal(i interface{}) bool {
 	if kv2, ok := i.(KeyValue); ok {
-		return value.Equal(kv.Key, kv2.Key)
+		return Equal(kv.Key, kv2.Key)
 	}
 	return false
 }
@@ -41,7 +40,7 @@ type Map struct {
 	count int
 }
 
-var _ value.Key = Map{}
+var _ Key = Map{}
 
 // NewMap creates a new Map with kvs as keys and values.
 func NewMap(kvs ...KeyValue) Map {
@@ -229,7 +228,7 @@ func (m Map) Equal(i interface{}) bool {
 		return m.root.equal(n.root, func(a, b interface{}) bool {
 			kva := a.(KeyValue)
 			kvb := b.(KeyValue)
-			return value.Equal(kva.Key, kvb.Key) && value.Equal(kva.Value, kvb.Value)
+			return Equal(kva.Key, kvb.Key) && Equal(kva.Value, kvb.Value)
 		})
 	}
 	return false

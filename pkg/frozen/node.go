@@ -6,7 +6,6 @@ import (
 	"math/bits"
 	"strings"
 
-	"github.com/marcelocantos/frozen/pkg/value"
 )
 
 const (
@@ -57,7 +56,7 @@ func (n *node) applyImpl(elem interface{}, c *composer, depth int, h hasher) *no
 		}
 		return &node{elem: elem}
 	case n.isLeaf():
-		if value.Equal(n.elem, elem) {
+		if Equal(n.elem, elem) {
 			*c.middleIn++
 			if composed := c.compose(n.elem, elem); composed != nil {
 				*c.middleOut++
@@ -141,7 +140,7 @@ func (n *node) getImpl(elem interface{}, h hasher) interface{} {
 	case n == nil:
 		return nil
 	case n.isLeaf():
-		if value.Equal(elem, n.elem) {
+		if Equal(elem, n.elem) {
 			return n.elem
 		}
 		return nil

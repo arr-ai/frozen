@@ -1,4 +1,4 @@
-package value
+package frozen
 
 import "github.com/marcelocantos/hash"
 
