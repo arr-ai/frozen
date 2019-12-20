@@ -28,7 +28,7 @@ type Set interface {
 	// the problem of counting intractable sets.
 	CountUpTo(limit int) int
 
-	// FastCountUpTo returns CountUpTo() in O(limit) time. Otherwise, ok=false.
+	// FastCountUpTo returns CountUpTo() in O(1) time. Otherwise, ok=false.
 	FastCountUpTo(limit int) (count int, ok bool)
 
 	// Freeze returns a frozen.Set with all the elements in this Set.

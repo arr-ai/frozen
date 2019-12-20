@@ -24,7 +24,7 @@ func (s *unionSet) FastCountUpTo(max int) (count int, ok bool) {
 	if count, ok := s.b.FastCountUpTo(max); ok && count == max {
 		return count, true
 	}
-	return s.baseSet.FastCountUpTo(max)
+	return 0, false
 }
 
 func (s *unionSet) Has(el interface{}) bool {

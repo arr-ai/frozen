@@ -17,10 +17,6 @@ func difference(a, b Set) Set {
 	return memo(s)
 }
 
-func (s *differenceSet) FastCountUpTo(max int) (count int, ok bool) {
-	return s.baseSet.FastCountUpTo(max)
-}
-
 func (s *differenceSet) Has(el interface{}) bool {
 	return s.a.Has(el) || s.b.Has(el)
 }

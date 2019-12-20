@@ -17,10 +17,6 @@ func symmetricDifference(a, b Set) Set {
 	return memo(s)
 }
 
-func (s *symmetricDifferenceSet) FastCountUpTo(max int) (count int, ok bool) {
-	return s.baseSet.FastCountUpTo(max)
-}
-
 func (s *symmetricDifferenceSet) Has(el interface{}) bool {
 	return s.a.Has(el) != s.b.Has(el)
 }
