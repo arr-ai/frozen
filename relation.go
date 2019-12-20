@@ -108,7 +108,7 @@ func (s Set) Join(t Set) Set {
 //     \   | \ 14 / /
 //
 func (s Set) Nest(attrAttrs Map) Set {
-	keyAttrs := Union(attrAttrs.Values())
+	keyAttrs := Intersection(attrAttrs.Values())
 	return s.
 		GroupBy(func(el interface{}) interface{} {
 			return el.(Map).Without(keyAttrs)

@@ -40,6 +40,59 @@ func (s Set) Count() int {
 	return s.count
 }
 
+// Range returns an Iterator over the Set.
+func (s Set) Range() Iterator {
+	return &setIter{i: s.root.iterator()}
+}
+
+// Any returns an arbitrary element from the Set.
+func (s Set) Any() interface{} {
+	for i := s.Range(); i.Next(); {
+		return i.Value()
+	}
+	panic("empty set")
+}
+
+// String returns a string representation of the Set.
+func (s Set) String() string {
+	return fmt.Sprintf("%v", s)
+}
+
+// Format writes a string representation of the Set into state.
+func (s Set) Format(state fmt.State, _ rune) {
+	state.Write([]byte("{"))
+	for i, n := s.Range(), 0; i.Next(); n++ {
+		if n > 0 {
+			state.Write([]byte(", "))
+		}
+		fmt.Fprintf(state, "%v", i.Value())
+	}
+	state.Write([]byte("}"))
+}
+
+// RangeBy returns a SetIterator for the Set that iterates over the elements in
+// a specified order.
+func (s Set) RangeBy(less func(a, b interface{}) bool) Iterator {
+	return s.root.orderedIterator(less, s.Count())
+}
+
+// Hash computes a hash value for s.
+func (s Set) Hash(seed uintptr) uintptr {
+	h := hash.Uintptr(10538386443025343807, seed)
+	for i := s.Range(); i.Next(); {
+		h = hash.Interface(i.Value(), h)
+	}
+	return h
+}
+
+// Equal implements Equatable.
+func (s Set) Equal(t interface{}) bool {
+	if set, ok := t.(Set); ok {
+		return s.EqualSet(set)
+	}
+	return false
+}
+
 // EqualSet returns true iff s and set have all the same elements.
 func (s Set) EqualSet(t Set) bool {
 	if s.root == nil || t.root == nil {
@@ -75,6 +128,11 @@ func isSubsetOf(a, b *node, depth int) bool {
 	}
 }
 
+// Has returns the value associated with key and true iff the key was found.
+func (s Set) Has(val interface{}) bool {
+	return s.root.get(val) != nil
+}
+
 // With returns a new Set retaining all the elements of the Set as well as values.
 func (s Set) With(values ...interface{}) Set {
 	return s.Union(NewSet(values...))
@@ -83,56 +141,6 @@ func (s Set) With(values ...interface{}) Set {
 // Without returns a new Set with all values retained from Set except values.
 func (s Set) Without(values ...interface{}) Set {
 	return s.Minus(NewSet(values...))
-}
-
-// Has returns the value associated with key and true iff the key was found.
-func (s Set) Has(val interface{}) bool {
-	return s.root.get(val) != nil
-}
-
-// Any returns an arbitrary element from the Set.
-func (s Set) Any() interface{} {
-	for i := s.Range(); i.Next(); {
-		return i.Value()
-	}
-	panic("empty set")
-}
-
-// Hash computes a hash value for s.
-func (s Set) Hash(seed uintptr) uintptr {
-	h := hash.Uintptr(10538386443025343807, seed)
-	for i := s.Range(); i.Next(); {
-		h = hash.Interface(i.Value(), h)
-	}
-	return h
-}
-
-// Equal returns true iff i is a Set with all the same elements as this Set.
-func (s Set) Equal(i interface{}) bool {
-	if t, ok := i.(Set); ok {
-		if s.root == nil || t.root == nil {
-			return s.root == nil && t.root == nil
-		}
-		return s.root.equal(t.root, Equal)
-	}
-	return false
-}
-
-// String returns a string representation of the Set.
-func (s Set) String() string {
-	return fmt.Sprintf("%v", s)
-}
-
-// Format writes a string representation of the Set into state.
-func (s Set) Format(state fmt.State, _ rune) {
-	state.Write([]byte("{"))
-	for i, n := s.Range(), 0; i.Next(); n++ {
-		if n > 0 {
-			state.Write([]byte(", "))
-		}
-		fmt.Fprintf(state, "%v", i.Value())
-	}
-	state.Write([]byte("}"))
 }
 
 // Where returns a Set with all elements that are in s and satisfy pred.
@@ -207,17 +215,6 @@ func (s Set) GroupBy(key func(el interface{}) interface{}) Map {
 func (s Set) merge(t Set, c *composer) Set {
 	n := s.root.merge(t.root, c)
 	return Set{root: n, count: c.count()}
-}
-
-// Range returns an Iterator over the Set.
-func (s Set) Range() Iterator {
-	return &setIter{i: s.root.iterator()}
-}
-
-// RangeBy returns a SetIterator for the Set that iterates over the elements in
-// a specified order.
-func (s Set) RangeBy(less func(a, b interface{}) bool) Iterator {
-	return s.root.orderedIterator(less, s.Count())
 }
 
 type setIter struct {
