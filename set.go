@@ -2,6 +2,7 @@ package frozen
 
 import (
 	"fmt"
+	"math/bits"
 
 	"github.com/marcelocantos/hash"
 )
@@ -37,6 +38,41 @@ func (s Set) IsEmpty() bool {
 // Count returns the number of elements in the Set.
 func (s Set) Count() int {
 	return s.count
+}
+
+// EqualSet returns true iff s and set have all the same elements.
+func (s Set) EqualSet(t Set) bool {
+	if s.root == nil || t.root == nil {
+		return s.root == nil && t.root == nil
+	}
+	return s.root.equal(t.root, Equal)
+}
+
+func (s Set) IsSubsetOf(t Set) bool {
+	return isSubsetOf(s.root, t.root, 0)
+}
+
+func isSubsetOf(a, b *node, depth int) bool {
+	switch {
+	case a == nil:
+		return true
+	case b == nil:
+		return false
+	case a.isLeaf() && b.isLeaf():
+		return Equal(a.elem, b.elem)
+	case a.isLeaf():
+		return b.getImpl(a.elem, newHasher(a.elem, depth)) != nil
+	case b.isLeaf():
+		return false
+	default:
+		for mask := a.mask; mask != 0; mask &= mask - 1 {
+			i := bits.TrailingZeros64(uint64(mask))
+			if !isSubsetOf(a.children[i], b.children[i], depth+1) {
+				return false
+			}
+		}
+		return true
+	}
 }
 
 // With returns a new Set retaining all the elements of the Set as well as values.

@@ -106,6 +106,16 @@ func TestSetEqual(t *testing.T) {
 	}
 }
 
+func TestSetIsSubsetOf(t *testing.T) {
+	for i := uint64(0); i < 100; i++ {
+		a := NewSetFromMask64(i)
+		for j := uint64(0); j < 100; j++ {
+			b := NewSetFromMask64(j)
+			assert.Equal(t, i&^j == 0, a.IsSubsetOf(b), "i=%b j=%b\na=%v\nb=%v", i, j, a.root, b.root)
+		}
+	}
+}
+
 func TestSetString(t *testing.T) {
 	t.Parallel()
 
