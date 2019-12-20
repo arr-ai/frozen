@@ -15,9 +15,9 @@ linters-settings:
     list-type: whitelist
     packages:
     - "github.com/cespare/xxhash"
-    - "github.com/marcelocantos/frozen/pkg/*"
-    - "github.com/stretchr/testify/*"
+    - "github.com/marcelocantos/frozen"
     - "github.com/marcelocantos/hash"
+    - "github.com/stretchr/testify/*"
   lll:
     line-length: 120
   goimports:
