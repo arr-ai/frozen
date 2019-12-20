@@ -9,7 +9,7 @@ import numpy as np
 
 def benchmark(prefix):
     return os.popen(
-        'go test -run ^$ -cpuprofile cpu.prof -memprofile mem.prof -benchmem -bench ^BenchmarkInsert ./pkg/frozen',
+        'go test -run ^$ -cpuprofile cpu.prof -memprofile mem.prof -benchmem -bench ^BenchmarkInsert .',
         'r',
     )
 

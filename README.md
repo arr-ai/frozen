@@ -31,10 +31,10 @@ with 1M elements. The implementations are as follows:
 In all cases, ints are mapped to ints.
 
 ```bash
-$ go test -run ^$ -cpuprofile cpu.prof -memprofile mem.prof -benchmem -bench ^BenchmarkInsert ./pkg/frozen/
+$ go test -run ^$ -cpuprofile cpu.prof -memprofile mem.prof -benchmem -bench ^BenchmarkInsert ./
 goos: linux
 goarch: amd64
-pkg: github.com/marcelocantos/frozen/pkg/frozen
+pkg: github.com/marcelocantos/frozen
 BenchmarkInsertMapInt0-24           	 8532830	       175 ns/op	      72 B/op	       0 allocs/op
 BenchmarkInsertMapInt1k-24          	10379329	       164 ns/op	      60 B/op	       0 allocs/op
 BenchmarkInsertMapInt1M-24          	 6760242	       185 ns/op	      78 B/op	       0 allocs/op
@@ -57,7 +57,7 @@ BenchmarkInsertFrozenSet0-24        	 5400745	       236 ns/op	     296 B/op	   
 BenchmarkInsertFrozenSet1k-24       	 2460313	       512 ns/op	     787 B/op	      11 allocs/op
 BenchmarkInsertFrozenSet1M-24       	 1132215	      1046 ns/op	    1106 B/op	      14 allocs/op
 PASS
-ok  	github.com/marcelocantos/frozen/pkg/frozen	65.909s
+ok  	github.com/marcelocantos/frozen	65.909s
 ```
 
 ![Benchmarks Graph](assets/benchmarks.png)
