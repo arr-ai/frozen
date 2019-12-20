@@ -145,19 +145,23 @@ func (s Set) Without(values ...interface{}) Set {
 
 // Where returns a Set with all elements that are in s and satisfy pred.
 func (s Set) Where(pred func(el interface{}) bool) Set {
-	return s.Reduce(func(r, i interface{}) interface{} {
-		if pred(i) {
-			return r.(Set).With(i)
+	var b SetBuilder
+	for i := s.Range(); i.Next(); {
+		v := i.Value()
+		if pred(v) {
+			b.Add(v)
 		}
-		return r
-	}, NewSet()).(Set)
+	}
+	return b.Finish()
 }
 
 // Map returns a Set with all the results of applying f to all elements in s.
 func (s Set) Map(f func(el interface{}) interface{}) Set {
-	return s.Reduce(func(r, i interface{}) interface{} {
-		return r.(Set).With(f(i))
-	}, NewSet()).(Set)
+	var b SetBuilder
+	for i := s.Range(); i.Next(); {
+		b.Add(f(i.Value()))
+	}
+	return b.Finish()
 }
 
 // Reduce returns the result of applying f to each element of s. The result of

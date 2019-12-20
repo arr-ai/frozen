@@ -32,6 +32,10 @@ func (b *SetBuilder) Remove(el interface{}) {
 	b.root = b.root.apply(b.remover, el)
 }
 
+func (b *SetBuilder) Has(el interface{}) bool {
+	return b.root.get(el) != nil
+}
+
 // Finish returns a Set containing all elements added since the SetBuilder was
 // initialised or the last call to Finish.
 func (b *SetBuilder) Finish() Set {
