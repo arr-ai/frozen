@@ -10,7 +10,7 @@ import (
 
 func extraArgs(msgAndArgs []interface{}, msg string, args ...interface{}) []interface{} {
 	if len(msgAndArgs) == 0 {
-		return args
+		return append([]interface{}{msg}, args...)
 	}
 	return append(append([]interface{}{msgAndArgs[0].(string) + msg}, msgAndArgs[1:]...), args...)
 }
@@ -76,6 +76,17 @@ func assertRangeEmits(t *testing.T, expected frozen.Set, a Set) bool {
 	return assert.True(t, expected.EqualSet(b.Finish()))
 }
 
+func extractInt(i interface{}) int {
+	switch x := i.(type) {
+	case int:
+		return x
+	case Set:
+		return x.Count()
+	default:
+		panic("cannot extract int")
+	}
+}
+
 func assertSetOps(t *testing.T, golden frozen.Set, s Set) { //nolint:funlen
 	count := golden.Count()
 	fgolden := Frozen(golden)
@@ -116,10 +127,12 @@ func assertSetOps(t *testing.T, golden frozen.Set, s Set) { //nolint:funlen
 	for i, pred := range []func(interface{}) bool{
 		func(_ interface{}) bool { return false },
 		func(_ interface{}) bool { return true },
-		func(i interface{}) bool { return i.(int)%2 == 0 },
-		func(i interface{}) bool { return i.(int) < 3 },
+		func(i interface{}) bool { return extractInt(i)%2 == 0 },
+		func(i interface{}) bool { return extractInt(i) < 3 },
 	} {
-		assertEqualSet(t, Frozen(golden.Where(pred)), s.Where(pred), "i=%v", i)
+		expected := Frozen(golden.Where(pred))
+		actual := s.Where(pred)
+		assertEqualSet(t, expected, actual, "i=%v", i)
 	}
 
 	assert.False(t, s.With(2).IsEmpty())
@@ -132,8 +145,8 @@ func assertSetOps(t *testing.T, golden frozen.Set, s Set) { //nolint:funlen
 	for i, m := range []func(interface{}) interface{}{
 		func(_ interface{}) interface{} { return 42 },
 		func(i interface{}) interface{} { return i },
-		func(i interface{}) interface{} { return 2 * i.(int) },
-		func(i interface{}) interface{} { return i.(int) / 2 },
+		func(i interface{}) interface{} { return 2 * extractInt(i) },
+		func(i interface{}) interface{} { return extractInt(i) / 2 },
 	} {
 		assertEqualSet(t, Frozen(golden.Map(m)), s.Map(m), "i=%v", i)
 	}
@@ -146,9 +159,9 @@ func assertSetOps(t *testing.T, golden frozen.Set, s Set) { //nolint:funlen
 	} {
 		assertEqualSet(t, Frozen(golden.Union(u)), s.Union(Frozen(u)), "i=%v", i)
 		assertEqualSet(t, Frozen(golden.Intersection(u)), s.Intersection(Frozen(u)), "i=%v", i)
-		assertEqualSet(t, Frozen(golden.Minus(u)), s.Difference(Frozen(u)), "i=%v", i)
+		assertEqualSet(t, Frozen(golden.Difference(u)), s.Difference(Frozen(u)), "i=%v", i)
 		assertEqualSet(t, Frozen(golden.SymmetricDifference(u)), s.SymmetricDifference(Frozen(u)), "i=%v u=%v", i, u)
 	}
 
-	assert.Equal(t, 1<<golden.Count(), s.PowerSet().Count())
+	assert.Equal(t, 1<<golden.Count(), s.Powerset().Count())
 }

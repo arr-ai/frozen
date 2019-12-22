@@ -36,5 +36,5 @@ func TestSetWhereEmpty(t *testing.T) {
 	assert.True(t, f.Union(Frozen(frozen.Set{})).IsEmpty())
 	assertFastIsEmpty(t, f.Intersection(Frozen(frozen.NewSet(1, 2, 3))))
 	assertFastIsEmpty(t, f.Intersection(Frozen(frozen.NewSet(1, 2, 3))))
-	assertFastIsEmpty(t, f.PowerSet())
+	assertFastIsEmpty(t, f.Powerset())
 }

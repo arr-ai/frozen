@@ -50,22 +50,25 @@ func (s *baseSet) FastCountUpTo(limit int) (count int, ok bool) {
 	return 0, false
 }
 
-func (s *baseSet) Freeze() frozen.Set {
+func (s *baseSet) Freeze() Set {
+	if f, ok := s.set.(*frozenSet); ok {
+		return f
+	}
 	m := memo(s.set)
 	for i := m.Range(); i.Next(); {
 	}
-	return m.Set.(*frozenSet).set
+	return m.getSet()
 }
 
 func (s *baseSet) Equal(set interface{}) bool {
 	if set, ok := set.(Set); ok {
-		return s.EqualSet(set)
+		return s.set.EqualSet(set)
 	}
 	return false
 }
 
-func (s *baseSet) EqualSet(set Set) bool {
-	return s.set.EqualSet(set)
+func (s *baseSet) EqualSet(t Set) bool {
+	return s.Freeze().Equal(t.Freeze())
 }
 
 func (s *baseSet) Hash(seed uintptr) uintptr {
@@ -92,8 +95,8 @@ func (s *baseSet) FastHas(el interface{}) (has, ok bool) {
 	return false, false
 }
 
-func (s *baseSet) IsSubsetOf(set Set) bool {
-	return s.set.IsSubsetOf(set)
+func (s *baseSet) IsSubsetOf(t Set) bool {
+	return s.Freeze().IsSubsetOf(t.Freeze())
 }
 
 func (s *baseSet) Where(pred Predicate) Set {
@@ -112,22 +115,22 @@ func (s *baseSet) Map(m Mapper) Set {
 	return mapper(s.set, m)
 }
 
-func (s *baseSet) Union(set Set) Set {
-	return union(s.set, set)
+func (s *baseSet) Union(t Set) Set {
+	return union(s.set, t)
 }
 
-func (s *baseSet) Intersection(set Set) Set {
-	return intersection(s.set, set)
+func (s *baseSet) Intersection(t Set) Set {
+	return intersection(s.set, t)
 }
 
-func (s *baseSet) Difference(set Set) Set {
-	return difference(s.set, set)
+func (s *baseSet) Difference(t Set) Set {
+	return difference(s.set, t)
 }
 
-func (s *baseSet) SymmetricDifference(set Set) Set {
-	return symmetricDifference(s.set, set)
+func (s *baseSet) SymmetricDifference(t Set) Set {
+	return symmetricDifference(s.set, t)
 }
 
-func (s *baseSet) PowerSet() Set {
+func (s *baseSet) Powerset() Set {
 	return powerset(s.set)
 }

@@ -13,6 +13,10 @@ func Frozen(set frozen.Set) Set {
 	return s
 }
 
+func (s *frozenSet) String() string {
+	return s.set.String()
+}
+
 func (s *frozenSet) FastIsEmpty() (empty, ok bool) {
 	return s.set.IsEmpty(), true
 }
@@ -48,7 +52,7 @@ func (s *frozenSet) EqualSet(set Set) bool {
 
 func (s *frozenSet) IsSubsetOf(set Set) bool {
 	if m, ok := set.(*memoSet); ok {
-		if f, ok := m.Set.(*frozenSet); ok {
+		if f, ok := m.getSet().(*frozenSet); ok {
 			return s.IsSubsetOf(f)
 		}
 	}

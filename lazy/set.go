@@ -1,7 +1,5 @@
 package lazy
 
-import "github.com/marcelocantos/frozen"
-
 // Predicate represents a function that returns true iff el satisfies some
 // condition. The function must be pure. That is: a == b => p(a) == p(b).
 type Predicate func(el interface{}) bool
@@ -32,7 +30,7 @@ type Set interface {
 	FastCountUpTo(limit int) (count int, ok bool)
 
 	// Freeze returns a frozen.Set with all the elements in this Set.
-	Freeze() frozen.Set
+	Freeze() Set
 
 	// Range returns an iterator over this Set. Traversal order is indeterminate
 	// and may differ from one invocation of Range to the next.
@@ -54,7 +52,7 @@ type Set interface {
 	// Has returns true iff el is in this Set.
 	Has(el interface{}) bool
 
-	// FastHas returns Has(el) in < O(n) time. Otherwise, ok=false.
+	// FastHas returns Has(el) in <= O(log n) time. Otherwise, ok=false.
 	FastHas(el interface{}) (has, ok bool)
 
 	// With returns a Set containing all the elements from this Set and all the
@@ -90,8 +88,8 @@ type Set interface {
 	// not in set.
 	SymmetricDifference(set Set) Set
 
-	// PowerSet returns the set of all subsets of this Set.
-	PowerSet() Set
+	// Powerset returns the set of all subsets of this Set.
+	Powerset() Set
 }
 
 type SetIterator interface {

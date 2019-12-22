@@ -31,8 +31,8 @@ func (emptySet) FastCountUpTo(limit int) (count int, ok bool) {
 	return 0, true
 }
 
-func (emptySet) Freeze() frozen.Set {
-	return frozen.Set{}
+func (emptySet) Freeze() Set {
+	return Frozen(frozen.Set{})
 }
 
 func (emptySet) Equal(set interface{}) bool {
@@ -98,7 +98,7 @@ func (emptySet) SymmetricDifference(s Set) Set {
 	return s
 }
 
-func (emptySet) PowerSet() Set {
+func (emptySet) Powerset() Set {
 	return Frozen(frozen.NewSet(emptySet{}))
 }
 

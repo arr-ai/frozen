@@ -26,7 +26,7 @@ func TestSetFrozenEmpty(t *testing.T) {
 	assertFastIsEmpty(t, s.Map(func(_ interface{}) interface{} { return 42 }))
 	assertFastIsEmpty(t, s.Intersection(Frozen(frozen.NewSet(1, 2, 3))))
 	assertFastIsEmpty(t, s.Intersection(Frozen(frozen.NewSet(1, 2, 3))))
-	assertFastIsEmpty(t, s.PowerSet())
+	assertFastIsEmpty(t, s.Powerset())
 }
 
 func TestSetFrozenSmall(t *testing.T) {

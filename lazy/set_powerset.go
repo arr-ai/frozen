@@ -3,6 +3,8 @@ package lazy
 import (
 	"math/bits"
 	"unsafe"
+
+	"github.com/marcelocantos/frozen"
 )
 
 type powerSet struct {
@@ -44,8 +46,9 @@ func (s *powerSet) FastCount() (count int, ok bool) {
 func (s *powerSet) FastCountUpTo(limit int) (count int, ok bool) {
 	if count, ok := s.set.FastCount(); ok {
 		if count < int(8*unsafe.Sizeof(0)) {
-			if count < limit {
-				return count, true
+			n := 1 << count
+			if n < limit {
+				return n, true
 			}
 			return limit, true
 		}
@@ -55,24 +58,27 @@ func (s *powerSet) FastCountUpTo(limit int) (count int, ok bool) {
 }
 
 func (s *powerSet) Has(el interface{}) bool {
-	ss, ok := el.(Set)
-	return ok && ss.IsSubsetOf(s.set)
+	ss, ok := el.(frozen.Set)
+	return ok && Frozen(ss).IsSubsetOf(s.set)
 }
 
 func (s *powerSet) Range() SetIterator {
-	return &powerSetSetIterator{i: s.set.Range()}
+	return &powerSetSetIterator{
+		i:    s.set.Range(),
+		end:  1,
+		mask: ^uint64(0),
+	}
 }
 
 type powerSetSetIterator struct {
 	i     SetIterator
 	end   uint64
 	mask  uint64
-	pool  []interface{}
-	value Set
+	elems []interface{}
+	value frozen.Set
 }
 
 func (i *powerSetSetIterator) Next() bool {
-	oldMask := i.mask
 	i.mask++
 	if i.mask >= i.end {
 		if i.mask > i.end {
@@ -81,18 +87,21 @@ func (i *powerSetSetIterator) Next() bool {
 		if !i.i.Next() {
 			return false
 		}
-		i.pool = append(i.pool, i.i.Value())
+		i.elems = append(i.elems, i.i.Value())
 		i.end <<= 1
 	}
-	for del := oldMask & ^i.mask; del != 0; del &= del - 1 {
-		i.value = i.value.Without(i.pool[bits.TrailingZeros64(del)])
-	}
-	for add := i.mask & ^oldMask; add != 0; add &= add - 1 {
-		i.value = i.value.With(i.pool[bits.TrailingZeros64(add)])
+	// Use a special counting order that flips one bit at at time. See
+	// (frozen.Set).Powerset() for a detailed explanation.
+	if flip := bits.TrailingZeros64(i.mask); flip < len(i.elems) {
+		if i.mask>>(flip+1)&1 == 0 {
+			i.value = i.value.With(i.elems[flip])
+		} else {
+			i.value = i.value.Without(i.elems[flip])
+		}
 	}
 	return true
 }
 
 func (i *powerSetSetIterator) Value() interface{} {
-	return i.value
+	return Frozen(i.value)
 }

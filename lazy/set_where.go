@@ -20,7 +20,7 @@ func (s *whereSet) FastIsEmpty() (empty, ok bool) {
 }
 
 func (s *whereSet) Has(el interface{}) bool {
-	return s.pred(el) && s.set.Has(el)
+	return s.pred(el) && s.src.Has(el)
 }
 
 func (s *whereSet) Range() SetIterator {
