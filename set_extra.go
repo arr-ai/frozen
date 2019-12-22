@@ -2,7 +2,6 @@ package frozen
 
 import (
 	"encoding/json"
-	"math/bits"
 )
 
 // Iota returns Iota3(0, stop, 1).
@@ -41,8 +40,8 @@ func Iota3(start, stop, step int) Set {
 // of mask is set.
 func NewSetFromMask64(mask uint64) Set {
 	var b SetBuilder
-	for ; mask != 0; mask &= mask - 1 {
-		b.Add(bits.TrailingZeros64(mask))
+	for mask := bititer(mask); mask != 0; mask = mask.next() {
+		b.Add(mask.index())
 	}
 	return b.Finish()
 }

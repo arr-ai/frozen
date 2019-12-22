@@ -2,7 +2,6 @@ package frozen
 
 import (
 	"fmt"
-	"math/bits"
 	"strings"
 	"testing"
 
@@ -47,8 +46,8 @@ func TestNodeEqual(t *testing.T) {
 	keys := []string{"a", "b", "c", "d", "e", "f", "g"}
 	for i := 1; i < 1<<len(keys); i++ {
 		n := empty
-		for m := i; m != 0; m &= m - 1 {
-			j := bits.TrailingZeros64(uint64(m))
+		for mask := bititer(i); mask != 0; mask = mask.next() {
+			j := mask.index()
 			n = n.apply(putter, KV(keys[j], j))
 		}
 		nodes = append(nodes, n)

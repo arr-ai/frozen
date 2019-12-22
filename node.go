@@ -33,8 +33,8 @@ func (n *node) equal(o *node, eq func(a, b interface{}) bool) bool {
 	case n.isLeaf():
 		return eq(n.elem, o.elem)
 	default:
-		for mask := n.mask; mask != 0; mask &= mask - 1 {
-			i := bits.TrailingZeros64(uint64(mask))
+		for mask := bititer(n.mask); mask != 0; mask = mask.next() {
+			i := mask.index()
 			if !n.children[i].equal(o.children[i], eq) {
 				return false
 			}
@@ -172,21 +172,21 @@ func (n *node) mergeImpl(o *node, c *composer, depth int) *node {
 	default:
 		var result node
 		if c.keep&leftSideOnly != 0 {
-			for mask := n.mask &^ o.mask; mask != 0; mask &= mask - 1 {
-				i := bits.TrailingZeros64(uint64(mask))
+			for mask := bititer(n.mask &^ o.mask); mask != 0; mask = mask.next() {
+				i := mask.index()
 				result.children[i] = n.children[i]
 			}
 			result.mask |= n.mask &^ o.mask
 		}
 		if c.keep&rightSideOnly != 0 {
-			for mask := o.mask &^ n.mask; mask != 0; mask &= mask - 1 {
-				i := bits.TrailingZeros64(uint64(mask))
+			for mask := bititer(o.mask &^ n.mask); mask != 0; mask = mask.next() {
+				i := mask.index()
 				result.children[i] = o.children[i]
 			}
 			result.mask |= o.mask &^ n.mask
 		}
-		for mask := o.mask & n.mask; mask != 0; mask &= mask - 1 {
-			i := bits.TrailingZeros64(uint64(mask))
+		for mask := bititer(o.mask & n.mask); mask != 0; mask = mask.next() {
+			i := mask.index()
 			if child := n.children[i].mergeImpl(o.children[i], c, depth+1); child != nil {
 				result.children[i] = child
 				result.mask |= uintptr(1) << i

@@ -126,8 +126,8 @@ func isSubsetOf(a, b *node, depth int) bool {
 	case b.isLeaf():
 		return false
 	default:
-		for mask := a.mask; mask != 0; mask &= mask - 1 {
-			i := bits.TrailingZeros64(uint64(mask))
+		for mask := bititer(a.mask); mask != 0; mask = mask.next() {
+			i := mask.index()
 			if !isSubsetOf(a.children[i], b.children[i], depth+1) {
 				return false
 			}
