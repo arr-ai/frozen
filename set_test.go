@@ -240,6 +240,33 @@ func TestSetSymmetricDifference(t *testing.T) {
 	)
 }
 
+func TestSetPowerset(t *testing.T) {
+	expected := NewSet(
+		NewSet(),
+		NewSet(3),
+		NewSet(2),
+		NewSet(2, 3),
+		NewSet(1),
+		NewSet(1, 3),
+		NewSet(1, 2),
+		NewSet(1, 2, 3),
+	)
+	actual := NewSet(1, 2, 3).Powerset()
+	assertSetEqual(t, expected, actual)
+}
+
+func TestSetPowersetLarge(t *testing.T) {
+	expected := NewSet()
+	var b SetBuilder
+	for i := uint64(0); i <= 1<<15; i++ {
+		if i > 0 && i&(i-1) == 0 {
+			expected = expected.Union(b.Finish())
+			assertSetEqual(t, expected, NewSetFromMask64(i-1).Powerset(), "i=%v", i)
+		}
+		b.Add(NewSetFromMask64(i))
+	}
+}
+
 func TestSetGroupBy(t *testing.T) {
 	t.Parallel()
 

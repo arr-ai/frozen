@@ -70,3 +70,14 @@ func assertMapNotHas(t *testing.T, m Map, i interface{}) bool {
 	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
 	return ok1 && ok2
 }
+
+func extractInt(i interface{}) int {
+	switch x := i.(type) {
+	case int:
+		return x
+	case Set:
+		return x.Count()
+	default:
+		panic("cannot extract int")
+	}
+}
