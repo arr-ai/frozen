@@ -31,6 +31,8 @@ func (s eagerLazySlice) Swap(i, j int) {
 }
 
 func TestSet(t *testing.T) { //nolint:funlen
+	t.Parallel()
+
 	type work struct {
 		line  int
 		index int

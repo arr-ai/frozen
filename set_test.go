@@ -107,6 +107,8 @@ func TestSetEqual(t *testing.T) {
 }
 
 func TestSetIsSubsetOf(t *testing.T) {
+	t.Parallel()
+
 	for i := uint64(0); i < 100; i++ {
 		a := NewSetFromMask64(i)
 		for j := uint64(0); j < 100; j++ {
@@ -172,8 +174,6 @@ func TestSetReduce(t *testing.T) {
 }
 
 func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set) Set) {
-	t.Parallel()
-
 	m := map[uint64]struct{}{
 		0b000000000000000: {},
 		0b000000000000001: {},
@@ -213,6 +213,8 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 }
 
 func TestSetIntersection(t *testing.T) {
+	t.Parallel()
+
 	testSetBinaryOperator(t,
 		func(a, b uint64) uint64 { return a & b },
 		func(a, b Set) Set { return a.Intersection(b) },
@@ -220,6 +222,8 @@ func TestSetIntersection(t *testing.T) {
 }
 
 func TestSetUnion(t *testing.T) {
+	t.Parallel()
+
 	testSetBinaryOperator(t,
 		func(a, b uint64) uint64 { return a | b },
 		func(a, b Set) Set { return a.Union(b) },
@@ -227,6 +231,8 @@ func TestSetUnion(t *testing.T) {
 }
 
 func TestSetDifference(t *testing.T) {
+	t.Parallel()
+
 	testSetBinaryOperator(t,
 		func(a, b uint64) uint64 { return a &^ b },
 		func(a, b Set) Set { return a.Difference(b) },
@@ -234,6 +240,8 @@ func TestSetDifference(t *testing.T) {
 }
 
 func TestSetSymmetricDifference(t *testing.T) {
+	t.Parallel()
+
 	testSetBinaryOperator(t,
 		func(a, b uint64) uint64 { return a ^ b },
 		func(a, b Set) Set { return a.SymmetricDifference(b) },
@@ -241,6 +249,8 @@ func TestSetSymmetricDifference(t *testing.T) {
 }
 
 func TestSetPowerset(t *testing.T) {
+	t.Parallel()
+
 	expected := NewSet(
 		NewSet(),
 		NewSet(3),
@@ -256,6 +266,8 @@ func TestSetPowerset(t *testing.T) {
 }
 
 func TestSetPowersetLarge(t *testing.T) {
+	t.Parallel()
+
 	expected := NewSet()
 	var b SetBuilder
 	for i := uint64(0); i <= 1<<15; i++ {
