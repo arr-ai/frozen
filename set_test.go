@@ -226,10 +226,10 @@ func TestSetUnion(t *testing.T) {
 	)
 }
 
-func TestSetMinus(t *testing.T) {
+func TestSetDifference(t *testing.T) {
 	testSetBinaryOperator(t,
 		func(a, b uint64) uint64 { return a &^ b },
-		func(a, b Set) Set { return a.Minus(b) },
+		func(a, b Set) Set { return a.Difference(b) },
 	)
 }
 

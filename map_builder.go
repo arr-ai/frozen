@@ -26,7 +26,7 @@ func (b *MapBuilder) Put(key, value interface{}) {
 // Remove removes an entry from the Map under construction.
 func (b *MapBuilder) Remove(key interface{}) {
 	if b.remover == nil {
-		b.remover = newMinusComposer(0)
+		b.remover = newDifferenceComposer(0)
 		b.remover.mutate = true
 	}
 	b.root = b.root.apply(b.remover, KV(key, nil))

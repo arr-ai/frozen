@@ -82,7 +82,7 @@ func (m Map) With(key, val interface{}) Map {
 // Without returns a new Map with all keys retained from m except the elements
 // of keys.
 func (m Map) Without(keys Set) Map {
-	c := newMinusComposer(m.Count())
+	c := newDifferenceComposer(m.Count())
 	root := m.root
 	for k := keys.Range(); k.Next(); {
 		root = root.apply(c, KV(k.Value(), nil))

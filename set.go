@@ -148,7 +148,7 @@ func (s Set) With(values ...interface{}) Set {
 
 // Without returns a new Set with all values retained from Set except values.
 func (s Set) Without(values ...interface{}) Set {
-	return s.Minus(NewSet(values...))
+	return s.Difference(NewSet(values...))
 }
 
 // Where returns a Set with all elements that are in s and satisfy pred.
@@ -191,9 +191,9 @@ func (s Set) Union(t Set) Set {
 	return s.merge(t, newUnionComposer(s.Count()+t.Count()))
 }
 
-// Minus returns a Set with all elements that are s but not in t.
-func (s Set) Minus(t Set) Set {
-	return s.merge(t, newMinusComposer(s.Count()))
+// Difference returns a Set with all elements that are s but not in t.
+func (s Set) Difference(t Set) Set {
+	return s.merge(t, newDifferenceComposer(s.Count()))
 }
 
 // SymmetricDifference returns a Set with all elements that are s or t, but not

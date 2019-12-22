@@ -197,7 +197,7 @@ func TestNodeDelete(t *testing.T) {
 	}
 
 	d := h
-	deleter := newMinusComposer(0)
+	deleter := newDifferenceComposer(0)
 	for i := 0; i < N; i++ {
 		assert.NotNil(t, h)
 		require.NotNil(t, d.get(i), "i=%v", i)
@@ -223,7 +223,7 @@ func TestNodeDeleteMissing(t *testing.T) {
 	t.Parallel()
 
 	putter := newUnionComposer(0)
-	deleter := newMinusComposer(0)
+	deleter := newDifferenceComposer(0)
 
 	h := empty.apply(putter, "foo")
 	h = h.apply(deleter, "bar")

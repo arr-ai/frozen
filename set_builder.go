@@ -26,7 +26,7 @@ func (b *SetBuilder) Add(el interface{}) {
 // Remove removes el to the Set under construction.
 func (b *SetBuilder) Remove(el interface{}) {
 	if b.remover == nil {
-		b.remover = newMinusComposer(0)
+		b.remover = newDifferenceComposer(0)
 		b.remover.mutate = true
 	}
 	b.root = b.root.apply(b.remover, el)

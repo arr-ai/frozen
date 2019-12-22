@@ -61,7 +61,7 @@ func newSymmetricDifferenceComposer(abCount int) *composer {
 	)
 }
 
-func newMinusComposer(aCount int) *composer {
+func newDifferenceComposer(aCount int) *composer {
 	return newComposer(leftSideOnly, useNeither,
 		func(middleIn, middleOut int) int { return aCount - middleIn + middleOut },
 	)

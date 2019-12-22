@@ -48,8 +48,8 @@ func (s Set) Join(t Set) Set {
 	sAttrs := s.Any().(Map).Keys()
 	tAttrs := t.Any().(Map).Keys()
 	commonAttrs := sAttrs.Intersection(tAttrs)
-	sOnlyAttrs := sAttrs.Minus(commonAttrs)
-	tOnlyAttrs := tAttrs.Minus(commonAttrs)
+	sOnlyAttrs := sAttrs.Difference(commonAttrs)
+	tOnlyAttrs := tAttrs.Difference(commonAttrs)
 	group := func(s Set, attrs Set) Map {
 		return s.GroupBy(func(tuple interface{}) interface{} {
 			return tuple.(Map).Project(commonAttrs)
