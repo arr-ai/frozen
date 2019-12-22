@@ -45,6 +45,14 @@ func (s Set) Range() Iterator {
 	return &setIter{i: s.root.iterator()}
 }
 
+func (s Set) Elements() []interface{} {
+	result := make([]interface{}, 0, s.Count())
+	for i := s.Range(); i.Next(); {
+		result = append(result, i.Value())
+	}
+	return result
+}
+
 // Any returns an arbitrary element from the Set.
 func (s Set) Any() interface{} {
 	for i := s.Range(); i.Next(); {
@@ -183,15 +191,60 @@ func (s Set) Union(t Set) Set {
 	return s.merge(t, newUnionComposer(s.Count()+t.Count()))
 }
 
+// Minus returns a Set with all elements that are s but not in t.
+func (s Set) Minus(t Set) Set {
+	return s.merge(t, newMinusComposer(s.Count()))
+}
+
 // SymmetricDifference returns a Set with all elements that are s or t, but not
 // both.
 func (s Set) SymmetricDifference(t Set) Set {
 	return s.merge(t, newSymmetricDifferenceComposer(s.Count()+t.Count()))
 }
 
-// Minus returns a Set with all elements that are s but not in t.
-func (s Set) Minus(t Set) Set {
-	return s.merge(t, newMinusComposer(s.Count()))
+func (s Set) Powerset() Set {
+	n := s.Count()
+	if n > 63 {
+		panic("set too large")
+	}
+	elems := s.Elements()
+	subset := Set{}
+	result := NewSet(subset)
+	for i := uint64(1); i < 1<<n; i++ {
+		// Use a special counting order that flips a single bit at at time. The
+		// bit to flip is the same as the lowest-order 1-bit in the normal
+		// counting order, denoted by `(1)`. The flipped bit's new value is the
+		// complement of the bit to the left of the `(1)`, denoted by `^-` and
+		// `^1`.
+		//
+		//   ---------- plain ----------  |  ------- highlighted -------
+		//      normal       1-bit flips  |     normal       1-bit flips
+		//   ------------    -----------  |  ------------    -----------
+		//    -  -  -  -     -  -  -  -   |   -  -  -  -     -  -  -  -
+		//    -  -  -  1     -  -  -  1   |   -  - ^- (1)    -  -  - [1]
+		//    -  -  1  -     -  -  1  1   |   - ^- (1) -     -  - [1] 1
+		//    -  -  1  1     -  -  1  -   |   -  - ^1 (1)    -  -  1 [-]
+		//    -  1  -  -     -  1  1  -   |  ^- (1) -  -     - [1] 1  -
+		//    -  1  -  1     -  1  1  1   |   -  1 ^- (1)    -  1  1 [1]
+		//    -  1  1  -     -  1  -  1   |   - ^1 (1) -     -  1 [-] 1
+		//    -  1  1  1     -  1  -  -   |   -  1 ^1 (1)    -  1  - [-]
+		//    1  -  -  -     1  1  -  -   |  (1) -  -  -    [1] 1  -  -
+		//    1  -  -  1     1  1  -  1   |   1  - ^- (1)    1  1  - [1]
+		//    1  -  1  -     1  1  1  1   |   1 ^- (1) -     1  1 [1] 1
+		//    1  -  1  1     1  1  1  -   |   1  - ^1 (1)    1  1  1 [-]
+		//    1  1  -  -     1  -  1  -   |  ^1 (1) -  -     1 [-] 1  -
+		//    1  1  -  1     1  -  1  1   |   1  1 ^- (1)    1  -  1 [1]
+		//    1  1  1  -     1  -  -  1   |   1 ^1 (1) -     1  - [-] 1
+		//    1  1  1  1     1  -  -  -   |   1  1 ^1 (1)    1  -  - [-]
+		//
+		if flip := bits.TrailingZeros64(i); i>>(flip+1)&1 == 0 {
+			subset = subset.With(elems[flip])
+		} else {
+			subset = subset.Without(elems[flip])
+		}
+		result = result.With(subset)
+	}
+	return result
 }
 
 // GroupBy returns a Map that groups elements in the Set by their key.
