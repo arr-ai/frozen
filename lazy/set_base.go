@@ -51,13 +51,12 @@ func (s *baseSet) FastCountUpTo(limit int) (count int, ok bool) {
 }
 
 func (s *baseSet) Freeze() Set {
-	if f, ok := s.set.(*frozenSet); ok {
-		return f
+	if m, ok := memo(s.set).(*memoSet); ok {
+		for i := m.Range(); i.Next(); {
+		}
+		return m.getSet()
 	}
-	m := memo(s.set)
-	for i := m.Range(); i.Next(); {
-	}
-	return m.getSet()
+	return s.set
 }
 
 func (s *baseSet) Equal(set interface{}) bool {

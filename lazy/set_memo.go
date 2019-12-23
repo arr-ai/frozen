@@ -11,13 +11,15 @@ type memoSet struct {
 	set *Set
 }
 
-func memo(src Set) *memoSet {
-	if m, ok := src.(*memoSet); ok {
-		return m
+func memo(src Set) Set {
+	switch src.(type) {
+	case *memoSet, *frozenSet:
+		return src
+	default:
+		result := &memoSet{}
+		result.set = &src
+		return result
 	}
-	result := &memoSet{}
-	result.set = &src
-	return result
 }
 
 func (s *memoSet) pointer() *unsafe.Pointer {
