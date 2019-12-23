@@ -120,9 +120,9 @@ func isSubsetOf(a, b *node, depth int) bool {
 	case b == nil:
 		return false
 	case a.isLeaf() && b.isLeaf():
-		return Equal(a.leaf().elem, b.leaf().elem)
+		return Equal(a.leaf().elems[0], b.leaf().elems[0])
 	case a.isLeaf():
-		return b.getImpl(a.leaf().elem, newHasher(a.leaf().elem, depth)) != nil
+		return b.getImpl(a.leaf().elems[0], newHasher(a.leaf().elems[0], depth)) != nil
 	case b.isLeaf():
 		return false
 	default:

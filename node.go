@@ -18,25 +18,7 @@ type node struct {
 	children [nodeSize]*node
 }
 
-type leafCore struct {
-	_    uintptr
-	elem interface{}
-}
-
-type leaf struct {
-	leafCore
-	_ [unsafe.Sizeof(node{}) - unsafe.Sizeof(leafCore{})]byte
-}
-
-// Compile-time assert that node and leaf have the same size and alignment.
-const _ = -uint(unsafe.Sizeof(node{}) ^ unsafe.Sizeof(leaf{}))
-const _ = -uint(unsafe.Alignof(node{}) ^ unsafe.Alignof(leaf{}))
-
 var empty *node = nil
-
-func newEntry(elem interface{}) *node {
-	return (*node)(unsafe.Pointer(&leaf{leafCore: leafCore{elem: elem}}))
-}
 
 func (n *node) isLeaf() bool {
 	return n.mask == 0
@@ -53,7 +35,7 @@ func (n *node) equal(o *node, eq func(a, b interface{}) bool) bool {
 	case n == nil || o == nil || n.mask != o.mask:
 		return false
 	case n.isLeaf():
-		return eq(n.leaf().elem, o.leaf().elem)
+		return n.leaf().equal(o.leaf(), eq)
 	default:
 		for mask := bititer(n.mask); mask != 0; mask = mask.next() {
 			i := mask.index()
@@ -76,49 +58,9 @@ func (n *node) applyImpl(elem interface{}, c *composer, depth int, h hasher) *no
 		if c.keep&rightSideOnly == 0 {
 			return n
 		}
-		return newEntry(elem)
+		return newLeaf(elem)
 	case n.isLeaf():
-		if Equal(n.leaf().elem, elem) {
-			*c.middleIn++
-			if composed := c.compose(n.leaf().elem, elem); composed != nil {
-				*c.middleOut++
-				if c.mutate {
-					n.leaf().elem = composed
-					return n
-				}
-				return newEntry(composed)
-			}
-			return nil
-		}
-		if c.keep&rightSideOnly == 0 {
-			if c.keep&leftSideOnly == 0 {
-				return nil
-			}
-			return n
-		}
-		if c.keep&leftSideOnly == 0 {
-			return newEntry(elem)
-		}
-		nh := newHasher(n.leaf().elem, depth)
-		result := &node{}
-		last := result
-		noffset, offset := nh.hash(), h.hash()
-		for insane := 0; noffset == offset; insane++ {
-			if insane > 100 {
-				msg := fmt.Sprintf("%#v <=> %#v", (n.leaf().elem).(fmt.Stringer).String(), elem.(fmt.Stringer).String())
-				fmt.Println(msg)
-			}
-			last.mask = uintptr(1) << offset
-			newLast := &node{}
-			last.children[offset] = newLast
-			last = newLast
-			nh, h = nh.next(n.leaf().elem), h.next(elem)
-			noffset, offset = nh.hash(), h.hash()
-		}
-		last.mask = uintptr(1)<<noffset | uintptr(1)<<offset
-		last.children[noffset] = n
-		last.children[offset] = newEntry(elem)
-		return result
+		return n.leaf().applyImpl(elem, c, depth, h)
 	default:
 		offset := h.hash()
 		child := n.children[offset].applyImpl(elem, c, depth+1, h.next(elem))
@@ -157,18 +99,17 @@ func (n *node) get(elem interface{}) interface{} {
 	return n.getImpl(elem, newHasher(elem, 0))
 }
 
-func (n *node) getImpl(elem interface{}, h hasher) interface{} {
+func (n *node) getImpl(v interface{}, h hasher) interface{} {
 	switch {
 	case n == nil:
 		return nil
 	case n.isLeaf():
-		nelem := n.leaf().elem
-		if Equal(elem, nelem) {
-			return nelem
+		if elem := n.leaf().get(v, Equal); elem != nil {
+			return *elem
 		}
 		return nil
 	default:
-		return n.children[h.hash()].getImpl(elem, h.next(elem))
+		return n.children[h.hash()].getImpl(v, h.next(v))
 	}
 }
 
@@ -176,7 +117,7 @@ func (n *node) merge(o *node, c *composer) *node {
 	return n.mergeImpl(o, c, 0)
 }
 
-func (n *node) mergeImpl(o *node, c *composer, depth int) *node {
+func (n *node) mergeImpl(o *node, c *composer, depth int) *node { //nolint:funlen
 	switch {
 	case n == nil:
 		if c.keep&rightSideOnly != 0 {
@@ -188,12 +129,15 @@ func (n *node) mergeImpl(o *node, c *composer, depth int) *node {
 			return n
 		}
 		return nil
-	case o.isLeaf():
-		oelem := o.leaf().elem
-		return n.applyImpl(oelem, c, depth, newHasher(oelem, depth))
 	case n.isLeaf():
-		nelem := n.leaf().elem
-		return o.applyImpl(nelem, c.flip(), depth, newHasher(nelem, depth))
+		n, o, c = o, n, c.flip()
+		fallthrough
+	case o.isLeaf():
+		for i := o.leaf().iterator(); i.next(); {
+			v := *i.elem()
+			n = n.applyImpl(v, c, depth, newHasher(v, depth))
+		}
+		return n
 	default:
 		var result node
 		if c.keep&leftSideOnly != 0 {
@@ -235,7 +179,7 @@ func (n *node) String() string {
 		return "∅"
 	}
 	if n.isLeaf() {
-		return fmt.Sprintf("%v", n.leaf().elem)
+		return n.leaf().String()
 	}
 	var b strings.Builder
 	b.WriteString("[")
@@ -243,7 +187,7 @@ func (n *node) String() string {
 		if i > 0 {
 			b.WriteString(",")
 		}
-		b.WriteString(v.String())
+		fmt.Fprint(&b, v)
 	}
 	b.WriteString("]")
 	return b.String()
@@ -276,7 +220,7 @@ func (i *nodeIter) next() bool {
 			switch {
 			case b == nil:
 			case b.isLeaf():
-				i.elem = b.leaf().elem
+				i.elem = b.leaf().elems[0]
 				return true
 			default:
 				i.stk = append(i.stk, b.children[:])
