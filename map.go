@@ -189,6 +189,9 @@ func (m Map) Reduce(f func(acc, key, val interface{}) interface{}, acc interface
 // Update returns a Map with key-value pairs from n added or replacing existing
 // keys.
 func (m Map) Update(n Map) Map {
+	if m.Count() > n.Count() {
+		return n.Update(m)
+	}
 	return m.merge(n, useRight)
 }
 

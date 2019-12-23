@@ -48,35 +48,45 @@ func (s Set) Join(t Set) Set {
 	sAttrs := s.Any().(Map).Keys()
 	tAttrs := t.Any().(Map).Keys()
 	commonAttrs := sAttrs.Intersection(tAttrs)
-	sOnlyAttrs := sAttrs.Difference(commonAttrs)
-	tOnlyAttrs := tAttrs.Difference(commonAttrs)
-	group := func(s Set, attrs Set) Map {
-		return s.GroupBy(func(tuple interface{}) interface{} {
-			return tuple.(Map).Project(commonAttrs)
-		}).Map(func(_, val interface{}) interface{} {
-			return val.(Set).Project(attrs)
-		})
+	if commonAttrs.IsEmpty() {
+		return s.CartesianProduct(t)
 	}
-	sGroup := group(s, sOnlyAttrs)
-	tGroup := group(t, tOnlyAttrs)
-	joiner := sGroup.Merge(tGroup, func(_, a, b interface{}) interface{} {
+	projectCommon := func(tuple interface{}) interface{} {
+		return tuple.(Map).Project(commonAttrs)
+	}
+	sGroup := s.GroupBy(projectCommon)
+	tGroup := t.GroupBy(projectCommon)
+	joinedGroup := sGroup.Merge(tGroup, func(_, a, b interface{}) interface{} {
 		return [2]Set{a.(Set), b.(Set)}
 	})
 
-	var result Set
-	for i := joiner.Range(); i.Next(); {
-		commonTuple := i.Key().(Map)
+	var b SetBuilder
+	for i := joinedGroup.Range(); i.Next(); {
 		if sets, ok := i.Value().([2]Set); ok {
-			for j := sets[0].Range(); j.Next(); {
-				sTuple := commonTuple.Update(j.Value().(Map))
-				for k := sets[1].Range(); k.Next(); {
-					row := sTuple.Update(k.Value().(Map))
-					result = result.With(row)
-				}
-			}
+			buildCartesianProduct(&b, Map{}, sets[:]...)
 		}
 	}
-	return result
+	return b.Finish()
+}
+
+func (s Set) CartesianProduct(t Set) Set {
+	return CartesianProduct(s, t)
+}
+
+func CartesianProduct(relations ...Set) Set {
+	var b SetBuilder
+	buildCartesianProduct(&b, Map{}, relations...)
+	return b.Finish()
+}
+
+func buildCartesianProduct(b *SetBuilder, t Map, relations ...Set) {
+	if len(relations) > 0 {
+		for i := relations[0].Range(); i.Next(); {
+			buildCartesianProduct(b, t.Update(i.Value().(Map)), relations[1:]...)
+		}
+	} else {
+		b.Add(t)
+	}
 }
 
 // Nest returns a relation with some attributes nested as subrelations.
