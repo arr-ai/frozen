@@ -7,8 +7,7 @@ import (
 )
 
 const (
-	leafElems   = int((unsafe.Sizeof(node{}) - 2*unsafe.Sizeof(uintptr(0))) / unsafe.Sizeof(interface{}(nil)))
-	leafPadding = unsafe.Sizeof(node{}) - unsafe.Sizeof(leafCore{})
+	leafElems = nodeCount / 2
 )
 
 // Compile-time assert that node and leaf have the same size and alignment.
@@ -17,15 +16,9 @@ const _ = -uint(unsafe.Alignof(node{}) ^ unsafe.Alignof(leaf{}))
 
 type extraLeafElems []interface{}
 
-// Used to compute leaf padding [...]byte
-type leafCore struct {
-	_, _  uintptr // mask only accessed via *node
-	elems [leafElems]interface{}
-}
-
 type leaf struct { //nolint:maligned
-	leafCore
-	_ [leafPadding]byte
+	_     uintptr // mask only accessed via *node
+	elems [leafElems]interface{}
 }
 
 func newLeaf(elem interface{}) *node {
