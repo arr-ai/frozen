@@ -63,7 +63,7 @@ func (n *node) applyImpl(elem interface{}, c *composer, depth int, h hasher) *no
 		return n.leaf().applyImpl(elem, c, depth, h)
 	default:
 		offset := h.hash()
-		child := n.children[offset].applyImpl(elem, c, depth+1, h.next(elem))
+		child := n.children[offset].applyImpl(elem, c, depth+1, h.next())
 		mask := uintptr(1) << offset
 		if (n.mask == mask || c.keep&leftSideOnly == 0) && (child == nil || child.isLeaf()) {
 			return child
@@ -109,7 +109,7 @@ func (n *node) getImpl(v interface{}, h hasher) interface{} {
 		}
 		return nil
 	default:
-		return n.children[h.hash()].getImpl(v, h.next(v))
+		return n.children[h.hash()].getImpl(v, h.next())
 	}
 }
 

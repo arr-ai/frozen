@@ -60,6 +60,28 @@ func (l *leaf) set(i int, v interface{}) *leaf {
 	return l
 }
 
+func (l *leaf) append(v interface{}, mutate bool) *leaf {
+	result := l.prepareForUpdate(mutate)
+	if *result.last() == nil {
+		for i, elem := range result.elems {
+			if elem == nil {
+				result.elems[i] = v
+				return result
+			}
+		}
+	}
+	if extras := result.extras(); extras != nil {
+		if mutate {
+			extras = append(make([]interface{}, 0, len(extras)+1), extras...)
+		}
+		extras = append(extras, v)
+		*result.last() = extras
+	} else {
+		*result.last() = extraLeafElems([]interface{}{*result.last(), v})
+	}
+	return result
+}
+
 func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
 	return l.isSubsetOf(m, eq) && m.isSubsetOf(l, eq)
 }
@@ -82,6 +104,9 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 	if c.keep&leftSideOnly == 0 {
 		return newLeaf(v)
 	}
+	if h == newHasher(l.elems[0], depth) {
+		return l.append(v, c.mutate).node()
+	}
 	result := &node{}
 	last := result
 	nh := newHasher(l.elems[0], depth)
@@ -91,7 +116,7 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 		newLast := &node{}
 		last.children[offset] = newLast
 		last = newLast
-		nh, h = nh.next(l.elems[0]), h.next(v)
+		nh, h = nh.next(), h.next()
 		noffset, offset = nh.hash(), h.hash()
 	}
 	last.mask = uintptr(1)<<noffset | uintptr(1)<<offset
