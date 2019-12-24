@@ -37,3 +37,18 @@ func TestNodeRemoveCollider(t *testing.T) {
 	b.Remove(intWithBadHash(100))
 	assert.True(t, b.Has(intWithBadHash(200)))
 }
+
+func TestNodeAddNearlyCollider(t *testing.T) {
+	var b SetBuilder
+	h100 := newHasher(intWithBadHash(100), 0)
+	near100 := intWithBadHash(0)
+	for ; newHasher(near100, 0) == h100 || newHasher(near100, 0).hash() != h100.hash(); near100++ {
+	}
+	t.Logf("near100=%o", near100)
+
+	b.Add(intWithBadHash(100))
+	b.Add(intWithBadHash(200))
+	b.Add(near100)
+	assert.True(t, b.Has(intWithBadHash(100)))
+	assert.True(t, b.Has(intWithBadHash(200)))
+}
