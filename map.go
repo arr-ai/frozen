@@ -217,7 +217,7 @@ func (m Map) merge(n Map, compose func(a, b interface{}) interface{}) Map {
 
 // Hash computes a hash val for s.
 func (m Map) Hash(seed uintptr) uintptr {
-	h := hash.Uintptr(3167960924819262823, seed)
+	h := hash.Uintptr(uintptr(3167960924819262823&uint64(^uintptr(0))), seed)
 	for i := m.Range(); i.Next(); {
 		h = hash.Interface(i.Value(), hash.Interface(i.Key(), h))
 	}

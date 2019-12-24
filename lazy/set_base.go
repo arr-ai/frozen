@@ -7,7 +7,7 @@ import (
 
 const (
 	maxInt   = int(^uint(0) >> 1)
-	hashSeed = uintptr(624409645898692063)
+	hashSeed = uintptr(uint64(624409645898692063) & uint64(^uintptr(0)))
 )
 
 type baseSet struct {
