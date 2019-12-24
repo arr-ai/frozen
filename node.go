@@ -104,8 +104,8 @@ func (n *node) getImpl(v interface{}, h hasher) interface{} {
 	case n == nil:
 		return nil
 	case n.isLeaf():
-		if elem := n.leaf().get(v, Equal); elem != nil {
-			return *elem
+		if elem, _ := n.leaf().get(v, Equal); elem != nil {
+			return elem
 		}
 		return nil
 	default:

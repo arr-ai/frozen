@@ -31,38 +31,33 @@ func (l *leaf) node() *node {
 	return (*node)(unsafe.Pointer(l))
 }
 
-func (l *leaf) last() *interface{} { //nolint:critic
+func (l *leaf) last() *interface{} { //nolint:gocritic
 	return &l.elems[leafElems-1]
 }
 
-func (l *leaf) extras() (extraLeafElems, bool) {
-	extras, ok := (*l.last()).(extraLeafElems)
-	return extras, ok
+func (l *leaf) extras() extraLeafElems {
+	extras, _ := (*l.last()).(extraLeafElems)
+	return extras
 }
 
-func (l *leaf) append(v interface{}, mutate bool) *leaf {
-	var result *leaf
+func (l *leaf) elem(i int) *interface{} { //nolint:gocritic
+	if i < leafElems {
+		return &l.elems[i]
+	}
+	return &l.extras()[i-leafElems]
+}
+
+func (l *leaf) prepareForUpdate(mutate bool) *leaf {
 	if mutate {
-		result = l
-	} else {
-		result = &leaf{}
-		*result = *l
+		return l
 	}
-	for i, elem := range result.elems {
-		if elem == nil {
-			result.elems[i] = v
-			return result
-		}
-	}
-	if extras, ok := result.extras(); ok {
-		if mutate {
-			extras = append(make([]interface{}, 0, len(extras)+1), extras...)
-		}
-		*result.last() = append(extras, v)
-	} else {
-		*result.last() = extraLeafElems([]interface{}{*result.last(), v})
-	}
-	return result
+	result := *l
+	return &result
+}
+
+func (l *leaf) set(i int, v interface{}) *leaf {
+	*l.elem(i) = v
+	return l
 }
 
 func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
@@ -70,15 +65,11 @@ func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
 }
 
 func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node {
-	if elem := l.get(v, Equal); elem != nil {
+	if elem, i := l.get(v, Equal); elem != nil {
 		*c.middleIn++
-		if composed := c.compose(*elem, v); composed != nil {
+		if composed := c.compose(elem, v); composed != nil {
 			*c.middleOut++
-			if c.mutate {
-				*elem = composed
-				return l.node()
-			}
-			return newLeaf(composed)
+			return l.prepareForUpdate(c.mutate).set(i, composed).node()
 		}
 		return nil
 	}
@@ -90,9 +81,6 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 	}
 	if c.keep&leftSideOnly == 0 {
 		return newLeaf(v)
-	}
-	if *l.last() == nil {
-		// return l.append(v, c.mutate).node()
 	}
 	result := &node{}
 	last := result
@@ -114,20 +102,20 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 
 func (l *leaf) isSubsetOf(m *leaf, eq func(a, b interface{}) bool) bool {
 	for i := l.iterator(); i.next(); {
-		if m.get(*i.elem(), eq) == nil {
+		if elem, _ := m.get(*i.elem(), eq); elem == nil {
 			return false
 		}
 	}
 	return true
 }
 
-func (l *leaf) get(v interface{}, eq func(a, b interface{}) bool) *interface{} { //nolint:gocritic
+func (l *leaf) get(v interface{}, eq func(a, b interface{}) bool) (interface{}, int) { //nolint:gocritic
 	for i := l.iterator(); i.next(); {
 		if elem := i.elem(); eq(*elem, v) {
-			return elem
+			return *elem, i.index
 		}
 	}
-	return nil
+	return nil, -1
 }
 
 func (l *leaf) String() string {
