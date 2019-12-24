@@ -27,12 +27,12 @@ func newHasher(key interface{}, depth int) hasher {
 }
 
 func (h hasher) next(key interface{}) hasher {
-	if h >>= nodeBits; h < 0b1_0000 {
+	if h >>= nodeBits; h < nodeCount {
 		return (h-1)<<hashBits | hasher(hash.Interface(key, uintptr(h))>>4)
 	}
 	return h
 }
 
 func (h hasher) hash() int {
-	return int(h % nodeSize)
+	return int(h & (nodeCount - 1))
 }

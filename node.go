@@ -9,13 +9,13 @@ import (
 )
 
 const (
-	nodeBits = 3
-	nodeSize = 1 << nodeBits
+	nodeBits  = 3
+	nodeCount = 1 << nodeBits
 )
 
 type node struct {
 	mask     uintptr
-	children [nodeSize]*node
+	children [nodeCount]*node
 }
 
 var empty *node = nil
