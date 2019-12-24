@@ -17,14 +17,15 @@ const _ = -uint(unsafe.Alignof(node{}) ^ unsafe.Alignof(leaf{}))
 type extraLeafElems []interface{}
 
 type leaf struct { //nolint:maligned
-	_     uintptr // mask only accessed via *node
-	elems [leafElems]interface{}
+	_         uint16 // mask only accessed via *node
+	lastIndex uint16
+	elems     [leafElems]interface{}
 }
 
-func newLeaf(elem interface{}) *node {
-	l := &leaf{}
+func newLeaf(elem interface{}) *leaf {
+	l := &leaf{lastIndex: 0}
 	l.elems[0] = elem
-	return l.node()
+	return l
 }
 
 func (l *leaf) node() *node {
@@ -55,31 +56,76 @@ func (l *leaf) prepareForUpdate(mutate bool) *leaf {
 	return &result
 }
 
+// Assumptions: leaf already prepared and `l.extras() != nil`.
+func (l *leaf) prepareExtrasForUpdate(mutate bool, capacityIncrease int) extraLeafElems {
+	extras := l.extras()
+	if !mutate {
+		extras = append(make([]interface{}, 0, len(extras)+capacityIncrease), extras...)
+	}
+	return extras
+}
+
 func (l *leaf) set(i int, v interface{}) *leaf {
 	*l.elem(i) = v
 	return l
 }
 
-func (l *leaf) append(v interface{}, mutate bool) *leaf {
-	result := l.prepareForUpdate(mutate)
-	if *result.last() == nil {
-		for i, elem := range result.elems {
-			if elem == nil {
-				result.elems[i] = v
-				return result
-			}
+func (l *leaf) push(v interface{}, mutate bool) *leaf {
+	l = l.prepareForUpdate(mutate)
+	l.lastIndex++
+	switch {
+	case l.lastIndex < leafElems:
+		l.elems[l.lastIndex] = v
+	case l.lastIndex == leafElems:
+		*l.last() = extraLeafElems([]interface{}{*l.last(), v})
+		l.lastIndex++
+	default:
+		*l.last() = append(l.prepareExtrasForUpdate(mutate, 1), v)
+	}
+	return l
+}
+
+func (l *leaf) pop(mutate bool) (result *leaf, v interface{}) {
+	if l.lastIndex == 0 {
+		return nil, l.elems[0]
+	}
+
+	l = l.prepareForUpdate(mutate)
+	switch {
+	case l.lastIndex < leafElems:
+		v = l.elems[l.lastIndex]
+		l.elems[l.lastIndex] = nil
+	default:
+		extras := l.extras()
+		v = extras[len(extras)-1]
+		extras[len(extras)-1] = nil
+		if l.lastIndex == leafElems+1 {
+			*l.last() = extras[0]
+			l.lastIndex--
+		} else {
+			*l.last() = extras[:len(extras)-1]
 		}
 	}
-	if extras := result.extras(); extras != nil {
-		if mutate {
-			extras = append(make([]interface{}, 0, len(extras)+1), extras...)
-		}
-		extras = append(extras, v)
-		*result.last() = extras
-	} else {
-		*result.last() = extraLeafElems([]interface{}{*result.last(), v})
+	l.lastIndex--
+	return l, v
+}
+
+func (l *leaf) remove(i int, mutate bool) *leaf {
+	if i == int(l.lastIndex) {
+		result, _ := l.pop(mutate)
+		return result
 	}
-	return result
+	if result, v := l.pop(mutate); result != nil {
+		if i > int(result.lastIndex) {
+			i--
+		}
+		if i > leafElems && !mutate {
+			*result.last() = append([]interface{}{}, l.extras()...)
+		}
+		result.set(i, v)
+		return result
+	}
+	return nil
 }
 
 func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
@@ -91,9 +137,15 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 		*c.middleIn++
 		if composed := c.compose(elem, v); composed != nil {
 			*c.middleOut++
+			if c.keep&leftSideOnly == 0 {
+				return newLeaf(composed).node()
+			}
 			return l.prepareForUpdate(c.mutate).set(i, composed).node()
 		}
-		return nil
+		if c.keep&leftSideOnly == 0 {
+			return nil
+		}
+		return l.remove(i, c.mutate).node()
 	}
 	if c.keep&rightSideOnly == 0 {
 		if c.keep&leftSideOnly == 0 {
@@ -102,10 +154,10 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 		return l.node()
 	}
 	if c.keep&leftSideOnly == 0 {
-		return newLeaf(v)
+		return newLeaf(v).node()
 	}
 	if h == newHasher(l.elems[0], depth) {
-		return l.append(v, c.mutate).node()
+		return l.push(v, c.mutate).node()
 	}
 	result := &node{}
 	last := result
@@ -121,7 +173,7 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 	}
 	last.mask = uintptr(1)<<noffset | uintptr(1)<<offset
 	last.children[noffset] = l.node()
-	last.children[offset] = newLeaf(v)
+	last.children[offset] = newLeaf(v).node()
 	return result
 }
 
@@ -168,22 +220,11 @@ type leafIterator struct {
 
 func (i *leafIterator) next() bool {
 	i.index++
-	switch {
-	case i.index < leafElems-1:
-		return i.l.elems[i.index] != nil
-	case i.index == leafElems-1:
-		e := i.l.elems[i.index]
-		if e == nil {
-			return false
-		}
-		if extras, ok := e.(extraLeafElems); ok {
-			i.index++
-			i.extras = extras
-		}
-		return true
-	default:
-		return i.index-leafElems < len(i.extras)
+	if i.index == leafElems-1 && leafElems < i.l.lastIndex {
+		i.index++
+		i.extras = i.l.extras()
 	}
+	return i.index <= int(i.l.lastIndex)
 }
 
 func (i *leafIterator) elem() *interface{} { //nolint:gocritic

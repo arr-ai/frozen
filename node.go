@@ -21,7 +21,7 @@ type node struct {
 var empty *node = nil
 
 func (n *node) isLeaf() bool {
-	return n.mask == 0
+	return n.mask&(1<<nodeCount-1) == 0
 }
 
 func (n *node) leaf() *leaf {
@@ -58,7 +58,7 @@ func (n *node) applyImpl(elem interface{}, c *composer, depth int, h hasher) *no
 		if c.keep&rightSideOnly == 0 {
 			return n
 		}
-		return newLeaf(elem)
+		return newLeaf(elem).node()
 	case n.isLeaf():
 		return n.leaf().applyImpl(elem, c, depth, h)
 	default:
