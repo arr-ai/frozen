@@ -8,10 +8,7 @@ import (
 	"unsafe"
 )
 
-const (
-	nodeBits  = 3
-	nodeCount = 1 << nodeBits
-)
+const nodeCount = 1 << nodeBits
 
 type node struct {
 	mask     uintptr
