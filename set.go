@@ -182,7 +182,8 @@ func (s Set) Reduce(f func(acc, el interface{}) interface{}, acc interface{}) in
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set) Intersection(t Set) Set {
-	root, count := s.root.intersection(t.root, 0)
+	count := 0
+	root := s.root.intersection(t.root, 0, &count)
 	return Set{root: root, count: count}
 }
 

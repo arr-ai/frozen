@@ -185,43 +185,41 @@ func (n *node) mergeImpl(o *node, c *composer, depth int) *node { //nolint:funle
 	}
 }
 
-func (n *node) intersection(o *node, depth int) (_ *node, count int) { //nolint:funlen
+func (n *node) intersection(o *node, depth int, count *int) *node { //nolint:funlen
 	switch {
 	case n == nil || o == nil:
-		return nil, 0
+		return nil
 	case n.isLeaf():
 		n, o = o, n
 		fallthrough
 	case o.isLeaf():
 		for i := o.leaf().iterator(); i.next(); {
 			v := *i.elem()
-			if p, count := n.valueIntersection(v, depth, newHasher(v, depth)); p != nil {
-				return p, count
+			if p := n.valueIntersection(v, depth, newHasher(v, depth), count); p != nil {
+				return p
 			}
 		}
-		return nil, 0
+		return nil
 	default:
 		var result node
-		total := 0
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 			i := mask.Index()
-			if child, count := n.children[i].intersection(o.children[i], depth+1); child != nil {
+			if child := n.children[i].intersection(o.children[i], depth+1, count); child != nil {
 				result.setChild(i, child)
-				total += count
 			}
 		}
-		return result.canonical(), total
+		return result.canonical()
 	}
 }
 
-func (n *node) valueIntersection(v interface{}, depth int, h hasher) (_ *node, count int) {
+func (n *node) valueIntersection(v interface{}, depth int, h hasher, count *int) *node {
 	switch {
 	case n == nil:
-		return nil, 0
+		return nil
 	case n.isLeaf():
-		return n.leaf().valueIntersection(v)
+		return n.leaf().valueIntersection(v, count)
 	default:
-		return n.children[h.hash()].valueIntersection(v, depth+1, h.next())
+		return n.children[h.hash()].valueIntersection(v, depth+1, h.next(), count)
 	}
 }
 

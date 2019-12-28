@@ -159,11 +159,12 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 	return l.descend(v, c.mutate, depth, h)
 }
 
-func (l *leaf) valueIntersection(v interface{}) (_ *node, count int) {
+func (l *leaf) valueIntersection(v interface{}, count *int) *node {
 	if elem, _ := l.get(v, Equal); elem != nil {
-		return newLeaf(v).node(), 1
+		*count++
+		return newLeaf(v).node()
 	}
-	return nil, 0
+	return nil
 }
 
 func (l *leaf) valueUnion(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int) *node {
