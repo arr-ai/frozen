@@ -166,14 +166,15 @@ func (l *leaf) valueIntersection(v interface{}) (_ *node, count int) {
 	return nil, 0
 }
 
-func (l *leaf) valueUnion(v interface{}, mutate, useRHS bool, depth int, h hasher) (_ *node, matches int) {
+func (l *leaf) valueUnion(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int) *node {
 	if elem, i := l.get(v, Equal); elem != nil {
+		*matches++
 		if useRHS {
-			return l.prepareForUpdate(mutate).set(i, v).node(), 1
+			return l.prepareForUpdate(mutate).set(i, v).node()
 		}
-		return l.node(), 1
+		return l.node()
 	}
-	return l.descend(v, mutate, depth, h), 0
+	return l.descend(v, mutate, depth, h)
 }
 
 func (l *leaf) descend(v interface{}, mutate bool, depth int, h hasher) *node {

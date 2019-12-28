@@ -42,7 +42,13 @@ func (n *node) prepareForUpdate(mutate bool) *node {
 	return &result
 }
 
-func (n *node) assignChildren(mask BitIterator, children *[nodeCount]*node) {
+func (n *node) setChild(i int, child *node) *node {
+	n.mask |= BitIterator(1) << i
+	n.children[i] = child
+	return n
+}
+
+func (n *node) setChildren(mask BitIterator, children *[nodeCount]*node) {
 	n.mask |= mask
 	for ; mask != 0; mask = mask.Next() {
 		i := mask.Index()
@@ -163,18 +169,10 @@ func (n *node) mergeImpl(o *node, c *composer, depth int) *node { //nolint:funle
 	default:
 		var result node
 		if c.keep&leftSideOnly != 0 {
-			for mask := n.mask &^ o.mask; mask != 0; mask = mask.Next() {
-				i := mask.Index()
-				result.children[i] = n.children[i]
-			}
-			result.mask |= n.mask &^ o.mask
+			result.setChildren(n.mask&^o.mask, &n.children)
 		}
 		if c.keep&rightSideOnly != 0 {
-			for mask := o.mask &^ n.mask; mask != 0; mask = mask.Next() {
-				i := mask.Index()
-				result.children[i] = o.children[i]
-			}
-			result.mask |= o.mask &^ n.mask
+			result.setChildren(o.mask&^n.mask, &o.children)
 		}
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 			i := mask.Index()
@@ -208,8 +206,7 @@ func (n *node) intersection(o *node, depth int) (_ *node, count int) { //nolint:
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 			i := mask.Index()
 			if child, count := n.children[i].intersection(o.children[i], depth+1); child != nil {
-				result.children[i] = child
-				result.mask |= BitIterator(1) << i
+				result.setChild(i, child)
 				total += count
 			}
 		}
@@ -224,62 +221,52 @@ func (n *node) valueIntersection(v interface{}, depth int, h hasher) (_ *node, c
 	case n.isLeaf():
 		return n.leaf().valueIntersection(v)
 	default:
-		offset := h.hash()
-		return n.children[offset].valueIntersection(v, depth+1, h.next())
+		return n.children[h.hash()].valueIntersection(v, depth+1, h.next())
 	}
 }
 
-func (n *node) union(o *node, mutate, useRHS bool, depth int) (_ *node, matches int) {
+func (n *node) union(o *node, mutate, useRHS bool, depth int, matches *int) *node {
 	switch {
 	case n == nil:
-		return o, 0
+		return o
 	case o == nil:
-		return n, 0
+		return n
 	case n.isLeaf():
 		n, o, useRHS = o, n, !useRHS
 		fallthrough
 	case o.isLeaf():
-		totalMatches := 0
 		for i := o.leaf().iterator(); i.next(); {
 			v := *i.elem()
-			n, matches = n.valueUnion(v, mutate, useRHS, depth, newHasher(v, depth))
-			totalMatches += matches
+			n = n.valueUnion(v, mutate, useRHS, depth, newHasher(v, depth), matches)
 		}
-		return n, totalMatches
+		return n
 	default:
 		var result node
-		result.assignChildren(n.mask&^o.mask, &n.children)
-		result.assignChildren(o.mask&^n.mask, &o.children)
-		totalMatches := 0
+		result.setChildren(n.mask&^o.mask, &n.children)
+		result.setChildren(o.mask&^n.mask, &o.children)
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 			i := mask.Index()
-			if child, matches := n.children[i].union(o.children[i], mutate, useRHS, depth+1); child != nil {
-				result.children[i] = child
-				result.mask |= BitIterator(1) << i
-				totalMatches += matches
+			if child := n.children[i].union(o.children[i], mutate, useRHS, depth+1, matches); child != nil {
+				result.setChild(i, child)
 			}
 		}
-		return result.canonical(), totalMatches
+		return &result
 	}
 }
 
-func (n *node) valueUnion(v interface{}, mutate, useRHS bool, depth int, h hasher) (_ *node, matches int) {
+func (n *node) valueUnion(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int) *node {
 	switch {
 	case n == nil:
-		return newLeaf(v).node(), 0
+		return newLeaf(v).node()
 	case n.isLeaf():
-		return n.leaf().valueUnion(v, mutate, useRHS, depth, h)
+		return n.leaf().valueUnion(v, mutate, useRHS, depth, h, matches)
 	default:
 		offset := h.hash()
-		child, matches := n.children[offset].valueUnion(v, mutate, useRHS, depth+1, h.next())
-		mask := n.mask | BitIterator(1)<<offset
-		if mask.Count() == 1 && child.isLeaf() {
-			return child, matches
+		child := n.children[offset].valueUnion(v, mutate, useRHS, depth+1, h.next(), matches)
+		if (n.mask|BitIterator(1)<<offset).Count() == 1 && child.isLeaf() {
+			return child
 		}
-		result := n.prepareForUpdate(mutate)
-		result.mask = mask
-		result.children[offset] = child
-		return result, matches
+		return n.prepareForUpdate(mutate).setChild(offset, child)
 	}
 }
 

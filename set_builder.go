@@ -15,9 +15,7 @@ func (b *SetBuilder) Count() int {
 
 // Add adds el to the Set under construction.
 func (b *SetBuilder) Add(v interface{}) {
-	var matches int
-	b.root, matches = b.root.valueUnion(v, true, true, 0, newHasher(v, 0))
-	b.redundantAdds += matches
+	b.root = b.root.valueUnion(v, true, true, 0, newHasher(v, 0), &b.redundantAdds)
 	b.attemptedAdds++
 }
 

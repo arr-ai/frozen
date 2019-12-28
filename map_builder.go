@@ -4,7 +4,7 @@ package frozen
 type MapBuilder struct {
 	root          *node
 	remover       *composer
-	putMatches    int
+	redundantPuts int
 	attemptedAdds int
 }
 
@@ -16,9 +16,7 @@ func (b *MapBuilder) Count() int {
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder) Put(key, value interface{}) {
 	kv := KV(key, value)
-	var matches int
-	b.root, matches = b.root.valueUnion(kv, true, true, 0, newHasher(kv, 0))
-	b.putMatches += matches
+	b.root = b.root.valueUnion(kv, true, true, 0, newHasher(kv, 0), &b.redundantPuts)
 	b.attemptedAdds++
 }
 
@@ -53,7 +51,7 @@ func (b *MapBuilder) Finish() Map {
 }
 
 func (b *MapBuilder) failedAdds() int {
-	return b.putMatches
+	return b.redundantPuts
 }
 
 func (b *MapBuilder) successfulRemoves() int {

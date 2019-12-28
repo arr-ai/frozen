@@ -188,7 +188,8 @@ func (s Set) Intersection(t Set) Set {
 
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
-	root, matches := s.root.union(t.root, false, true, 0)
+	matches := 0
+	root := s.root.union(t.root, false, true, 0, &matches)
 	return Set{root: root, count: s.Count() + t.Count() - matches}
 }
 

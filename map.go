@@ -75,7 +75,8 @@ func (m Map) Count() int {
 // retained from m.
 func (m Map) With(key, val interface{}) Map {
 	kv := KV(key, val)
-	root, matches := m.root.valueUnion(kv, false, true, 0, newHasher(kv, 0))
+	matches := 0
+	root := m.root.valueUnion(kv, false, true, 0, newHasher(kv, 0), &matches)
 	return Map{root: root, count: m.Count() + 1 - matches}
 }
 
@@ -192,7 +193,8 @@ func (m Map) Update(n Map) Map {
 	if m.Count() > n.Count() {
 		return n.Update(m)
 	}
-	root, matches := m.root.union(n.root, false, true, 0)
+	matches := 0
+	root := m.root.union(n.root, false, true, 0, &matches)
 	return Map{root: root, count: m.Count() + n.Count() - matches}
 }
 
