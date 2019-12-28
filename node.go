@@ -34,12 +34,15 @@ func (n *node) canonical() *node {
 	return n
 }
 
-func (n *node) prepareForUpdate(mutate bool) *node {
-	if mutate {
-		return n
+func (n *node) prepareForUpdate(mutate bool, prepared **node) *node {
+	if *prepared == nil {
+		if mutate {
+			*prepared = n
+		}
+		result := *n
+		*prepared = &result
 	}
-	result := *n
-	return &result
+	return *prepared
 }
 
 func (n *node) setChild(i int, child *node) *node {
@@ -58,6 +61,14 @@ func (n *node) setChildren(mask BitIterator, children *[nodeCount]*node) {
 	for ; mask != 0; mask = mask.Next() {
 		i := mask.Index()
 		n.children[i] = children[i]
+	}
+}
+
+func (n *node) clearChildren(mask BitIterator) {
+	n.mask &^= mask
+	for ; mask != 0; mask = mask.Next() {
+		i := mask.Index()
+		n.children[i] = nil
 	}
 }
 
@@ -137,6 +148,7 @@ func (n *node) only(v interface{}, depth int, h hasher, count *int) *node {
 }
 
 func (n *node) union(o *node, mutate, useRHS bool, depth int, matches *int) *node {
+	var prepared *node
 	switch {
 	case n == nil:
 		return o
@@ -148,24 +160,21 @@ func (n *node) union(o *node, mutate, useRHS bool, depth int, matches *int) *nod
 	case o.isLeaf():
 		for i := o.leaf().iterator(); i.next(); {
 			v := *i.elem()
-			n = n.with(v, mutate, useRHS, depth, newHasher(v, depth), matches)
+			n = n.with(v, mutate, useRHS, depth, newHasher(v, depth), matches, &prepared)
 		}
 		return n
 	default:
-		var result node
-		result.setChildren(n.mask&^o.mask, &n.children)
+		result := n.prepareForUpdate(mutate, &prepared)
 		result.setChildren(o.mask&^n.mask, &o.children)
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 			i := mask.Index()
-			if child := n.children[i].union(o.children[i], mutate, useRHS, depth+1, matches); child != nil {
-				result.setChild(i, child)
-			}
+			result.setChild(i, n.children[i].union(o.children[i], mutate, useRHS, depth+1, matches))
 		}
-		return &result
+		return result
 	}
 }
 
-func (n *node) with(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int) *node {
+func (n *node) with(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int, prepared **node) *node {
 	switch {
 	case n == nil:
 		return newLeaf(v).node()
@@ -173,41 +182,40 @@ func (n *node) with(v interface{}, mutate, useRHS bool, depth int, h hasher, mat
 		return n.leaf().with(v, mutate, useRHS, depth, h, matches)
 	default:
 		offset := h.hash()
-		child := n.children[offset].with(v, mutate, useRHS, depth+1, h.next(), matches)
+		var childPrepared *node
+		child := n.children[offset].with(v, mutate, useRHS, depth+1, h.next(), matches, &childPrepared)
 		if (n.mask|BitIterator(1)<<offset).Count() == 1 && child.isLeaf() {
 			return child
 		}
-		return n.prepareForUpdate(mutate).setChild(offset, child)
+		return n.prepareForUpdate(mutate, prepared).setChild(offset, child)
 	}
 }
 
 func (n *node) difference(o *node, mutate bool, depth int, matches *int) *node {
+	var prepared *node
 	switch {
 	case n == nil || o == nil:
 		return n
 	case o.isLeaf():
 		for i := o.leaf().iterator(); i.next(); {
 			v := *i.elem()
-			n = n.without(v, mutate, depth, newHasher(v, depth), matches)
+			n = n.without(v, mutate, depth, newHasher(v, depth), matches, &prepared)
 		}
 		return n
 	case n.isLeaf():
 		return n.leaf().difference(o, depth, matches)
 	default:
-		var result node
-		result.setChildren(n.mask&^o.mask, &n.children)
+		result := n.prepareForUpdate(false, &prepared)
+		result.clearChildren(o.mask &^ n.mask)
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 			i := mask.Index()
-			if child := n.children[i].difference(o.children[i], mutate, depth+1, matches); child != nil {
-				result.children[i] = child
-				result.mask |= BitIterator(1) << i
-			}
+			result.setChild(i, n.children[i].difference(o.children[i], mutate, depth+1, matches))
 		}
 		return result.canonical()
 	}
 }
 
-func (n *node) without(v interface{}, mutate bool, depth int, h hasher, matches *int) *node {
+func (n *node) without(v interface{}, mutate bool, depth int, h hasher, matches *int, prepared **node) *node {
 	switch {
 	case n == nil:
 		return nil
@@ -215,22 +223,9 @@ func (n *node) without(v interface{}, mutate bool, depth int, h hasher, matches 
 		return n.leaf().without(v, mutate, matches)
 	default:
 		offset := h.hash()
-		child := n.children[offset].without(v, mutate, depth+1, h.next(), matches)
-		mask := BitIterator(1) << offset
-		if n.mask == mask && (child == nil || child.isLeaf()) {
-			return child
-		}
-		if child != nil {
-			mask = n.mask | mask
-		} else {
-			mask = n.mask &^ mask
-		}
-		if mask.Count() == 1 {
-			if onlyChild := n.children[mask.Index()]; onlyChild.isLeaf() {
-				return onlyChild
-			}
-		}
-		return n.prepareForUpdate(mutate).setChild(offset, child).canonical()
+		var childPrepared *node
+		child := n.children[offset].without(v, mutate, depth+1, h.next(), matches, &childPrepared)
+		return n.prepareForUpdate(mutate, prepared).setChild(offset, child).canonical()
 	}
 }
 

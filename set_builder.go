@@ -3,6 +3,7 @@ package frozen
 // SetBuilder provides a more efficient way to build sets incrementally.
 type SetBuilder struct {
 	root          *node
+	prepared      *node
 	attemptedAdds int
 	redundantAdds int
 	removals      int
@@ -15,13 +16,13 @@ func (b *SetBuilder) Count() int {
 
 // Add adds el to the Set under construction.
 func (b *SetBuilder) Add(v interface{}) {
-	b.root = b.root.with(v, true, true, 0, newHasher(v, 0), &b.redundantAdds)
+	b.root = b.root.with(v, true, true, 0, newHasher(v, 0), &b.redundantAdds, &b.prepared)
 	b.attemptedAdds++
 }
 
 // Remove removes el to the Set under construction.
 func (b *SetBuilder) Remove(v interface{}) {
-	b.root = b.root.without(v, true, 0, newHasher(v, 0), &b.removals)
+	b.root = b.root.without(v, true, 0, newHasher(v, 0), &b.removals, &b.prepared)
 }
 
 func (b *SetBuilder) Has(el interface{}) bool {

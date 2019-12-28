@@ -3,6 +3,7 @@ package frozen
 // MapBuilder provides a more efficient way to build Maps incrementally.
 type MapBuilder struct {
 	root          *node
+	prepared      *node
 	redundantPuts int
 	removals      int
 	attemptedAdds int
@@ -16,14 +17,14 @@ func (b *MapBuilder) Count() int {
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder) Put(key, value interface{}) {
 	kv := KV(key, value)
-	b.root = b.root.with(kv, true, true, 0, newHasher(kv, 0), &b.redundantPuts)
+	b.root = b.root.with(kv, true, true, 0, newHasher(kv, 0), &b.redundantPuts, &b.prepared)
 	b.attemptedAdds++
 }
 
 // Remove removes an entry from the Map under construction.
 func (b *MapBuilder) Remove(key interface{}) {
 	kv := KV(key, nil)
-	b.root = b.root.without(kv, true, 0, newHasher(kv, 0), &b.removals)
+	b.root = b.root.without(kv, true, 0, newHasher(kv, 0), &b.removals, &b.prepared)
 }
 
 // Get returns the value for key from the Map under construction or false if
