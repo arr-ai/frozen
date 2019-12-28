@@ -196,7 +196,9 @@ func (s Set) Union(t Set) Set {
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set) Difference(t Set) Set {
-	return s.merge(t, newDifferenceComposer(s.Count()))
+	matches := 0
+	root := s.root.difference(t.root, false, 0, &matches)
+	return Set{root: root, count: s.Count() - matches}
 }
 
 // SymmetricDifference returns a Set with all elements that are s or t, but not
@@ -270,11 +272,6 @@ func (s Set) GroupBy(key func(el interface{}) interface{}) Map {
 		result.Put(i.Key(), i.Value().(*SetBuilder).Finish())
 	}
 	return result.Finish()
-}
-
-func (s Set) merge(t Set, c *composer) Set {
-	n := s.root.merge(t.root, c)
-	return Set{root: n, count: c.count()}
 }
 
 type setIter struct {

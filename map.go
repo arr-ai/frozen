@@ -83,12 +83,14 @@ func (m Map) With(key, val interface{}) Map {
 // Without returns a new Map with all keys retained from m except the elements
 // of keys.
 func (m Map) Without(keys Set) Map {
-	c := newDifferenceComposer(m.Count())
+	// TODO: O(m+n)
 	root := m.root
+	matches := 0
 	for k := keys.Range(); k.Next(); {
-		root = root.apply(c, KV(k.Value(), nil))
+		kv := KV(k.Value(), nil)
+		root = root.without(kv, false, 0, newHasher(kv, 0), &matches)
 	}
-	return Map{root: root, count: c.count()}
+	return Map{root: root, count: m.Count() - matches}
 }
 
 // Has returns true iff the key exists in the map.

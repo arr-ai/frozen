@@ -3,14 +3,14 @@ package frozen
 // SetBuilder provides a more efficient way to build sets incrementally.
 type SetBuilder struct {
 	root          *node
-	remover       *composer
-	redundantAdds int
 	attemptedAdds int
+	redundantAdds int
+	removals      int
 }
 
 // Count returns the count of the Set that will be returned from Finish().
 func (b *SetBuilder) Count() int {
-	return b.attemptedAdds - b.redundantAdds - b.successfulRemoves()
+	return b.attemptedAdds - b.redundantAdds - b.removals
 }
 
 // Add adds el to the Set under construction.
@@ -20,12 +20,8 @@ func (b *SetBuilder) Add(v interface{}) {
 }
 
 // Remove removes el to the Set under construction.
-func (b *SetBuilder) Remove(el interface{}) {
-	if b.remover == nil {
-		b.remover = newDifferenceComposer(0)
-		b.remover.mutate = true
-	}
-	b.root = b.root.apply(b.remover, el)
+func (b *SetBuilder) Remove(v interface{}) {
+	b.root = b.root.without(v, true, 0, newHasher(v, 0), &b.removals)
 }
 
 func (b *SetBuilder) Has(el interface{}) bool {
@@ -42,11 +38,4 @@ func (b *SetBuilder) Finish() Set {
 	root := b.root
 	*b = SetBuilder{}
 	return Set{root: root, count: count}
-}
-
-func (b *SetBuilder) successfulRemoves() int {
-	if b.remover == nil {
-		return 0
-	}
-	return b.remover.delta.input
 }

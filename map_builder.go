@@ -3,14 +3,14 @@ package frozen
 // MapBuilder provides a more efficient way to build Maps incrementally.
 type MapBuilder struct {
 	root          *node
-	remover       *composer
 	redundantPuts int
+	removals      int
 	attemptedAdds int
 }
 
 // Count returns the number of entries in the Map under construction.
 func (b *MapBuilder) Count() int {
-	return b.attemptedAdds - b.failedAdds() - b.successfulRemoves()
+	return b.attemptedAdds - b.redundantPuts - b.removals
 }
 
 // Put adds or changes an entry into the Map under construction.
@@ -22,11 +22,8 @@ func (b *MapBuilder) Put(key, value interface{}) {
 
 // Remove removes an entry from the Map under construction.
 func (b *MapBuilder) Remove(key interface{}) {
-	if b.remover == nil {
-		b.remover = newDifferenceComposer(0)
-		b.remover.mutate = true
-	}
-	b.root = b.root.apply(b.remover, KV(key, nil))
+	kv := KV(key, nil)
+	b.root = b.root.without(kv, true, 0, newHasher(kv, 0), &b.removals)
 }
 
 // Get returns the value for key from the Map under construction or false if
@@ -48,15 +45,4 @@ func (b *MapBuilder) Finish() Map {
 	root := b.root
 	*b = MapBuilder{}
 	return Map{root: root, count: count}
-}
-
-func (b *MapBuilder) failedAdds() int {
-	return b.redundantPuts
-}
-
-func (b *MapBuilder) successfulRemoves() int {
-	if b.remover == nil {
-		return 0
-	}
-	return b.remover.delta.input
 }

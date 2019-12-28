@@ -18,7 +18,7 @@ type extraLeafElems []interface{}
 
 type leaf struct { //nolint:maligned
 	_         uint16 // mask only accessed via *node
-	lastIndex uint16
+	lastIndex int16
 	elems     [leafElems]interface{}
 }
 
@@ -132,33 +132,6 @@ func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
 	return l.isSubsetOf(m, eq) && m.isSubsetOf(l, eq)
 }
 
-func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node {
-	if elem, i := l.get(v, Equal); elem != nil {
-		c.delta.input++
-		if composed := c.compose(elem, v); composed != nil {
-			c.delta.output++
-			if c.keep&leftSideOnly == 0 {
-				return newLeaf(composed).node()
-			}
-			return l.prepareForUpdate(c.mutate).set(i, composed).node()
-		}
-		if c.keep&leftSideOnly == 0 {
-			return nil
-		}
-		return l.remove(i, c.mutate).node()
-	}
-	if c.keep&rightSideOnly == 0 {
-		if c.keep&leftSideOnly == 0 {
-			return nil
-		}
-		return l.node()
-	}
-	if c.keep&leftSideOnly == 0 {
-		return newLeaf(v).node()
-	}
-	return l.descend(v, c.mutate, depth, h)
-}
-
 func (l *leaf) valueIntersection(v interface{}, count *int) *node {
 	if elem, _ := l.get(v, Equal); elem != nil {
 		*count++
@@ -176,6 +149,31 @@ func (l *leaf) valueUnion(v interface{}, mutate, useRHS bool, depth int, h hashe
 		return l.node()
 	}
 	return l.descend(v, mutate, depth, h)
+}
+
+func (l *leaf) difference(n *node, depth int, matches *int) *node {
+	result := leaf{lastIndex: -1}
+	for i := l.iterator(); i.next(); {
+		v := *i.elem()
+		h := newHasher(v, depth)
+		if n.getImpl(v, h) == nil {
+			result.push(v, true)
+		} else {
+			*matches++
+		}
+	}
+	if result.lastIndex < 0 {
+		return nil
+	}
+	return result.node()
+}
+
+func (l *leaf) without(v interface{}, mutate bool, matches *int) *node {
+	if elem, i := l.get(v, Equal); elem != nil {
+		*matches++
+		return l.remove(i, mutate).node()
+	}
+	return l.node()
 }
 
 func (l *leaf) descend(v interface{}, mutate bool, depth int, h hasher) *node {

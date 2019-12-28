@@ -43,7 +43,12 @@ func (n *node) prepareForUpdate(mutate bool) *node {
 }
 
 func (n *node) setChild(i int, child *node) *node {
-	n.mask |= BitIterator(1) << i
+	mask := BitIterator(1) << i
+	if child != nil {
+		n.mask |= mask
+	} else {
+		n.mask &^= mask
+	}
 	n.children[i] = child
 	return n
 }
@@ -75,54 +80,6 @@ func (n *node) equal(o *node, eq func(a, b interface{}) bool) bool {
 	}
 }
 
-func (n *node) apply(c *composer, elem interface{}) *node {
-	return n.applyImpl(elem, c, 0, newHasher(elem, 0))
-}
-
-//nolint:funlen,gocognit
-func (n *node) applyImpl(elem interface{}, c *composer, depth int, h hasher) *node {
-	switch {
-	case n == nil:
-		if c.keep&rightSideOnly == 0 {
-			return n
-		}
-		return newLeaf(elem).node()
-	case n.isLeaf():
-		return n.leaf().applyImpl(elem, c, depth, h)
-	default:
-		offset := h.hash()
-		child := n.children[offset].applyImpl(elem, c, depth+1, h.next())
-		mask := BitIterator(1) << offset
-		if (n.mask == mask || c.keep&leftSideOnly == 0) && (child == nil || child.isLeaf()) {
-			return child
-		}
-		var result *node
-		if c.keep&leftSideOnly == 0 {
-			result = &node{}
-		} else {
-			if child != nil {
-				mask = n.mask | mask
-			} else {
-				mask = n.mask &^ mask
-			}
-			if mask.Count() == 1 {
-				if onlyChild := n.children[mask.Index()]; onlyChild.isLeaf() {
-					return onlyChild
-				}
-			}
-			if c.mutate {
-				result = n
-			} else {
-				result = &node{}
-				*result = *n
-			}
-		}
-		result.mask = mask
-		result.children[offset] = child
-		return result
-	}
-}
-
 func (n *node) get(elem interface{}) interface{} {
 	return n.getImpl(elem, newHasher(elem, 0))
 }
@@ -138,50 +95,6 @@ func (n *node) getImpl(v interface{}, h hasher) interface{} {
 		return nil
 	default:
 		return n.children[h.hash()].getImpl(v, h.next())
-	}
-}
-
-func (n *node) merge(o *node, c *composer) *node {
-	return n.mergeImpl(o, c, 0)
-}
-
-func (n *node) mergeImpl(o *node, c *composer, depth int) *node { //nolint:funlen
-	switch {
-	case n == nil:
-		if c.keep&rightSideOnly != 0 {
-			return o
-		}
-		return nil
-	case o == nil:
-		if c.keep&leftSideOnly != 0 {
-			return n
-		}
-		return nil
-	case n.isLeaf():
-		n, o, c = o, n, c.flip()
-		fallthrough
-	case o.isLeaf():
-		for i := o.leaf().iterator(); i.next(); {
-			v := *i.elem()
-			n = n.applyImpl(v, c, depth, newHasher(v, depth))
-		}
-		return n
-	default:
-		var result node
-		if c.keep&leftSideOnly != 0 {
-			result.setChildren(n.mask&^o.mask, &n.children)
-		}
-		if c.keep&rightSideOnly != 0 {
-			result.setChildren(o.mask&^n.mask, &o.children)
-		}
-		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
-			i := mask.Index()
-			if child := n.children[i].mergeImpl(o.children[i], c, depth+1); child != nil {
-				result.children[i] = child
-				result.mask |= BitIterator(1) << i
-			}
-		}
-		return result.canonical()
 	}
 }
 
@@ -265,6 +178,59 @@ func (n *node) valueUnion(v interface{}, mutate, useRHS bool, depth int, h hashe
 			return child
 		}
 		return n.prepareForUpdate(mutate).setChild(offset, child)
+	}
+}
+
+func (n *node) difference(o *node, mutate bool, depth int, matches *int) *node {
+	switch {
+	case n == nil || o == nil:
+		return n
+	case o.isLeaf():
+		for i := o.leaf().iterator(); i.next(); {
+			v := *i.elem()
+			n = n.without(v, mutate, depth, newHasher(v, depth), matches)
+		}
+		return n
+	case n.isLeaf():
+		return n.leaf().difference(o, depth, matches)
+	default:
+		var result node
+		result.setChildren(n.mask&^o.mask, &n.children)
+		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
+			i := mask.Index()
+			if child := n.children[i].difference(o.children[i], mutate, depth+1, matches); child != nil {
+				result.children[i] = child
+				result.mask |= BitIterator(1) << i
+			}
+		}
+		return result.canonical()
+	}
+}
+
+func (n *node) without(v interface{}, mutate bool, depth int, h hasher, matches *int) *node {
+	switch {
+	case n == nil:
+		return nil
+	case n.isLeaf():
+		return n.leaf().without(v, mutate, matches)
+	default:
+		offset := h.hash()
+		child := n.children[offset].without(v, mutate, depth+1, h.next(), matches)
+		mask := BitIterator(1) << offset
+		if n.mask == mask && (child == nil || child.isLeaf()) {
+			return child
+		}
+		if child != nil {
+			mask = n.mask | mask
+		} else {
+			mask = n.mask &^ mask
+		}
+		if mask.Count() == 1 {
+			if onlyChild := n.children[mask.Index()]; onlyChild.isLeaf() {
+				return onlyChild
+			}
+		}
+		return n.prepareForUpdate(mutate).setChild(offset, child).canonical()
 	}
 }
 
