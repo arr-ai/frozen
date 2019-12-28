@@ -156,8 +156,29 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 	if c.keep&leftSideOnly == 0 {
 		return newLeaf(v).node()
 	}
+	return l.descend(v, c.mutate, depth, h)
+}
+
+func (l *leaf) valueIntersection(v interface{}) (_ *node, count int) {
+	if elem, _ := l.get(v, Equal); elem != nil {
+		return newLeaf(v).node(), 1
+	}
+	return nil, 0
+}
+
+func (l *leaf) valueUnion(v interface{}, mutate, useRHS bool, depth int, h hasher) (_ *node, matches int) {
+	if elem, i := l.get(v, Equal); elem != nil {
+		if useRHS {
+			return l.prepareForUpdate(mutate).set(i, v).node(), 1
+		}
+		return l.node(), 1
+	}
+	return l.descend(v, mutate, depth, h), 0
+}
+
+func (l *leaf) descend(v interface{}, mutate bool, depth int, h hasher) *node {
 	if h == newHasher(l.elems[0], depth) {
-		return l.push(v, c.mutate).node()
+		return l.push(v, mutate).node()
 	}
 	result := &node{}
 	last := result
@@ -175,41 +196,6 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 	last.children[noffset] = l.node()
 	last.children[offset] = newLeaf(v).node()
 	return result
-}
-
-func (l *leaf) valueIntersection(v interface{}) (_ *node, count int) {
-	if elem, _ := l.get(v, Equal); elem != nil {
-		return newLeaf(v).node(), 1
-	}
-	return nil, 0
-}
-
-func (l *leaf) valueUnion(v interface{}, mutate, useRHS bool, depth int, h hasher) (_ *node, matches int) {
-	if elem, i := l.get(v, Equal); elem != nil {
-		if useRHS {
-			return l.prepareForUpdate(mutate).set(i, v).node(), 1
-		}
-		return l.node(), 1
-	}
-	if h == newHasher(l.elems[0], depth) {
-		return l.push(v, mutate).node(), 0
-	}
-	result := &node{}
-	last := result
-	nh := newHasher(l.elems[0], depth)
-	noffset, offset := nh.hash(), h.hash()
-	for noffset == offset {
-		last.mask = BitIterator(1) << offset
-		newLast := &node{}
-		last.children[offset] = newLast
-		last = newLast
-		nh, h = nh.next(), h.next()
-		noffset, offset = nh.hash(), h.hash()
-	}
-	last.mask = BitIterator(1)<<noffset | BitIterator(1)<<offset
-	last.children[noffset] = l.node()
-	last.children[offset] = newLeaf(v).node()
-	return result, 0
 }
 
 func (l *leaf) isSubsetOf(m *leaf, eq func(a, b interface{}) bool) bool {
