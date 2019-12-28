@@ -186,7 +186,7 @@ func (l *leaf) isSubsetOf(m *leaf, eq func(a, b interface{}) bool) bool {
 	return true
 }
 
-func (l *leaf) get(v interface{}, eq func(a, b interface{}) bool) (interface{}, int) { //nolint:gocritic
+func (l *leaf) get(v interface{}, eq func(a, b interface{}) bool) (_ interface{}, index int) { //nolint:gocritic
 	for i := l.iterator(); i.next(); {
 		if elem := i.elem(); eq(*elem, v) {
 			return *elem, i.index
