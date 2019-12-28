@@ -164,14 +164,14 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 	nh := newHasher(l.elems[0], depth)
 	noffset, offset := nh.hash(), h.hash()
 	for noffset == offset {
-		last.mask = uintptr(1) << offset
+		last.mask = BitIterator(1) << offset
 		newLast := &node{}
 		last.children[offset] = newLast
 		last = newLast
 		nh, h = nh.next(), h.next()
 		noffset, offset = nh.hash(), h.hash()
 	}
-	last.mask = uintptr(1)<<noffset | uintptr(1)<<offset
+	last.mask = BitIterator(1)<<noffset | BitIterator(1)<<offset
 	last.children[noffset] = l.node()
 	last.children[offset] = newLeaf(v).node()
 	return result

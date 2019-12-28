@@ -2,7 +2,6 @@ package frozen
 
 import (
 	"fmt"
-	"math/bits"
 
 	"github.com/marcelocantos/hash"
 )
@@ -126,8 +125,8 @@ func isSubsetOf(a, b *node, depth int) bool {
 	case b.isLeaf():
 		return false
 	default:
-		for mask := bititer(a.mask); mask != 0; mask = mask.next() {
-			i := mask.index()
+		for mask := a.mask; mask != 0; mask = mask.Next() {
+			i := mask.Index()
 			if !isSubsetOf(a.children[i], b.children[i], depth+1) {
 				return false
 			}
@@ -210,7 +209,7 @@ func (s Set) Powerset() Set {
 	elems := s.Elements()
 	subset := Set{}
 	result := NewSet(subset)
-	for i := uint64(1); i < 1<<n; i++ {
+	for i := BitIterator(1); i < 1<<n; i++ {
 		// Use a special counting order that flips a single bit at at time. The
 		// bit to flip is the same as the lowest-order 1-bit in the normal
 		// counting order, denoted by `(1)`. The flipped bit's new value is the
@@ -237,10 +236,10 @@ func (s Set) Powerset() Set {
 		//    1  1  1  -     1  -  -  1   |   1 ^1 (1) -     1  - [-] 1
 		//    1  1  1  1     1  -  -  -   |   1  1 ^1 (1)    1  -  - [-]
 		//
-		if flip := bits.TrailingZeros64(i); i>>(flip+1)&1 == 0 {
-			subset = subset.With(elems[flip])
-		} else {
+		if flip := i.Index(); i.Has(flip + 1) {
 			subset = subset.Without(elems[flip])
+		} else {
+			subset = subset.With(elems[flip])
 		}
 		result = result.With(subset)
 	}

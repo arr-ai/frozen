@@ -44,8 +44,8 @@ func TestNodeEqual(t *testing.T) {
 	keys := []string{"a", "b", "c", "d", "e", "f", "g"}
 	for i := 1; i < 1<<len(keys); i++ {
 		n := empty
-		for mask := bititer(i); mask != 0; mask = mask.next() {
-			j := mask.index()
+		for mask := BitIterator(i); mask != 0; mask = mask.Next() {
+			j := mask.Index()
 			n = n.apply(putter, KV(keys[j], j))
 		}
 		nodes = append(nodes, n)

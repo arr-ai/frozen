@@ -1,7 +1,6 @@
 package lazy
 
 import (
-	"math/bits"
 	"unsafe"
 
 	"github.com/marcelocantos/frozen"
@@ -66,14 +65,14 @@ func (s *powerSet) Range() SetIterator {
 	return &powerSetSetIterator{
 		i:    s.set.Range(),
 		end:  1,
-		mask: ^uint64(0),
+		mask: ^frozen.BitIterator(0),
 	}
 }
 
 type powerSetSetIterator struct {
 	i     SetIterator
-	end   uint64
-	mask  uint64
+	end   frozen.BitIterator
+	mask  frozen.BitIterator
 	elems []interface{}
 	value frozen.Set
 }
@@ -92,11 +91,11 @@ func (i *powerSetSetIterator) Next() bool {
 	}
 	// Use a special counting order that flips one bit at at time. See
 	// (frozen.Set).Powerset() for a detailed explanation.
-	if flip := bits.TrailingZeros64(i.mask); flip < len(i.elems) {
-		if i.mask>>(flip+1)&1 == 0 {
-			i.value = i.value.With(i.elems[flip])
-		} else {
+	if flip := i.mask.Index(); flip < len(i.elems) {
+		if i.mask.Has(flip + 1) {
 			i.value = i.value.Without(i.elems[flip])
+		} else {
+			i.value = i.value.With(i.elems[flip])
 		}
 	}
 	return true

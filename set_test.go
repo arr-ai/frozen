@@ -270,12 +270,12 @@ func TestSetPowersetLarge(t *testing.T) {
 
 	expected := NewSet()
 	var b SetBuilder
-	for i := uint64(0); i <= 1<<15; i++ {
-		if i > 0 && i&(i-1) == 0 {
+	for i := BitIterator(0); i <= 1<<15; i++ {
+		if i.Count() == 1 {
 			expected = expected.Union(b.Finish())
-			assertSetEqual(t, expected, NewSetFromMask64(i-1).Powerset(), "i=%v", i)
+			assertSetEqual(t, expected, NewSetFromMask64(uint64(i-1)).Powerset(), "i=%v", i)
 		}
-		b.Add(NewSetFromMask64(i))
+		b.Add(NewSetFromMask64(uint64(i)))
 	}
 }
 

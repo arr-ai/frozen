@@ -3,7 +3,6 @@ package frozen
 import (
 	"container/heap"
 	"fmt"
-	"math/bits"
 	"strings"
 	"unsafe"
 )
@@ -11,7 +10,7 @@ import (
 const nodeCount = 1 << nodeBits
 
 type node struct {
-	mask     uintptr
+	mask     BitIterator
 	children [nodeCount]*node
 }
 
@@ -34,8 +33,8 @@ func (n *node) equal(o *node, eq func(a, b interface{}) bool) bool {
 	case n.isLeaf():
 		return n.leaf().equal(o.leaf(), eq)
 	default:
-		for mask := bititer(n.mask); mask != 0; mask = mask.next() {
-			i := mask.index()
+		for mask := n.mask; mask != 0; mask = mask.Next() {
+			i := mask.Index()
 			if !n.children[i].equal(o.children[i], eq) {
 				return false
 			}
@@ -61,7 +60,7 @@ func (n *node) applyImpl(elem interface{}, c *composer, depth int, h hasher) *no
 	default:
 		offset := h.hash()
 		child := n.children[offset].applyImpl(elem, c, depth+1, h.next())
-		mask := uintptr(1) << offset
+		mask := BitIterator(1) << offset
 		if (n.mask == mask || c.keep&leftSideOnly == 0) && (child == nil || child.isLeaf()) {
 			return child
 		}
@@ -74,8 +73,8 @@ func (n *node) applyImpl(elem interface{}, c *composer, depth int, h hasher) *no
 			} else {
 				mask = n.mask &^ mask
 			}
-			if mask&(mask-1) == 0 {
-				if onlyChild := n.children[bits.TrailingZeros64(uint64(mask))]; onlyChild.isLeaf() {
+			if mask.Count() == 1 {
+				if onlyChild := n.children[mask.Index()]; onlyChild.isLeaf() {
 					return onlyChild
 				}
 			}
@@ -138,31 +137,31 @@ func (n *node) mergeImpl(o *node, c *composer, depth int) *node { //nolint:funle
 	default:
 		var result node
 		if c.keep&leftSideOnly != 0 {
-			for mask := bititer(n.mask &^ o.mask); mask != 0; mask = mask.next() {
-				i := mask.index()
+			for mask := n.mask &^ o.mask; mask != 0; mask = mask.Next() {
+				i := mask.Index()
 				result.children[i] = n.children[i]
 			}
 			result.mask |= n.mask &^ o.mask
 		}
 		if c.keep&rightSideOnly != 0 {
-			for mask := bititer(o.mask &^ n.mask); mask != 0; mask = mask.next() {
-				i := mask.index()
+			for mask := o.mask &^ n.mask; mask != 0; mask = mask.Next() {
+				i := mask.Index()
 				result.children[i] = o.children[i]
 			}
 			result.mask |= o.mask &^ n.mask
 		}
-		for mask := bititer(o.mask & n.mask); mask != 0; mask = mask.next() {
-			i := mask.index()
+		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
+			i := mask.Index()
 			if child := n.children[i].mergeImpl(o.children[i], c, depth+1); child != nil {
 				result.children[i] = child
-				result.mask |= uintptr(1) << i
+				result.mask |= BitIterator(1) << i
 			}
 		}
 		if result.mask == 0 {
 			return nil
 		}
-		if result.mask&(result.mask-1) == 0 {
-			i := bits.TrailingZeros64(uint64(result.mask))
+		if result.mask.Count() == 1 {
+			i := result.mask.Index()
 			if child := result.children[i]; child.isLeaf() {
 				return child
 			}
