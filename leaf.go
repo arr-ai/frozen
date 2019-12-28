@@ -134,9 +134,9 @@ func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
 
 func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node {
 	if elem, i := l.get(v, Equal); elem != nil {
-		*c.middleIn++
+		c.delta.input++
 		if composed := c.compose(elem, v); composed != nil {
-			*c.middleOut++
+			c.delta.output++
 			if c.keep&leftSideOnly == 0 {
 				return newLeaf(composed).node()
 			}

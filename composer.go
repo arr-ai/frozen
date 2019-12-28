@@ -1,5 +1,7 @@
 package frozen
 
+import "strings"
+
 type sides int
 
 const (
@@ -16,59 +18,64 @@ func useRight(a, b interface{}) interface{} {
 	return b
 }
 
+// matchDelta tracks matching elements.
+type matchDelta struct {
+	input  int
+	output int
+}
+
 type composer struct {
-	middleInCell  int
-	middleOutCell int
-	middleIn      *int
-	middleOut     *int
-	keep          sides
-	mutate        bool
-	compose       func(a, b interface{}) interface{}
-	calcCount     func(middleIn, middleOut int) int
-	flipped       *composer
+	name      string
+	delta     *matchDelta
+	keep      sides
+	mutate    bool
+	compose   func(a, b interface{}) interface{}
+	calcCount func(counter matchDelta) int
+	flipped   *composer
 }
 
 func newComposer(
+	name string,
 	keep sides,
 	compose func(a, b interface{}) interface{},
-	calcCount func(middleIn, middleOut int) int,
+	calcCount func(counter matchDelta) int,
 ) *composer {
 	c := &composer{
+		name:      name,
+		delta:     &matchDelta{},
 		keep:      keep,
 		compose:   compose,
 		calcCount: calcCount,
 	}
-	c.middleIn = &c.middleInCell
-	c.middleOut = &c.middleOutCell
 	return c
 }
 
 func newIntersectionComposer() *composer {
-	return newComposer(0, useRight,
-		func(middleIn, middleOut int) int { return middleOut },
+	return newComposer("Intersection", 0, useRight,
+		func(counter matchDelta) int { return counter.output },
 	)
 }
 
 func newUnionComposer(abCount int) *composer {
-	return newComposer(oneSideOnly, useRight,
-		func(middleIn, middleOut int) int { return abCount - 2*middleIn + middleOut },
+	return newComposer("Union", oneSideOnly, useRight,
+		func(counter matchDelta) int { return abCount - 2*counter.input + counter.output },
 	)
 }
 
 func newSymmetricDifferenceComposer(abCount int) *composer {
-	return newComposer(oneSideOnly, useNeither,
-		func(middleIn, middleOut int) int { return abCount - 2*middleIn + middleOut },
+	return newComposer("SymmetricDifference", oneSideOnly, useNeither,
+		func(counter matchDelta) int { return abCount - 2*counter.input },
 	)
 }
 
 func newDifferenceComposer(aCount int) *composer {
-	return newComposer(leftSideOnly, useNeither,
-		func(middleIn, middleOut int) int { return aCount - middleIn + middleOut },
+	return newComposer("Difference", leftSideOnly, useNeither,
+		func(counter matchDelta) int { return aCount - counter.input },
 	)
 }
 
 func (c *composer) count() int {
-	return c.calcCount(*c.middleIn, *c.middleOut)
+	return c.calcCount(*c.delta)
 }
 
 func (c *composer) flip() *composer {
@@ -76,12 +83,29 @@ func (c *composer) flip() *composer {
 		c.flipped.flipped = c
 		return c.flipped
 	}
-	return &composer{
-		middleIn:  c.middleIn,
-		middleOut: c.middleOut,
-		keep:      c.keep&1<<1 | c.keep>>1&1,
-		compose:   func(b, a interface{}) interface{} { return c.compose(a, b) },
-		calcCount: c.calcCount,
-		flipped:   c,
+	d := *c
+	d.keep = c.keep&1<<1 | c.keep>>1&1
+	d.compose = func(b, a interface{}) interface{} { return c.compose(a, b) }
+	d.flipped = c
+	return &d
+}
+
+func (c *composer) String() string {
+	var b strings.Builder
+	b.WriteByte('[')
+	if c.flipped != nil {
+		b.WriteByte('~')
 	}
+	if c.keep&leftSideOnly != 0 {
+		b.WriteByte('<')
+	}
+	if c.keep&rightSideOnly != 0 {
+		b.WriteByte('>')
+	}
+	b.WriteString(c.name)
+	if c.mutate {
+		b.WriteByte('!')
+	}
+	b.WriteByte(']')
+	return b.String()
 }

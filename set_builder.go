@@ -52,12 +52,12 @@ func (b *SetBuilder) failedAdds() int {
 	if b.adder == nil {
 		return 0
 	}
-	return b.adder.middleInCell
+	return b.adder.delta.input
 }
 
 func (b *SetBuilder) successfulRemoves() int {
 	if b.remover == nil {
 		return 0
 	}
-	return b.remover.middleInCell
+	return b.remover.delta.input
 }
