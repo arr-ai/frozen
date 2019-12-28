@@ -148,7 +148,25 @@ func (l *leaf) with(v interface{}, mutate, useRHS bool, depth int, h hasher, mat
 		}
 		return l.node()
 	}
-	return l.descend(v, mutate, depth, h)
+	if h == newHasher(l.elems[0], depth) {
+		return l.push(v, mutate).node()
+	}
+	result := &node{}
+	last := result
+	nh := newHasher(l.elems[0], depth)
+	noffset, offset := nh.hash(), h.hash()
+	for noffset == offset {
+		last.mask = BitIterator(1) << offset
+		newLast := &node{}
+		last.children[offset] = newLast
+		last = newLast
+		nh, h = nh.next(), h.next()
+		noffset, offset = nh.hash(), h.hash()
+	}
+	last.mask = BitIterator(1)<<noffset | BitIterator(1)<<offset
+	last.children[noffset] = l.node()
+	last.children[offset] = newLeaf(v).node()
+	return result
 }
 
 func (l *leaf) difference(n *node, depth int, matches *int) *node {
@@ -174,28 +192,6 @@ func (l *leaf) without(v interface{}, mutate bool, matches *int) *node {
 		return l.remove(i, mutate).node()
 	}
 	return l.node()
-}
-
-func (l *leaf) descend(v interface{}, mutate bool, depth int, h hasher) *node {
-	if h == newHasher(l.elems[0], depth) {
-		return l.push(v, mutate).node()
-	}
-	result := &node{}
-	last := result
-	nh := newHasher(l.elems[0], depth)
-	noffset, offset := nh.hash(), h.hash()
-	for noffset == offset {
-		last.mask = BitIterator(1) << offset
-		newLast := &node{}
-		last.children[offset] = newLast
-		last = newLast
-		nh, h = nh.next(), h.next()
-		noffset, offset = nh.hash(), h.hash()
-	}
-	last.mask = BitIterator(1)<<noffset | BitIterator(1)<<offset
-	last.children[noffset] = l.node()
-	last.children[offset] = newLeaf(v).node()
-	return result
 }
 
 func (l *leaf) isSubsetOf(m *leaf, eq func(a, b interface{}) bool) bool {
