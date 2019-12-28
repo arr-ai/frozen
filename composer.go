@@ -50,12 +50,6 @@ func newComposer(
 	return c
 }
 
-func newIntersectionComposer() *composer {
-	return newComposer("Intersection", 0, useRight,
-		func(counter matchDelta) int { return counter.output },
-	)
-}
-
 func newUnionComposer(abCount int) *composer {
 	return newComposer("Union", oneSideOnly, useRight,
 		func(counter matchDelta) int { return abCount - 2*counter.input + counter.output },

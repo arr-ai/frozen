@@ -177,6 +177,15 @@ func (l *leaf) applyImpl(v interface{}, c *composer, depth int, h hasher) *node 
 	return result
 }
 
+func (l *leaf) isolate(v interface{}, delta *matchDelta) (_ *node, count int) {
+	if elem, _ := l.get(v, Equal); elem != nil {
+		delta.input++
+		delta.output++
+		return newLeaf(v).node(), 1
+	}
+	return nil, 0
+}
+
 func (l *leaf) isSubsetOf(m *leaf, eq func(a, b interface{}) bool) bool {
 	for i := l.iterator(); i.next(); {
 		if elem, _ := m.get(*i.elem(), eq); elem == nil {

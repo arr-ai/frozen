@@ -182,7 +182,9 @@ func (s Set) Reduce(f func(acc, el interface{}) interface{}, acc interface{}) in
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set) Intersection(t Set) Set {
-	return s.merge(t, newIntersectionComposer())
+	var delta matchDelta
+	root, count := s.root.intersection(t.root, &delta, 0)
+	return Set{root: root, count: count}
 }
 
 // Union returns a Set with all elements that are in either s or t.

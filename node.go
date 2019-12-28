@@ -24,6 +24,18 @@ func (n *node) leaf() *leaf {
 	return (*leaf)(unsafe.Pointer(n))
 }
 
+func (n *node) canonical() *node {
+	if n.mask == 0 {
+		return nil
+	}
+	if n.mask.Count() == 1 {
+		if child := n.children[n.mask.Index()]; child.isLeaf() {
+			return child
+		}
+	}
+	return n
+}
+
 func (n *node) equal(o *node, eq func(a, b interface{}) bool) bool {
 	switch {
 	case n == o:
@@ -88,6 +100,18 @@ func (n *node) applyImpl(elem interface{}, c *composer, depth int, h hasher) *no
 		result.mask = mask
 		result.children[offset] = child
 		return result
+	}
+}
+
+func (n *node) isolate(v interface{}, delta *matchDelta, depth int, h hasher) (_ *node, count int) {
+	switch {
+	case n == nil:
+		return nil, 0
+	case n.isLeaf():
+		return n.leaf().isolate(v, delta)
+	default:
+		offset := h.hash()
+		return n.children[offset].isolate(v, delta, depth+1, h.next())
 	}
 }
 
@@ -157,16 +181,37 @@ func (n *node) mergeImpl(o *node, c *composer, depth int) *node { //nolint:funle
 				result.mask |= BitIterator(1) << i
 			}
 		}
-		if result.mask == 0 {
-			return nil
-		}
-		if result.mask.Count() == 1 {
-			i := result.mask.Index()
-			if child := result.children[i]; child.isLeaf() {
-				return child
+		return result.canonical()
+	}
+}
+
+func (n *node) intersection(o *node, delta *matchDelta, depth int) (_ *node, count int) { //nolint:funlen
+	switch {
+	case n == nil || o == nil:
+		return nil, 0
+	case n.isLeaf():
+		n, o = o, n
+		fallthrough
+	case o.isLeaf():
+		for i := o.leaf().iterator(); i.next(); {
+			v := *i.elem()
+			if p, count := n.isolate(v, delta, depth, newHasher(v, depth)); p != nil {
+				return p, count
 			}
 		}
-		return &result
+		return nil, 0
+	default:
+		var result node
+		total := 0
+		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
+			i := mask.Index()
+			if child, count := n.children[i].intersection(o.children[i], delta, depth+1); child != nil {
+				result.children[i] = child
+				result.mask |= BitIterator(1) << i
+				total += count
+			}
+		}
+		return result.canonical(), total
 	}
 }
 
