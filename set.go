@@ -201,7 +201,7 @@ func (s Set) Difference(t Set) Set {
 // SymmetricDifference returns a Set with all elements that are s or t, but not
 // both.
 func (s Set) SymmetricDifference(t Set) Set {
-	return s.merge(t, newSymmetricDifferenceComposer(s.Count()+t.Count()))
+	return s.Difference(t).Union(t.Difference(s))
 }
 
 func (s Set) Powerset() Set {

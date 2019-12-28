@@ -7,7 +7,6 @@ type sides int
 const (
 	leftSideOnly sides = 1 << iota
 	rightSideOnly
-	oneSideOnly = leftSideOnly | rightSideOnly
 )
 
 func useNeither(_, _ interface{}) interface{} {
@@ -44,12 +43,6 @@ func newComposer(
 		calcCount: calcCount,
 	}
 	return c
-}
-
-func newSymmetricDifferenceComposer(abCount int) *composer {
-	return newComposer("SymmetricDifference", oneSideOnly, useNeither,
-		func(counter matchDelta) int { return abCount - 2*counter.input },
-	)
 }
 
 func newDifferenceComposer(aCount int) *composer {
