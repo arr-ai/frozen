@@ -132,7 +132,7 @@ func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
 	return l.isSubsetOf(m, eq) && m.isSubsetOf(l, eq)
 }
 
-func (l *leaf) valueIntersection(v interface{}, count *int) *node {
+func (l *leaf) only(v interface{}, count *int) *node {
 	if elem, _ := l.get(v, Equal); elem != nil {
 		*count++
 		return newLeaf(v).node()
@@ -140,7 +140,7 @@ func (l *leaf) valueIntersection(v interface{}, count *int) *node {
 	return nil
 }
 
-func (l *leaf) valueUnion(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int) *node {
+func (l *leaf) with(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int) *node {
 	if elem, i := l.get(v, Equal); elem != nil {
 		*matches++
 		if useRHS {

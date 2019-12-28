@@ -76,7 +76,7 @@ func (m Map) Count() int {
 func (m Map) With(key, val interface{}) Map {
 	kv := KV(key, val)
 	matches := 0
-	root := m.root.valueUnion(kv, false, true, 0, newHasher(kv, 0), &matches)
+	root := m.root.with(kv, false, true, 0, newHasher(kv, 0), &matches)
 	return Map{root: root, count: m.Count() + 1 - matches}
 }
 

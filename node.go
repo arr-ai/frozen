@@ -108,7 +108,7 @@ func (n *node) intersection(o *node, depth int, count *int) *node { //nolint:fun
 	case o.isLeaf():
 		for i := o.leaf().iterator(); i.next(); {
 			v := *i.elem()
-			if p := n.valueIntersection(v, depth, newHasher(v, depth), count); p != nil {
+			if p := n.only(v, depth, newHasher(v, depth), count); p != nil {
 				return p
 			}
 		}
@@ -125,14 +125,14 @@ func (n *node) intersection(o *node, depth int, count *int) *node { //nolint:fun
 	}
 }
 
-func (n *node) valueIntersection(v interface{}, depth int, h hasher, count *int) *node {
+func (n *node) only(v interface{}, depth int, h hasher, count *int) *node {
 	switch {
 	case n == nil:
 		return nil
 	case n.isLeaf():
-		return n.leaf().valueIntersection(v, count)
+		return n.leaf().only(v, count)
 	default:
-		return n.children[h.hash()].valueIntersection(v, depth+1, h.next(), count)
+		return n.children[h.hash()].only(v, depth+1, h.next(), count)
 	}
 }
 
@@ -148,7 +148,7 @@ func (n *node) union(o *node, mutate, useRHS bool, depth int, matches *int) *nod
 	case o.isLeaf():
 		for i := o.leaf().iterator(); i.next(); {
 			v := *i.elem()
-			n = n.valueUnion(v, mutate, useRHS, depth, newHasher(v, depth), matches)
+			n = n.with(v, mutate, useRHS, depth, newHasher(v, depth), matches)
 		}
 		return n
 	default:
@@ -165,15 +165,15 @@ func (n *node) union(o *node, mutate, useRHS bool, depth int, matches *int) *nod
 	}
 }
 
-func (n *node) valueUnion(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int) *node {
+func (n *node) with(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int) *node {
 	switch {
 	case n == nil:
 		return newLeaf(v).node()
 	case n.isLeaf():
-		return n.leaf().valueUnion(v, mutate, useRHS, depth, h, matches)
+		return n.leaf().with(v, mutate, useRHS, depth, h, matches)
 	default:
 		offset := h.hash()
-		child := n.children[offset].valueUnion(v, mutate, useRHS, depth+1, h.next(), matches)
+		child := n.children[offset].with(v, mutate, useRHS, depth+1, h.next(), matches)
 		if (n.mask|BitIterator(1)<<offset).Count() == 1 && child.isLeaf() {
 			return child
 		}

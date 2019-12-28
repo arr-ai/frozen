@@ -16,7 +16,7 @@ func (b *MapBuilder) Count() int {
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder) Put(key, value interface{}) {
 	kv := KV(key, value)
-	b.root = b.root.valueUnion(kv, true, true, 0, newHasher(kv, 0), &b.redundantPuts)
+	b.root = b.root.with(kv, true, true, 0, newHasher(kv, 0), &b.redundantPuts)
 	b.attemptedAdds++
 }
 
