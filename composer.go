@@ -14,10 +14,6 @@ func useNeither(_, _ interface{}) interface{} {
 	return nil
 }
 
-func useRight(a, b interface{}) interface{} {
-	return b
-}
-
 // matchDelta tracks matching elements.
 type matchDelta struct {
 	input  int
@@ -48,12 +44,6 @@ func newComposer(
 		calcCount: calcCount,
 	}
 	return c
-}
-
-func newUnionComposer(abCount int) *composer {
-	return newComposer("Union", oneSideOnly, useRight,
-		func(counter matchDelta) int { return abCount - 2*counter.input + counter.output },
-	)
 }
 
 func newSymmetricDifferenceComposer(abCount int) *composer {

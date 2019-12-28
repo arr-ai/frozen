@@ -74,9 +74,9 @@ func (m Map) Count() int {
 // With returns a new Map with key associated with val and all other keys
 // retained from m.
 func (m Map) With(key, val interface{}) Map {
-	c := newUnionComposer(m.Count() + 1)
-	root := m.root.apply(c, KV(key, val))
-	return Map{root: root, count: c.count()}
+	kv := KV(key, val)
+	root, matches := m.root.valueUnion(kv, false, true, 0, newHasher(kv, 0))
+	return Map{root: root, count: m.Count() + 1 - matches}
 }
 
 // Without returns a new Map with all keys retained from m except the elements
@@ -192,27 +192,8 @@ func (m Map) Update(n Map) Map {
 	if m.Count() > n.Count() {
 		return n.Update(m)
 	}
-	return m.merge(n, useRight)
-}
-
-// Merge returns a Map with key-value pairs from n merged into m by calling
-// compose to get new values.
-func (m Map) Merge(n Map, compose func(key, a, b interface{}) interface{}) Map {
-	return m.merge(n, func(a, b interface{}) interface{} {
-		kva := a.(KeyValue)
-		kvb := b.(KeyValue)
-		if c := compose(kva.Key, kva.Value, kvb.Value); c != nil {
-			return KV(kva.Key, c)
-		}
-		return nil
-	})
-}
-
-func (m Map) merge(n Map, compose func(a, b interface{}) interface{}) Map {
-	c := newUnionComposer(m.Count() + n.Count())
-	c.compose = compose
-	root := m.root.merge(n.root, c)
-	return Map{root: root, count: c.count()}
+	root, matches := m.root.union(n.root, false, true, 0)
+	return Map{root: root, count: m.Count() + n.Count() - matches}
 }
 
 // Hash computes a hash val for s.

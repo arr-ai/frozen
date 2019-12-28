@@ -279,38 +279,6 @@ func TestMapUpdate(t *testing.T) {
 	)
 }
 
-func TestMapMerge(t *testing.T) {
-	t.Parallel()
-
-	m := NewMap(KV(3, 4), KV(4, 5), KV(1, 2))
-	n := NewMap(KV(3, 4), KV(4, 7), KV(6, 7))
-
-	assertMapEqual(t,
-		NewMap(KV(1, 2), KV(3, 8), KV(4, 12), KV(6, 7)),
-		m.Merge(n, func(key, a, b interface{}) interface{} {
-			if a == nil {
-				return b
-			}
-			if b == nil {
-				return a
-			}
-			return a.(int) + b.(int)
-		}),
-	)
-
-	assertMapEqual(t,
-		NewMap(KV(1, 2), KV(3, 8), KV(6, 7)),
-		m.Merge(n, func(key, a, b interface{}) interface{} {
-			if a != nil && b != nil {
-				if c := a.(int) + b.(int); c < 10 {
-					return c
-				}
-			}
-			return nil
-		}),
-	)
-}
-
 func TestMapHashAndEqual(t *testing.T) {
 	t.Parallel()
 

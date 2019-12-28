@@ -56,17 +56,22 @@ func (s Set) Join(t Set) Set {
 	}
 	sGroup := s.GroupBy(projectCommon)
 	tGroup := t.GroupBy(projectCommon)
-	joinedGroup := sGroup.Merge(tGroup, func(_, a, b interface{}) interface{} {
-		return [2]Set{a.(Set), b.(Set)}
-	})
+	commonKeys := sGroup.Keys().Intersection(tGroup.Keys())
 
-	var b SetBuilder
-	for i := joinedGroup.Range(); i.Next(); {
-		if sets, ok := i.Value().([2]Set); ok {
-			buildCartesianProduct(&b, Map{}, sets[:]...)
+	var sb SetBuilder
+	for i := commonKeys.Range(); i.Next(); {
+		key := i.Value()
+		a, has := sGroup.Get(key)
+		if !has {
+			panic("wat?")
 		}
+		b, has := tGroup.Get(key)
+		if !has {
+			panic("wat?")
+		}
+		buildCartesianProduct(&sb, Map{}, a.(Set), b.(Set))
 	}
-	return b.Finish()
+	return sb.Finish()
 }
 
 func (s Set) CartesianProduct(t Set) Set {

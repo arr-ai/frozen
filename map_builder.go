@@ -3,8 +3,8 @@ package frozen
 // MapBuilder provides a more efficient way to build Maps incrementally.
 type MapBuilder struct {
 	root          *node
-	adder         *composer
 	remover       *composer
+	putMatches    int
 	attemptedAdds int
 }
 
@@ -15,11 +15,10 @@ func (b *MapBuilder) Count() int {
 
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder) Put(key, value interface{}) {
-	if b.adder == nil {
-		b.adder = newUnionComposer(0)
-		b.adder.mutate = true
-	}
-	b.root = b.root.apply(b.adder, KV(key, value))
+	kv := KV(key, value)
+	var matches int
+	b.root, matches = b.root.valueUnion(kv, true, true, 0, newHasher(kv, 0))
+	b.putMatches += matches
 	b.attemptedAdds++
 }
 
@@ -54,10 +53,7 @@ func (b *MapBuilder) Finish() Map {
 }
 
 func (b *MapBuilder) failedAdds() int {
-	if b.adder == nil {
-		return 0
-	}
-	return b.adder.delta.input
+	return b.putMatches
 }
 
 func (b *MapBuilder) successfulRemoves() int {

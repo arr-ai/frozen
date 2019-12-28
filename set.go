@@ -182,14 +182,14 @@ func (s Set) Reduce(f func(acc, el interface{}) interface{}, acc interface{}) in
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set) Intersection(t Set) Set {
-	var delta matchDelta
-	root, count := s.root.intersection(t.root, &delta, 0)
+	root, count := s.root.intersection(t.root, 0)
 	return Set{root: root, count: count}
 }
 
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
-	return s.merge(t, newUnionComposer(s.Count()+t.Count()))
+	root, matches := s.root.union(t.root, false, true, 0)
+	return Set{root: root, count: s.Count() + t.Count() - matches}
 }
 
 // Difference returns a Set with all elements that are s but not in t.
