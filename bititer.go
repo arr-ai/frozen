@@ -2,7 +2,6 @@ package frozen
 
 import (
 	"math/bits"
-	"strconv"
 	"strings"
 )
 
@@ -25,15 +24,32 @@ func (b BitIterator) Has(i int) bool {
 	return b&(BitIterator(1)<<i) != 0
 }
 
+var brailleBytes = func() [0x100]rune {
+	// 0 -> 0 |• •| 3 <- 4
+	// 1 -> 1 |• •| 4 <- 5
+	// 2 -> 2 |• •| 5 <- 6
+	// 3 -> 6 |• •| 7 <- 7
+	mappings := [][2]int{
+		{0, 0}, {4, 3},
+		{1, 1}, {5, 4},
+		{2, 2}, {6, 5},
+		{3, 6}, {7, 7},
+	}
+	var bytes [0x100]rune
+	for i := 0; i < 0x100; i++ {
+		r := rune(0x2800)
+		for _, m := range mappings {
+			r |= rune(i) >> m[0] & 1 << m[1]
+		}
+		bytes[i] = r
+	}
+	return bytes
+}()
+
 func (b BitIterator) String() string {
 	var sb strings.Builder
-	sb.WriteByte('[')
-	for i := 0; b != 0; i, b = i+1, b.Next() {
-		if i > 0 {
-			sb.WriteByte(',')
-		}
-		sb.WriteString(strconv.Itoa(b.Index()))
+	for ; b != 0; b >>= 8 {
+		sb.WriteRune(brailleBytes[b%0x100])
 	}
-	sb.WriteByte(']')
 	return sb.String()
 }
