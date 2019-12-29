@@ -35,7 +35,14 @@ func (h hasher) String() string {
 		// TODO(if we care): Output a base-4 number.
 		s = fmt.Sprintf("%0*x", hashBits/4, h>>dregs)
 	case 3:
-		s = fmt.Sprintf("%0*o", hashBits/3, h>>dregs)
+		var sb strings.Builder
+		sb.WriteRune('⎹')
+		// Braille-encode octal digits in pairs.
+		for ; h != 0; h <<= 6 {
+			sb.WriteRune(rune(0x2800 + h.hash() + h.next().hash()<<3))
+		}
+		sb.WriteRune('⎸')
+		return sb.String()
 	case 4:
 		s = fmt.Sprintf("%0*x", hashBits/4, h>>dregs)
 	default:
