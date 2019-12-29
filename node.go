@@ -228,6 +228,12 @@ func (n *node) without(v interface{}, mutate bool, depth int, h hasher, matches 
 	}
 }
 
+func (n *node) Format(f fmt.State, _ rune) {
+	s := n.String()
+	fmt.Fprint(f, s)
+	padFormat(f, len(s))
+}
+
 func (n *node) String() string {
 	if n == nil {
 		return "∅"
@@ -235,16 +241,32 @@ func (n *node) String() string {
 	if n.isLeaf() {
 		return n.leaf().String()
 	}
-	var b strings.Builder
-	b.WriteString("[")
-	for i, v := range n.children {
-		if i > 0 {
-			b.WriteString(",")
+	var sb strings.Builder
+	deep := false
+	for mask := n.mask; mask != 0; mask = mask.Next() {
+		if !n.children[mask.Index()].isLeaf() {
+			deep = true
+			break
 		}
-		fmt.Fprint(&b, v)
 	}
-	b.WriteString("]")
-	return b.String()
+	fmt.Fprintf(&sb, "⁅%v ", n.mask)
+	if deep {
+		sb.WriteString("\n")
+	}
+	for mask := n.mask; mask != 0; mask = mask.Next() {
+		v := n.children[mask.Index()]
+		if deep {
+			sb.WriteString(indentBlock(v.String()))
+			sb.WriteString("\n")
+		} else {
+			if mask != n.mask {
+				sb.WriteString(" ")
+			}
+			fmt.Fprint(&sb, v)
+		}
+	}
+	sb.WriteString("⁆")
+	return sb.String()
 }
 
 func (n *node) iterator() Iterator {
