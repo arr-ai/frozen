@@ -148,20 +148,20 @@ func (l *leaf) with(v interface{}, mutate, useRHS bool, depth int, h hasher, mat
 		}
 		return l.node()
 	}
-	if h == newHasher(l.elems[0], depth) {
+	h0 := newHasher(l.elems[0], depth)
+	if h == h0 {
 		return l.push(v, mutate).node()
 	}
 	result := &node{}
 	last := result
-	nh := newHasher(l.elems[0], depth)
-	noffset, offset := nh.hash(), h.hash()
+	noffset, offset := h0.hash(), h.hash()
 	for noffset == offset {
 		last.mask = BitIterator(1) << offset
 		newLast := &node{}
 		last.children[offset] = newLast
 		last = newLast
-		nh, h = nh.next(), h.next()
-		noffset, offset = nh.hash(), h.hash()
+		h0, h = h0.next(), h.next()
+		noffset, offset = h0.hash(), h.hash()
 	}
 	last.mask = BitIterator(1)<<noffset | BitIterator(1)<<offset
 	last.children[noffset] = l.node()
