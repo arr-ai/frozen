@@ -41,7 +41,7 @@ func (s Set) Count() int {
 
 // Range returns an Iterator over the Set.
 func (s Set) Range() Iterator {
-	return &setIter{i: s.root.iterator()}
+	return s.root.iterator()
 }
 
 func (s Set) Elements() []interface{} {
@@ -272,16 +272,4 @@ func (s Set) GroupBy(key func(el interface{}) interface{}) Map {
 		result.Put(i.Key(), i.Value().(*SetBuilder).Finish())
 	}
 	return result.Finish()
-}
-
-type setIter struct {
-	i *nodeIter
-}
-
-func (i *setIter) Next() bool {
-	return i.i.next()
-}
-
-func (i *setIter) Value() interface{} {
-	return i.i.elem
 }

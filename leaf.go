@@ -171,7 +171,7 @@ func (l *leaf) with(v interface{}, mutate, useRHS bool, depth int, h hasher, mat
 
 func (l *leaf) difference(n *node, depth int, matches *int) *node {
 	result := leaf{lastIndex: -1}
-	for i := l.iterator(); i.next(); {
+	for i := l.iterator(); i.Next(); {
 		v := *i.elem()
 		h := newHasher(v, depth)
 		if n.getImpl(v, h) == nil {
@@ -195,7 +195,7 @@ func (l *leaf) without(v interface{}, mutate bool, matches *int) *node {
 }
 
 func (l *leaf) isSubsetOf(m *leaf, eq func(a, b interface{}) bool) bool {
-	for i := l.iterator(); i.next(); {
+	for i := l.iterator(); i.Next(); {
 		if elem, _ := m.get(*i.elem(), eq); elem == nil {
 			return false
 		}
@@ -204,7 +204,7 @@ func (l *leaf) isSubsetOf(m *leaf, eq func(a, b interface{}) bool) bool {
 }
 
 func (l *leaf) get(v interface{}, eq func(a, b interface{}) bool) (_ interface{}, index int) { //nolint:gocritic
-	for i := l.iterator(); i.next(); {
+	for i := l.iterator(); i.Next(); {
 		if elem := i.elem(); eq(*elem, v) {
 			return *elem, i.index
 		}
@@ -215,7 +215,7 @@ func (l *leaf) get(v interface{}, eq func(a, b interface{}) bool) (_ interface{}
 func (l *leaf) String() string {
 	var b strings.Builder
 	b.WriteString("(")
-	for i, j := l.iterator(), 0; i.next(); j++ {
+	for i, j := l.iterator(), 0; i.Next(); j++ {
 		if j > 0 {
 			b.WriteString(",")
 		}
@@ -225,28 +225,6 @@ func (l *leaf) String() string {
 	return b.String()
 }
 
-func (l *leaf) iterator() leafIterator {
-	return leafIterator{l: l, index: -1}
-}
-
-type leafIterator struct {
-	l      *leaf
-	index  int
-	extras extraLeafElems
-}
-
-func (i *leafIterator) next() bool {
-	i.index++
-	if i.index == leafElems-1 && leafElems < i.l.lastIndex {
-		i.index++
-		i.extras = i.l.extras()
-	}
-	return i.index <= int(i.l.lastIndex)
-}
-
-func (i *leafIterator) elem() *interface{} { //nolint:gocritic
-	if i.index < leafElems {
-		return &i.l.elems[i.index]
-	}
-	return &i.extras[i.index-leafElems]
+func (l *leaf) iterator() *leafIterator {
+	return newLeafIterator(l)
 }

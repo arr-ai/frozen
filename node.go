@@ -1,7 +1,6 @@
 package frozen
 
 import (
-	"container/heap"
 	"fmt"
 	"strings"
 	"unsafe"
@@ -117,7 +116,7 @@ func (n *node) intersection(o *node, depth int, count *int) *node { //nolint:fun
 		n, o = o, n
 		fallthrough
 	case o.isLeaf():
-		for i := o.leaf().iterator(); i.next(); {
+		for i := o.leaf().iterator(); i.Next(); {
 			v := *i.elem()
 			if p := n.only(v, depth, newHasher(v, depth), count); p != nil {
 				return p
@@ -158,7 +157,7 @@ func (n *node) union(o *node, mutate, useRHS bool, depth int, matches *int) *nod
 		n, o, useRHS = o, n, !useRHS
 		fallthrough
 	case o.isLeaf():
-		for i := o.leaf().iterator(); i.next(); {
+		for i := o.leaf().iterator(); i.Next(); {
 			v := *i.elem()
 			n = n.with(v, mutate, useRHS, depth, newHasher(v, depth), matches, &prepared)
 		}
@@ -197,7 +196,7 @@ func (n *node) difference(o *node, mutate bool, depth int, matches *int) *node {
 	case n == nil || o == nil:
 		return n
 	case o.isLeaf():
-		for i := o.leaf().iterator(); i.next(); {
+		for i := o.leaf().iterator(); i.Next(); {
 			v := *i.elem()
 			n = n.without(v, mutate, depth, newHasher(v, depth), matches, &prepared)
 		}
@@ -248,89 +247,12 @@ func (n *node) String() string {
 	return b.String()
 }
 
-func (n *node) iterator() *nodeIter {
+func (n *node) iterator() Iterator {
 	if n == nil {
-		return newNodeIter(nil)
+		return exhaustedIterator{}
 	}
 	if n.isLeaf() {
 		return newNodeIter([]*node{n})
 	}
 	return newNodeIter(n.children[:])
-}
-
-type nodeIter struct {
-	stk  [][]*node
-	elem interface{}
-}
-
-func newNodeIter(base []*node) *nodeIter {
-	return &nodeIter{stk: [][]*node{base}}
-}
-
-func (i *nodeIter) next() bool {
-	for {
-		if nodesp := &i.stk[len(i.stk)-1]; len(*nodesp) > 0 {
-			b := (*nodesp)[0]
-			*nodesp = (*nodesp)[1:]
-			switch {
-			case b == nil:
-			case b.isLeaf():
-				i.elem = b.leaf().elems[0]
-				return true
-			default:
-				i.stk = append(i.stk, b.children[:])
-			}
-		} else if i.stk = i.stk[:len(i.stk)-1]; len(i.stk) == 0 {
-			i.elem = nil
-			return false
-		}
-	}
-}
-
-func (n *node) orderedIterator(less func(a, b interface{}) bool, capacity int) *ordered {
-	o := &ordered{less: less, elems: make([]interface{}, 0, capacity)}
-	for i := n.iterator(); i.next(); {
-		heap.Push(o, i.elem)
-	}
-	return o
-}
-
-type ordered struct {
-	less  func(a, b interface{}) bool
-	elems []interface{}
-	val   interface{}
-}
-
-func (o *ordered) Next() bool {
-	if len(o.elems) == 0 {
-		return false
-	}
-	o.val = heap.Pop(o)
-	return true
-}
-
-func (o *ordered) Value() interface{} {
-	return o.val
-}
-
-func (o *ordered) Len() int {
-	return len(o.elems)
-}
-
-func (o *ordered) Less(i, j int) bool {
-	return o.less(o.elems[i], o.elems[j])
-}
-
-func (o *ordered) Swap(i, j int) {
-	o.elems[i], o.elems[j] = o.elems[j], o.elems[i]
-}
-
-func (o *ordered) Push(x interface{}) {
-	o.elems = append(o.elems, x)
-}
-
-func (o *ordered) Pop() interface{} {
-	result := o.elems[len(o.elems)-1]
-	o.elems = o.elems[:len(o.elems)-1]
-	return result
 }

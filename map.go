@@ -248,17 +248,17 @@ func (m Map) Range() *MapIterator {
 
 // MapIterator provides for iterating over a Map.
 type MapIterator struct {
-	i  *nodeIter
+	i  Iterator
 	kv KeyValue
 }
 
 // Next moves to the next key-value pair or returns false if there are no more.
 func (i *MapIterator) Next() bool {
-	if i.i.next() {
+	if i.i.Next() {
 		var ok bool
-		i.kv, ok = i.i.elem.(KeyValue)
+		i.kv, ok = i.i.Value().(KeyValue)
 		if !ok {
-			panic(fmt.Sprintf("Unexpected type: %T", i.i.elem))
+			panic(fmt.Sprintf("Unexpected type: %T", i.i.Value()))
 		}
 		return true
 	}
