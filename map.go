@@ -206,7 +206,7 @@ func (m Map) Update(n Map) Map {
 func (m Map) Hash(seed uintptr) uintptr {
 	h := hash.Uintptr(uintptr(3167960924819262823&uint64(^uintptr(0))), seed)
 	for i := m.Range(); i.Next(); {
-		h = hash.Interface(i.Value(), hash.Interface(i.Key(), h))
+		h ^= hash.Interface(i.Value(), hash.Interface(i.Key(), seed))
 	}
 	return h
 }

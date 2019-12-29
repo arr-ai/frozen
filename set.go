@@ -87,7 +87,7 @@ func (s Set) RangeBy(less func(a, b interface{}) bool) Iterator {
 func (s Set) Hash(seed uintptr) uintptr {
 	h := hash.Uintptr(uintptr(10538386443025343807&uint64(^uintptr(0))), seed)
 	for i := s.Range(); i.Next(); {
-		h = hash.Interface(i.Value(), h)
+		h ^= hash.Interface(i.Value(), seed)
 	}
 	return h
 }
