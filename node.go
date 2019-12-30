@@ -108,6 +108,35 @@ func (n *node) getImpl(v interface{}, h hasher) interface{} {
 	}
 }
 
+func (n *node) isSubsetOf(o *node, depth int) bool {
+	switch {
+	case n == nil:
+		return true
+	case o == nil:
+		return false
+	case n.isLeaf() && o.isLeaf():
+		return n.leaf().isSubsetOf(o.leaf(), Equal)
+	case n.isLeaf():
+		for i := n.leaf().iterator(); i.Next(); {
+			v := i.Value()
+			if o.getImpl(v, newHasher(v, depth)) == nil {
+				return false
+			}
+		}
+		return true
+	case o.isLeaf():
+		return false
+	default:
+		for mask := n.mask; mask != 0; mask = mask.Next() {
+			i := mask.Index()
+			if !n.children[i].isSubsetOf(o.children[i], depth+1) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
 func (n *node) intersection(o *node, depth int, count *int) *node { //nolint:funlen
 	switch {
 	case n == nil || o == nil:

@@ -108,31 +108,9 @@ func (s Set) EqualSet(t Set) bool {
 	return s.root.equal(t.root, Equal)
 }
 
+// IsSubsetOf returns true iff no element in s is not in t.
 func (s Set) IsSubsetOf(t Set) bool {
-	return isSubsetOf(s.root, t.root, 0)
-}
-
-func isSubsetOf(a, b *node, depth int) bool {
-	switch {
-	case a == nil:
-		return true
-	case b == nil:
-		return false
-	case a.isLeaf() && b.isLeaf():
-		return Equal(a.leaf().elems[0], b.leaf().elems[0])
-	case a.isLeaf():
-		return b.getImpl(a.leaf().elems[0], newHasher(a.leaf().elems[0], depth)) != nil
-	case b.isLeaf():
-		return false
-	default:
-		for mask := a.mask; mask != 0; mask = mask.Next() {
-			i := mask.Index()
-			if !isSubsetOf(a.children[i], b.children[i], depth+1) {
-				return false
-			}
-		}
-		return true
-	}
+	return s.root.isSubsetOf(t.root, 0)
 }
 
 // Has returns the value associated with key and true iff the key was found.
