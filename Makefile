@@ -3,7 +3,7 @@
 all: lint test
 
 test:
-	go test ./...
+	go test $(TESTFLAGS) ./...
 
 lint:
 	golangci-lint run
