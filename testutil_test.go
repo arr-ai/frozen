@@ -88,9 +88,14 @@ func (m mapOfSet) String() string {
 		}
 	}
 	sort.Strings(keys)
+	n := 0
 	for _, key := range keys {
+		if n > 0 {
+			fmt.Fprintln(&sb, "")
+		}
 		s := m[key]
-		fmt.Fprintf(&sb, "\n\t%*s = %v:%v %v", width, key, s.Count(), s, s.root)
+		fmt.Fprintf(&sb, "%*s = %v:%v %v", width, key, s.Count(), s, s.root)
+		n++
 	}
 	return sb.String()
 }
