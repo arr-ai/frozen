@@ -9,12 +9,13 @@ import (
 const nodeCount = 1 << nodeBits
 
 type node struct {
-	mask     BitIterator
+	mask     MaskIterator
+	_        uint16
 	children [nodeCount]*node
 }
 
 func (n *node) isLeaf() bool {
-	return n.mask&(1<<nodeCount-1) == 0
+	return n.mask == 0
 }
 
 func (n *node) leaf() *leaf {
@@ -45,7 +46,7 @@ func (n *node) prepareForUpdate(mutate bool, prepared **node) *node {
 }
 
 func (n *node) setChild(i int, child *node) *node {
-	mask := BitIterator(1) << i
+	mask := MaskIterator(1) << i
 	if child != nil {
 		n.mask |= mask
 	} else {
@@ -55,7 +56,7 @@ func (n *node) setChild(i int, child *node) *node {
 	return n
 }
 
-func (n *node) setChildren(mask BitIterator, children *[nodeCount]*node) {
+func (n *node) setChildren(mask MaskIterator, children *[nodeCount]*node) {
 	n.mask |= mask
 	for ; mask != 0; mask = mask.Next() {
 		i := mask.Index()
@@ -63,7 +64,7 @@ func (n *node) setChildren(mask BitIterator, children *[nodeCount]*node) {
 	}
 }
 
-func (n *node) clearChildren(mask BitIterator) {
+func (n *node) clearChildren(mask MaskIterator) {
 	n.mask &^= mask
 	for ; mask != 0; mask = mask.Next() {
 		i := mask.Index()
@@ -195,7 +196,7 @@ func (n *node) with(v interface{}, mutate, useRHS bool, depth int, h hasher, mat
 		offset := h.hash()
 		var childPrepared *node
 		child := n.children[offset].with(v, mutate, useRHS, depth+1, h.next(), matches, &childPrepared)
-		if (n.mask|BitIterator(1)<<offset).Count() == 1 && child.isLeaf() {
+		if child.isLeaf() && (n.mask|MaskIterator(1)<<offset).Count() == 1 {
 			return child
 		}
 		return n.prepareForUpdate(mutate, prepared).setChild(offset, child)

@@ -167,14 +167,14 @@ func (l *leaf) with(v interface{}, mutate, useRHS bool, depth int, h hasher, mat
 	last := result
 	noffset, offset := h0.hash(), h.hash()
 	for noffset == offset {
-		last.mask = BitIterator(1) << offset
+		last.mask = 1 << offset
 		newLast := &node{}
 		last.children[offset] = newLast
 		last = newLast
 		h0, h = h0.next(), h.next()
 		noffset, offset = h0.hash(), h.hash()
 	}
-	last.mask = BitIterator(1)<<noffset | BitIterator(1)<<offset
+	last.mask = 1<<noffset | 1<<offset
 	last.children[noffset] = l.node()
 	last.children[offset] = newLeaf(v).node()
 	return result
