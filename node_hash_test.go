@@ -16,7 +16,7 @@ func (i intWithBadHash) Hash(seed uintptr) uintptr {
 }
 
 func TestNodeBadHash(t *testing.T) {
-	const N = 100000
+	const N = 10000
 	var b SetBuilder
 	for i := 0; i < N; i += 10 {
 		b.Add(intWithBadHash(i))
