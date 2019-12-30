@@ -330,7 +330,7 @@ func TestMapRange(t *testing.T) {
 }
 
 var prepopMapInt = memoizePrepop(func(n int) interface{} {
-	m := map[int]int{}
+	m := make(map[int]int, n)
 	for i := 0; i < n; i++ {
 		m[i] = i * i
 	}
@@ -358,7 +358,7 @@ func BenchmarkInsertMapInt1M(b *testing.B) {
 }
 
 var prepopMapInterface = memoizePrepop(func(n int) interface{} {
-	m := map[interface{}]interface{}{}
+	m := make(map[interface{}]interface{}, n)
 	for i := 0; i < n; i++ {
 		m[i] = i * i
 	}

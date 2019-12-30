@@ -426,7 +426,7 @@ func TestSetRangeBy(t *testing.T) {
 }
 
 var prepopSetInt = memoizePrepop(func(n int) interface{} {
-	m := map[int]struct{}{}
+	m := make(map[int]struct{}, n)
 	for i := 0; i < n; i++ {
 		m[i] = struct{}{}
 	}
@@ -454,7 +454,7 @@ func BenchmarkInsertSetInt1M(b *testing.B) {
 }
 
 var prepopSetInterface = memoizePrepop(func(n int) interface{} {
-	m := map[interface{}]struct{}{}
+	m := make(map[interface{}]struct{}, n)
 	for i := 0; i < n; i++ {
 		m[i] = struct{}{}
 	}
