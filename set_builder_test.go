@@ -121,17 +121,44 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) {
 	t.Parallel()
 
 	var b SetBuilder
-	for i := 0; i < 35; i++ {
+
+	s := uint64(0)
+
+	requireMatch := func(format string, args ...interface{}) {
+		for j := 0; j < 35; j++ {
+			if !assert.Equalf(t, s&(uint64(1)<<j) != 0, b.Has(j), format+" j=%v", append(args, j)...) {
+				log.Print(s, newHasher(22, 0), b.root)
+				t.FailNow()
+			}
+		}
+	}
+
+	add := func(i int) {
 		b.Add(i)
+		s |= uint64(1) << i
+	}
+
+	remove := func(i int) {
+		b.Remove(i)
+		s &^= uint64(1) << i
+	}
+
+	requireMatch("")
+	for i := 0; i < 35; i++ {
+		add(i)
+		requireMatch("i=%v", i)
 	}
 	for i := 10; i < 25; i++ {
-		b.Remove(i)
+		remove(i)
+		requireMatch("i=%v", i)
 	}
 	for i := 5; i < 15; i++ {
-		b.Add(i)
+		add(i)
+		requireMatch("i=%v", i)
 	}
 	for i := 20; i < 30; i++ {
-		b.Remove(i)
+		remove(i)
+		requireMatch("i=%v", i)
 	}
 	m := b.Finish()
 
