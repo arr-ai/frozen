@@ -267,8 +267,7 @@ func (n *node) String() string {
 	for mask := n.mask; mask != 0; mask = mask.Next() {
 		v := n.children[mask.Index()]
 		if deep {
-			sb.WriteString(indentBlock(v.String()))
-			sb.WriteString("\n")
+			fmt.Fprintf(&sb, "%v\n", indentBlock(v.String()))
 		} else {
 			if mask != n.mask {
 				sb.WriteString(" ")
