@@ -104,7 +104,8 @@ func (n *node) getImpl(v interface{}, h hasher) interface{} {
 		}
 		return nil
 	default:
-		return n.children[h.hash()].getImpl(v, h.next())
+		i := h.hash()
+		return n.children[i].getImpl(v, h.next())
 	}
 }
 
