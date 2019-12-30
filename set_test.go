@@ -1,6 +1,8 @@
 package frozen
 
 import (
+	"log"
+	"runtime/debug"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,6 +14,58 @@ func TestSetEmpty(t *testing.T) {
 	var s Set
 	assert.True(t, s.IsEmpty())
 	assertSetEqual(t, Set{}, s)
+}
+
+func compareElements(a, b []interface{}) (aOnly, bOnly []interface{}) {
+	ma := map[interface{}]struct{}{}
+	for _, e := range a {
+		ma[e] = struct{}{}
+	}
+
+	mb := map[interface{}]struct{}{}
+	for _, e := range b {
+		mb[e] = struct{}{}
+	}
+
+	for e := range ma {
+		if _, has := mb[e]; !has {
+			aOnly = append(aOnly, e)
+		}
+	}
+
+	for e := range mb {
+		if _, has := ma[e]; !has {
+			bOnly = append(bOnly, e)
+		}
+	}
+
+	return
+}
+
+// faster that assert.ElementsMatch.
+func assertSameElements(t *testing.T, a, b []interface{}) bool {
+	aOnly, bOnly := compareElements(a, b)
+	aOK := assert.Empty(t, aOnly)
+	bOK := assert.Empty(t, bOnly)
+	return aOK && bOK
+}
+
+func requireSameElements(t *testing.T, a, b []interface{}) {
+	if !assertSameElements(t, a, b) {
+		t.FailNow()
+	}
+}
+
+func TestNewSet(t *testing.T) {
+	const N = 1000
+	arr := make([]interface{}, 0, N)
+	for i := 0; i < N; i++ {
+		arr = append(arr, i)
+	}
+
+	for i := N - 1; i >= 0; i-- {
+		assertSameElements(t, arr[i:], NewSet(arr[i:]...).Elements())
+	}
 }
 
 func TestSetWith(t *testing.T) {
@@ -40,8 +94,29 @@ func TestSetWithout(t *testing.T) {
 		s = s.With(i)
 		arr = append(arr, i)
 	}
+	oldS := s
+	oldArr := arr
 	for i := 0; i < N; i++ {
-		assertSetEqual(t, NewSet(arr...), s, "i=%v", i)
+		u := NewSet(arr...)
+		requireSameElements(t, arr, u.Elements())
+		if !assertSetEqual(t, u, s, "i=%v", i) {
+			log.Printf("i=%v", i)
+			// log.Printf("%v\n", mapOfSets{"s": s, "u": u})
+			log.Printf("++--\n%v", nodesDiff(oldS.root, s.root))
+			log.Printf("++--\n%v", nodesDiff(u.root, s.root))
+			for {
+				oldU := NewSet(oldArr...)
+				u := NewSet(arr...)
+				if !assertSetEqual(t, oldU, oldS, "i=%v", i) {
+					// log.Printf("%v", mapOfSets{"oldS": oldS, "oldU": oldU})
+					log.Printf("++--\n%v", nodesDiff(oldU.root, oldS.root))
+					log.Printf("old one broken too!")
+				}
+				u.EqualSet(s)
+			}
+		}
+		oldS = s
+		oldArr = arr
 		assert.False(t, s.IsEmpty(), "i=%v", i)
 		assert.True(t, s.Has(i), "i=%v", i)
 		s = s.Without(i)
@@ -108,12 +183,27 @@ func TestSetEqual(t *testing.T) {
 
 func TestSetIsSubsetOf(t *testing.T) {
 	t.Parallel()
+	const N = 10
+	for i := BitIterator(0); i < N; i++ {
+		a := NewSetFromMask64(uint64(i))
+		for j := BitIterator(0); j < N; j++ {
+			b := NewSetFromMask64(uint64(j))
+			if !assert.Equal(t, i&^j == 0, a.IsSubsetOf(b), "i=%b j=%b\na=%v\nb=%v", i, j, a.root, b.root) {
+				if a.Count()+b.Count() < 12 {
+					log.Printf("%v\n\t(%v&^%v(%v) == %v) == %v != %v",
+						mapOfSet{"a": a, "b": b},
+						i, j, i&^j, BitIterator(0), i&^j == 0, a.IsSubsetOf(b),
+					)
+					func() {
+						// defer logrus.SetLevel(logrus.GetLevel())
+						// logrus.SetLevel(logrus.TraceLevel)
+						debug.ReadBuildInfo()
+						a.IsSubsetOf(b)
+					}()
+				}
 
-	for i := uint64(0); i < 100; i++ {
-		a := NewSetFromMask64(i)
-		for j := uint64(0); j < 100; j++ {
-			b := NewSetFromMask64(j)
-			assert.Equal(t, i&^j == 0, a.IsSubsetOf(b), "i=%b j=%b\na=%v\nb=%v", i, j, a.root, b.root)
+				a.IsSubsetOf(b)
+			}
 		}
 	}
 }
@@ -207,7 +297,22 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 			sx := NewSetFromMask64(x)
 			sy := NewSetFromMask64(y)
 			sxy := NewSetFromMask64(bitop(x, y))
-			assertSetEqual(t, sxy, setop(sx, sy), "sx=%v sy=%v", sx, sy)
+			sxsy := setop(sx, sy)
+			if !assertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
+				log.Printf("%v\n\t%v",
+					mapOfSet{"sx": sx, "sy": sy, "sxy": sxy, "sxsy": sxsy},
+					sxy.Equal(sxsy),
+				)
+				if sx.Count()+sy.Count() < 12 {
+					// for {
+					func() {
+						// defer logrus.SetLevel(logrus.GetLevel())
+						// logrus.SetLevel(logrus.TraceLevel)
+						setop(sx, sy)
+					}()
+					// }
+				}
+			}
 		}
 	}
 }
@@ -262,7 +367,7 @@ func TestSetPowerset(t *testing.T) {
 		NewSet(1, 2, 3),
 	)
 	actual := NewSet(1, 2, 3).Powerset()
-	assertSetEqual(t, expected, actual)
+	assertSetEqual(t, expected, actual, "%v", mapOfSet{"expected": expected, "actual": actual})
 }
 
 func TestSetPowersetLarge(t *testing.T) {

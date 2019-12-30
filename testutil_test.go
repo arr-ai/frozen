@@ -2,9 +2,13 @@
 package frozen
 
 import (
+	"fmt"
+	"sort"
+	"strings"
 	"sync"
 	"testing"
 
+	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,4 +73,30 @@ func assertMapNotHas(t *testing.T, m Map, i interface{}) bool {
 	ok1 := assert.Equal(t, has, m.Has(i))
 	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
 	return ok1 && ok2
+}
+
+type mapOfSet map[string]Set
+
+func (m mapOfSet) String() string {
+	var sb strings.Builder
+	keys := []string{}
+	width := 0
+	for key := range m {
+		keys = append(keys, key)
+		if width < len(key) {
+			width = len(key)
+		}
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		s := m[key]
+		fmt.Fprintf(&sb, "\n\t%*s = %v:%v %v", width, key, s.Count(), s, s.root)
+	}
+	return sb.String()
+}
+
+func nodesDiff(a, b *node) string {
+	dmp := diffmatchpatch.New()
+	diffs := dmp.DiffMain(a.String(), b.String(), true)
+	return dmp.DiffPrettyText(diffs)
 }

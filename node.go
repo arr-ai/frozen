@@ -278,3 +278,11 @@ func (n *node) iterator() Iterator {
 	}
 	return newNodeIter(n.children[:])
 }
+
+func (n *node) elements() []interface{} {
+	elems := []interface{}{}
+	for i := n.iterator(); i.Next(); {
+		elems = append(elems, i.Value())
+	}
+	return elems
+}
