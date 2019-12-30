@@ -299,19 +299,19 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 			sxy := NewSetFromMask64(bitop(x, y))
 			sxsy := setop(sx, sy)
 			if !assertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
-				log.Printf("%v\n\t%v",
-					mapOfSet{"sx": sx, "sy": sy, "sxy": sxy, "sxsy": sxsy},
+				log.Printf("%v\n%v",
 					sxy.Equal(sxsy),
+					mapOfSet{"1. sx": sx, "2. sy": sy, "3. sxy": sxy, "4. sxsy": sxsy},
 				)
-				if sx.Count()+sy.Count() < 12 {
-					// for {
-					func() {
-						// defer logrus.SetLevel(logrus.GetLevel())
-						// logrus.SetLevel(logrus.TraceLevel)
-						setop(sx, sy)
-					}()
-					// }
-				}
+				// if sx.Count()+sy.Count() < 12 {
+				// for {
+				func() {
+					// defer logrus.SetLevel(logrus.GetLevel())
+					// logrus.SetLevel(logrus.TraceLevel)
+					setop(sx, sy)
+				}()
+				// }
+				// }
 			}
 		}
 	}

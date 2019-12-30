@@ -16,7 +16,16 @@ type marker struct {
 	isTarget bool
 }
 
-func replayable(enabled bool, f func(mark func(args ...interface{}) *marker, replay func(m *marker))) {
+type replayer struct {
+	mark     func(args ...interface{}) *marker
+	replayTo func(m *marker)
+}
+
+func (r replayer) replay() {
+	r.replayTo(nil)
+}
+
+func replayable(enabled bool, f func(r replayer)) {
 	if enabled {
 		var latest *markerKey
 		var target *markerKey
@@ -40,33 +49,33 @@ func replayable(enabled bool, f func(mark func(args ...interface{}) *marker, rep
 			}
 		}
 
-		replay := func(m *marker) {
+		replayTo := func(m *marker) {
 			if m == nil {
 				panic(latest)
 			}
-			panic(m)
+			panic(m.key)
 		}
 
 		for func() (again bool) {
 			defer func() {
 				if err := recover(); err != nil {
-					if m, ok := err.(*marker); ok {
-						target = m.key
+					if key, ok := err.(*markerKey); ok {
+						target = key
 						again = true
+					} else {
+						panic(err)
 					}
-				} else {
-					panic(err)
 				}
 			}()
-			f(mark, replay)
+			f(replayer{mark: mark, replayTo: replayTo})
 			return false
 		}() {
 		}
 	} else {
 		m := &marker{}
-		f(
-			func(args ...interface{}) *marker { return m },
-			func(m *marker) {},
-		)
+		f(replayer{
+			mark:     func(_ ...interface{}) *marker { return m },
+			replayTo: func(_ *marker) {},
+		})
 	}
 }

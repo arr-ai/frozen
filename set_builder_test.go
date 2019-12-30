@@ -2,8 +2,6 @@ package frozen
 
 import (
 	"log"
-	"runtime"
-	"sync"
 	"testing"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -32,64 +30,51 @@ func TestSetBuilder(t *testing.T) {
 }
 
 func TestSetBuilderIncremental(t *testing.T) {
-	const N = 1000
-	arr := make([]interface{}, 0, N)
-	for i := 0; i < N; i++ {
-		arr = append(arr, i)
-	}
+	replayable(true, func(r replayer) {
+		const N = 1000
+		arr := make([]interface{}, 0, N)
+		for i := 0; i < N; i++ {
+			arr = append(arr, i)
+		}
 
-	dmp := diffmatchpatch.New()
+		dmp := diffmatchpatch.New()
 
-	work := make(chan func())
-
-	for i := runtime.GOMAXPROCS(0); i > 0; i-- {
-		go func() {
-			for w := range work {
-				w()
-			}
-		}()
-	}
-
-	var wg sync.WaitGroup
-	for i := N - 1; i >= 0; i-- {
-		i := i
-		wg.Add(1)
-		work <- func() {
-			defer wg.Done()
+		for i := N - 1; i >= 0; i-- {
+			i := i
 			corpus := arr[i:]
 			if !assertSameElements(t, corpus, NewSet(arr[i:]...).Elements()) {
-				failedAt := len(corpus)
-				// for {
 				var b SetBuilder
-				before := b.root.String()
 				for j, value := range corpus {
-					if j == failedAt {
-						t.Log("Set a breakpoint here!")
+					var before string
+					if r.mark(i, j).isTarget {
+						before = b.root.String()
+						log.Printf("before = %v", before)
+						func() {
+							// defer logrus.SetLevel(logrus.GetLevel())
+							// logrus.SetLevel(logrus.TraceLevel)
+							b.Add(value)
+						}()
+					} else {
+						b.Add(value)
 					}
-					b.Add(value)
-					after := b.root.String()
-					diffs := dmp.DiffMain(before, after, true)
 					expected := corpus[:j+1]
 					actual := b.root.elements()
 					if !assertSameElements(t, expected, actual) {
+						after := b.root.String()
+						log.Printf("after = %v", after)
+						diffs := dmp.DiffMain(before, after, false)
+						log.Printf("++--\n%v", dmp.DiffPrettyText(diffs))
 						expectedOnly, actualOnly := compareElements(expected, actual)
 						log.Print("expectedOnly = ", expectedOnly)
 						log.Print("actualOnly = ", actualOnly)
-						log.Printf("++--\n%v", dmp.DiffPrettyText(diffs))
-						// failedAt = j
-						break
+						r.replay()
 					}
-					before = after
 				}
 				b.Add(arr[N-1])
 				NewSet(arr[i:]...)
-				// }
 			}
 		}
-	}
-
-	wg.Wait()
-	close(work)
+	})
 }
 
 func TestSetBuilderRemove(t *testing.T) {
@@ -120,7 +105,7 @@ func TestSetBuilderRemove(t *testing.T) {
 func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
-	replayable(false, func(mark func(args ...interface{}) *marker, replay func(m *marker)) {
+	replayable(false, func(r replayer) {
 		var b SetBuilder
 
 		s := uint64(0)
@@ -130,7 +115,7 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 				if !assert.Equalf(t, s&(uint64(1)<<j) != 0, b.Has(j), format+" j=%v", append(args, j)...) {
 					log.Print(s&(uint64(1)<<j) != 0, b.Has(j), BitIterator(s), b.root)
 					b.Has(j)
-					replay(nil)
+					r.replay()
 					t.FailNow()
 				}
 			}
@@ -157,7 +142,7 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 		}
 
 		for i := 5; i < 15; i++ {
-			if mark(i).isTarget {
+			if r.mark(i).isTarget {
 				log.Print(BitIterator(s), b.root)
 			}
 			add(i)
