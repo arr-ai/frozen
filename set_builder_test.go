@@ -117,59 +117,67 @@ func TestSetBuilderRemove(t *testing.T) {
 	}
 }
 
-func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) {
+func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
-	var b SetBuilder
+	replayable(false, func(mark func(args ...interface{}) *marker, replay func(m *marker)) {
+		var b SetBuilder
 
-	s := uint64(0)
+		s := uint64(0)
 
-	requireMatch := func(format string, args ...interface{}) {
-		for j := 0; j < 35; j++ {
-			if !assert.Equalf(t, s&(uint64(1)<<j) != 0, b.Has(j), format+" j=%v", append(args, j)...) {
-				log.Print(s, newHasher(22, 0), b.root)
-				t.FailNow()
+		requireMatch := func(format string, args ...interface{}) {
+			for j := 0; j < 35; j++ {
+				if !assert.Equalf(t, s&(uint64(1)<<j) != 0, b.Has(j), format+" j=%v", append(args, j)...) {
+					log.Print(s&(uint64(1)<<j) != 0, b.Has(j), BitIterator(s), b.root)
+					b.Has(j)
+					replay(nil)
+					t.FailNow()
+				}
 			}
 		}
-	}
 
-	add := func(i int) {
-		b.Add(i)
-		s |= uint64(1) << i
-	}
-
-	remove := func(i int) {
-		b.Remove(i)
-		s &^= uint64(1) << i
-	}
-
-	requireMatch("")
-	for i := 0; i < 35; i++ {
-		add(i)
-		requireMatch("i=%v", i)
-	}
-	for i := 10; i < 25; i++ {
-		remove(i)
-		requireMatch("i=%v", i)
-	}
-	for i := 5; i < 15; i++ {
-		add(i)
-		requireMatch("i=%v", i)
-	}
-	for i := 20; i < 30; i++ {
-		remove(i)
-		requireMatch("i=%v", i)
-	}
-	m := b.Finish()
-
-	for i := 0; i < 35; i++ {
-		switch {
-		case i < 15:
-			assertSetHas(t, m, i)
-		case i < 30:
-			assertSetNotHas(t, m, i)
-		default:
-			assertSetHas(t, m, i)
+		add := func(i int) {
+			b.Add(i)
+			s |= uint64(1) << i
 		}
-	}
+
+		remove := func(i int) {
+			b.Remove(i)
+			s &^= uint64(1) << i
+		}
+
+		requireMatch("")
+		for i := 0; i < 35; i++ {
+			add(i)
+			requireMatch("i=%v", i)
+		}
+		for i := 10; i < 25; i++ {
+			remove(i)
+			requireMatch("i=%v", i)
+		}
+
+		for i := 5; i < 15; i++ {
+			if mark(i).isTarget {
+				log.Print(BitIterator(s), b.root)
+			}
+			add(i)
+			requireMatch("i=%v", i)
+		}
+		for i := 20; i < 30; i++ {
+			remove(i)
+			requireMatch("i=%v", i)
+		}
+		m := b.Finish()
+
+		for i := 0; i < 35; i++ {
+			switch {
+			case i < 15:
+				assertSetHas(t, m, i)
+			case i < 30:
+				assertSetNotHas(t, m, i)
+			default:
+				assertSetHas(t, m, i)
+			}
+		}
+	})
 }
