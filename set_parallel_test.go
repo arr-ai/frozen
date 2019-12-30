@@ -6,29 +6,51 @@ import (
 	"testing"
 )
 
-func BenchmarkSetSequentialWith1M(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		var s Set
-		for i := 0; i < 1<<20; i++ {
-			s = s.With(i)
-		}
-		if s.Count() != 1<<20 {
-			b.Errorf("Wrong count: %x", s.Count())
-		}
-	}
+func benchmarkSequential(b *testing.B, name string, size int) {
+	b.Run(name, func(b *testing.B) {
+		b.Run("SetInterfacePrealloc", func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				m := make(map[interface{}]struct{}, size)
+				for i := 0; i < size; i++ {
+					m[i] = struct{}{}
+				}
+			}
+		})
+
+		b.Run("SetInterface", func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				m := map[interface{}]struct{}{}
+				for i := 0; i < size; i++ {
+					m[i] = struct{}{}
+				}
+			}
+		})
+
+		b.Run("FrozenSetBuilderAdd", func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				var sb SetBuilder
+				for i := 0; i < size; i++ {
+					sb.Add(i)
+				}
+				_ = sb.Finish()
+			}
+		})
+
+		b.Run("FrozenSetWith", func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				var s Set
+				for i := 0; i < size; i++ {
+					s = s.With(i)
+				}
+			}
+		})
+	})
 }
 
-func BenchmarkSetSequentialBuilder1M(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		var sb SetBuilder
-		for i := 0; i < 1<<20; i++ {
-			sb.Add(i)
-		}
-		s := sb.Finish()
-		if s.Count() != 1<<20 {
-			b.Errorf("Wrong count: %x", s.Count())
-		}
-	}
+func BenchmarkSequential(b *testing.B) {
+	benchmarkSequential(b, "32", 32)
+	benchmarkSequential(b, "1ki", 1<<10)
+	benchmarkSequential(b, "1Mi", 1<<20)
 }
 
 func parallelUnion(sets []Set) Set {
