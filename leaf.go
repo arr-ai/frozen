@@ -22,9 +22,12 @@ type leaf struct { //nolint:maligned
 	elems     [leafElems]interface{}
 }
 
-func newLeaf(elem interface{}) *leaf {
-	l := &leaf{lastIndex: 0}
-	l.elems[0] = elem
+func newLeaf(elems ...interface{}) *leaf {
+	l := &leaf{lastIndex: int16(len(elems) - 1)}
+	copy(l.elems[:], elems)
+	if len(elems) > leafElems {
+		panic("too many elems")
+	}
 	return l
 }
 
