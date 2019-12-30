@@ -135,12 +135,20 @@ func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
 	return l.isSubsetOf(m, eq) && m.isSubsetOf(l, eq)
 }
 
-func (l *leaf) only(v interface{}, count *int) *node {
-	if elem, _ := l.get(v, Equal); elem != nil {
-		*count++
-		return newLeaf(v).node()
+func (l *leaf) intersection(n *node, depth int, count *int) *node {
+	result := leaf{lastIndex: -1}
+	for i := l.iterator(); i.Next(); {
+		v := *i.elem()
+		h := newHasher(v, depth)
+		if n.getImpl(v, h) != nil {
+			*count++
+			result.push(v, true)
+		}
 	}
-	return nil
+	if result.lastIndex < 0 {
+		return nil
+	}
+	return result.node()
 }
 
 func (l *leaf) with(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int) *node {
