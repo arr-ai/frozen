@@ -36,15 +36,14 @@ func (h hasher) String() string {
 		s = fmt.Sprintf("%0*x", hashBits/4, h>>dregs)
 	case 3:
 		var sb strings.Builder
-		sb.WriteRune('⎹')
+		sb.WriteByte('#')
 		// Braille-encode octal digits in pairs.
 		for ; h != 0; h <<= 6 {
 			sb.WriteRune(rune(0x2800 + h.hash() + h.next().hash()<<3))
 		}
-		sb.WriteRune('⎸')
 		return sb.String()
 	case 4:
-		s = fmt.Sprintf("%0*x", hashBits/4, h>>dregs)
+		return "#" + brailleEncoded(uint64(h))
 	default:
 		panic("not implemented")
 	}
