@@ -7,6 +7,18 @@ type SetBuilder struct {
 	attemptedAdds int
 	redundantAdds int
 	removals      int
+	cloner        *cloner
+}
+
+func NewSetBuilder(capacity int) *SetBuilder {
+	return &SetBuilder{cloner: newCloner(capacity)}
+}
+
+func (b *SetBuilder) getCloner() *cloner {
+	if b.cloner == nil {
+		b.cloner = theMutator
+	}
+	return b.cloner
 }
 
 // Count returns the count of the Set that will be returned from Finish().
@@ -16,13 +28,13 @@ func (b *SetBuilder) Count() int {
 
 // Add adds el to the Set under construction.
 func (b *SetBuilder) Add(v interface{}) {
-	b.root = b.root.with(v, true, true, 0, newHasher(v, 0), &b.redundantAdds, &b.prepared)
+	b.root = b.root.with(v, true, 0, newHasher(v, 0), &b.redundantAdds, b.getCloner(), &b.prepared)
 	b.attemptedAdds++
 }
 
 // Remove removes el to the Set under construction.
 func (b *SetBuilder) Remove(v interface{}) {
-	b.root = b.root.without(v, true, 0, newHasher(v, 0), &b.removals, &b.prepared)
+	b.root = b.root.without(v, 0, newHasher(v, 0), &b.removals, b.getCloner(), &b.prepared)
 }
 
 func (b *SetBuilder) Has(el interface{}) bool {

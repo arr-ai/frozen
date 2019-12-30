@@ -7,6 +7,11 @@ type MapBuilder struct {
 	redundantPuts int
 	removals      int
 	attemptedAdds int
+	cloner        *cloner
+}
+
+func NewMapBuilder(capacity int) *MapBuilder {
+	return &MapBuilder{cloner: newCloner(capacity)}
 }
 
 // Count returns the number of entries in the Map under construction.
@@ -17,14 +22,14 @@ func (b *MapBuilder) Count() int {
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder) Put(key, value interface{}) {
 	kv := KV(key, value)
-	b.root = b.root.with(kv, true, true, 0, newHasher(kv, 0), &b.redundantPuts, &b.prepared)
+	b.root = b.root.with(kv, true, 0, newHasher(kv, 0), &b.redundantPuts, theMutator, &b.prepared)
 	b.attemptedAdds++
 }
 
 // Remove removes an entry from the Map under construction.
 func (b *MapBuilder) Remove(key interface{}) {
 	kv := KV(key, nil)
-	b.root = b.root.without(kv, true, 0, newHasher(kv, 0), &b.removals, &b.prepared)
+	b.root = b.root.without(kv, 0, newHasher(kv, 0), &b.removals, theMutator, &b.prepared)
 }
 
 // Get returns the value for key from the Map under construction or false if

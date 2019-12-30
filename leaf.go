@@ -51,30 +51,13 @@ func (l *leaf) elem(i int) *interface{} { //nolint:gocritic
 	return &l.extras()[i-leafElems]
 }
 
-func (l *leaf) prepareForUpdate(mutate bool) *leaf {
-	if mutate {
-		return l
-	}
-	result := *l
-	return &result
-}
-
-// Assumptions: leaf already prepared and `l.extras() != nil`.
-func (l *leaf) prepareExtrasForUpdate(mutate bool, capacityIncrease int) extraLeafElems {
-	extras := l.extras()
-	if !mutate {
-		extras = append(make([]interface{}, 0, len(extras)+capacityIncrease), extras...)
-	}
-	return extras
-}
-
 func (l *leaf) set(i int, v interface{}) *leaf {
 	*l.elem(i) = v
 	return l
 }
 
-func (l *leaf) push(v interface{}, mutate bool) *leaf {
-	l = l.prepareForUpdate(mutate)
+func (l *leaf) push(v interface{}, c *cloner) *leaf {
+	l = c.leaf(l)
 	l.lastIndex++
 	switch {
 	case l.lastIndex < leafElems:
@@ -83,17 +66,17 @@ func (l *leaf) push(v interface{}, mutate bool) *leaf {
 		*l.last() = extraLeafElems([]interface{}{*l.last(), v})
 		l.lastIndex++
 	default:
-		*l.last() = append(l.prepareExtrasForUpdate(mutate, 1), v)
+		*l.last() = append(c.extras(l, 1), v)
 	}
 	return l
 }
 
-func (l *leaf) pop(mutate bool) (result *leaf, v interface{}) {
+func (l *leaf) pop(c *cloner) (result *leaf, v interface{}) {
 	if l.lastIndex == 0 {
 		return nil, l.elems[0]
 	}
 
-	l = l.prepareForUpdate(mutate)
+	l = c.leaf(l)
 	switch {
 	case l.lastIndex < leafElems:
 		v = l.elems[l.lastIndex]
@@ -113,17 +96,17 @@ func (l *leaf) pop(mutate bool) (result *leaf, v interface{}) {
 	return l, v
 }
 
-func (l *leaf) remove(i int, mutate bool) *leaf {
+func (l *leaf) remove(i int, c *cloner) *leaf {
 	if i == int(l.lastIndex) {
-		result, _ := l.pop(mutate)
+		result, _ := l.pop(c)
 		return result
 	}
-	if result, v := l.pop(mutate); result != nil {
+	if result, v := l.pop(c); result != nil {
 		if i > int(result.lastIndex) {
 			i--
 		}
-		if i > leafElems && !mutate {
-			*result.last() = append([]interface{}{}, l.extras()...)
+		if i > leafElems {
+			*result.last() = c.extras(l, 0)
 		}
 		result.set(i, v)
 		return result
@@ -142,7 +125,7 @@ func (l *leaf) intersection(n *node, depth int, count *int) *node {
 		h := newHasher(v, depth)
 		if n.getImpl(v, h) != nil {
 			*count++
-			result.push(v, true)
+			result.push(v, theMutator)
 		}
 	}
 	if result.lastIndex < 0 {
@@ -151,17 +134,17 @@ func (l *leaf) intersection(n *node, depth int, count *int) *node {
 	return result.node()
 }
 
-func (l *leaf) with(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int) *node {
+func (l *leaf) with(v interface{}, useRHS bool, depth int, h hasher, matches *int, c *cloner) *node {
 	if elem, i := l.get(v, Equal); elem != nil {
 		*matches++
 		if useRHS {
-			return l.prepareForUpdate(mutate).set(i, v).node()
+			return c.leaf(l).set(i, v).node()
 		}
 		return l.node()
 	}
 	h0 := newHasher(l.elems[0], depth)
 	if h == h0 {
-		return l.push(v, mutate).node()
+		return l.push(v, c).node()
 	}
 	result := &node{}
 	last := result
@@ -186,7 +169,7 @@ func (l *leaf) difference(n *node, depth int, matches *int) *node {
 		v := *i.elem()
 		h := newHasher(v, depth)
 		if n.getImpl(v, h) == nil {
-			result.push(v, true)
+			result.push(v, theMutator)
 		} else {
 			*matches++
 		}
@@ -197,10 +180,10 @@ func (l *leaf) difference(n *node, depth int, matches *int) *node {
 	return result.node()
 }
 
-func (l *leaf) without(v interface{}, mutate bool, matches *int) *node {
+func (l *leaf) without(v interface{}, matches *int, c *cloner) *node {
 	if elem, i := l.get(v, Equal); elem != nil {
 		*matches++
-		return l.remove(i, mutate).node()
+		return l.remove(i, c).node()
 	}
 	return l.node()
 }

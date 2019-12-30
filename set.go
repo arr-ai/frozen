@@ -168,14 +168,14 @@ func (s Set) Intersection(t Set) Set {
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
 	matches := 0
-	root := s.root.union(t.root, false, true, 0, &matches)
+	root := s.root.union(t.root, true, 0, &matches, theCopier)
 	return Set{root: root, count: s.Count() + t.Count() - matches}
 }
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set) Difference(t Set) Set {
 	matches := 0
-	root := s.root.difference(t.root, false, 0, &matches)
+	root := s.root.difference(t.root, 0, &matches, theCopier)
 	return Set{root: root, count: s.Count() - matches}
 }
 

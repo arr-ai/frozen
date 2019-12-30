@@ -34,18 +34,6 @@ func (n *node) canonical() *node {
 	return n
 }
 
-func (n *node) prepareForUpdate(mutate bool, prepared **node) *node {
-	if *prepared == nil {
-		if mutate {
-			*prepared = n
-		} else {
-			result := *n
-			*prepared = &result
-		}
-	}
-	return *prepared
-}
-
 func (n *node) setChild(i int, child *node) *node {
 	mask := MaskIterator(1) << i
 	if child != nil {
@@ -160,7 +148,7 @@ func (n *node) intersection(o *node, depth int, count *int) *node { //nolint:fun
 	}
 }
 
-func (n *node) union(o *node, mutate, useRHS bool, depth int, matches *int) *node {
+func (n *node) union(o *node, useRHS bool, depth int, matches *int, c *cloner) *node {
 	var prepared *node
 	switch {
 	case n == nil:
@@ -173,38 +161,38 @@ func (n *node) union(o *node, mutate, useRHS bool, depth int, matches *int) *nod
 	case o.isLeaf():
 		for i := o.leaf().iterator(); i.Next(); {
 			v := *i.elem()
-			n = n.with(v, mutate, useRHS, depth, newHasher(v, depth), matches, &prepared)
+			n = n.with(v, useRHS, depth, newHasher(v, depth), matches, c, &prepared)
 		}
 		return n
 	default:
-		result := n.prepareForUpdate(mutate, &prepared)
+		result := c.node(n, &prepared)
 		result.setChildren(o.mask&^n.mask, &o.children)
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 			i := mask.Index()
-			result.setChild(i, n.children[i].union(o.children[i], mutate, useRHS, depth+1, matches))
+			result.setChild(i, n.children[i].union(o.children[i], useRHS, depth+1, matches, c))
 		}
 		return result
 	}
 }
 
-func (n *node) with(v interface{}, mutate, useRHS bool, depth int, h hasher, matches *int, prepared **node) *node {
+func (n *node) with(v interface{}, useRHS bool, depth int, h hasher, matches *int, c *cloner, prepared **node) *node {
 	switch {
 	case n == nil:
 		return newLeaf(v).node()
 	case n.isLeaf():
-		return n.leaf().with(v, mutate, useRHS, depth, h, matches)
+		return n.leaf().with(v, useRHS, depth, h, matches, c)
 	default:
 		offset := h.hash()
 		var childPrepared *node
-		child := n.children[offset].with(v, mutate, useRHS, depth+1, h.next(), matches, &childPrepared)
+		child := n.children[offset].with(v, useRHS, depth+1, h.next(), matches, c, &childPrepared)
 		if child.isLeaf() && (n.mask|MaskIterator(1)<<offset).Count() == 1 {
 			return child
 		}
-		return n.prepareForUpdate(mutate, prepared).setChild(offset, child)
+		return c.node(n, prepared).setChild(offset, child)
 	}
 }
 
-func (n *node) difference(o *node, mutate bool, depth int, matches *int) *node {
+func (n *node) difference(o *node, depth int, matches *int, c *cloner) *node {
 	var prepared *node
 	switch {
 	case n == nil || o == nil:
@@ -212,33 +200,33 @@ func (n *node) difference(o *node, mutate bool, depth int, matches *int) *node {
 	case o.isLeaf():
 		for i := o.leaf().iterator(); i.Next(); {
 			v := *i.elem()
-			n = n.without(v, mutate, depth, newHasher(v, depth), matches, &prepared)
+			n = n.without(v, depth, newHasher(v, depth), matches, c, &prepared)
 		}
 		return n
 	case n.isLeaf():
 		return n.leaf().difference(o, depth, matches)
 	default:
-		result := n.prepareForUpdate(false, &prepared)
+		result := theCopier.node(n, &prepared)
 		result.clearChildren(o.mask &^ n.mask)
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 			i := mask.Index()
-			result.setChild(i, n.children[i].difference(o.children[i], mutate, depth+1, matches))
+			result.setChild(i, n.children[i].difference(o.children[i], depth+1, matches, c))
 		}
 		return result.canonical()
 	}
 }
 
-func (n *node) without(v interface{}, mutate bool, depth int, h hasher, matches *int, prepared **node) *node {
+func (n *node) without(v interface{}, depth int, h hasher, matches *int, c *cloner, prepared **node) *node {
 	switch {
 	case n == nil:
 		return nil
 	case n.isLeaf():
-		return n.leaf().without(v, mutate, matches)
+		return n.leaf().without(v, matches, c)
 	default:
 		offset := h.hash()
 		var childPrepared *node
-		child := n.children[offset].without(v, mutate, depth+1, h.next(), matches, &childPrepared)
-		return n.prepareForUpdate(mutate, prepared).setChild(offset, child).canonical()
+		child := n.children[offset].without(v, depth+1, h.next(), matches, c, &childPrepared)
+		return c.node(n, prepared).setChild(offset, child).canonical()
 	}
 }
 

@@ -77,7 +77,7 @@ func (m Map) With(key, val interface{}) Map {
 	kv := KV(key, val)
 	matches := 0
 	var prepared *node
-	root := m.root.with(kv, false, true, 0, newHasher(kv, 0), &matches, &prepared)
+	root := m.root.with(kv, true, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
 	return Map{root: root, count: m.Count() + 1 - matches}
 }
 
@@ -90,7 +90,7 @@ func (m Map) Without(keys Set) Map {
 	var prepared *node
 	for k := keys.Range(); k.Next(); {
 		kv := KV(k.Value(), nil)
-		root = root.without(kv, false, 0, newHasher(kv, 0), &matches, &prepared)
+		root = root.without(kv, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
 	}
 	return Map{root: root, count: m.Count() - matches}
 }
@@ -198,7 +198,7 @@ func (m Map) Update(n Map) Map {
 		return n.Update(m)
 	}
 	matches := 0
-	root := m.root.union(n.root, false, true, 0, &matches)
+	root := m.root.union(n.root, true, 0, &matches, theCopier)
 	return Map{root: root, count: m.Count() + n.Count() - matches}
 }
 
