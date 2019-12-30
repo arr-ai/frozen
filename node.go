@@ -142,16 +142,9 @@ func (n *node) intersection(o *node, depth int, count *int) *node { //nolint:fun
 	case n == nil || o == nil:
 		return nil
 	case n.isLeaf():
-		n, o = o, n
-		fallthrough
+		return n.leaf().intersection(o, depth, count)
 	case o.isLeaf():
-		for i := o.leaf().iterator(); i.Next(); {
-			v := *i.elem()
-			if p := n.only(v, depth, newHasher(v, depth), count); p != nil {
-				return p
-			}
-		}
-		return nil
+		return o.leaf().intersection(n, depth, count)
 	default:
 		var result node
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
@@ -161,17 +154,6 @@ func (n *node) intersection(o *node, depth int, count *int) *node { //nolint:fun
 			}
 		}
 		return result.canonical()
-	}
-}
-
-func (n *node) only(v interface{}, depth int, h hasher, count *int) *node {
-	switch {
-	case n == nil:
-		return nil
-	case n.isLeaf():
-		return n.leaf().only(v, count)
-	default:
-		return n.children[h.hash()].only(v, depth+1, h.next(), count)
 	}
 }
 
