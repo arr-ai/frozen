@@ -38,9 +38,10 @@ func (n *node) prepareForUpdate(mutate bool, prepared **node) *node {
 	if *prepared == nil {
 		if mutate {
 			*prepared = n
+		} else {
+			result := *n
+			*prepared = &result
 		}
-		result := *n
-		*prepared = &result
 	}
 	return *prepared
 }
