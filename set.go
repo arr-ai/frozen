@@ -105,12 +105,18 @@ func (s Set) EqualSet(t Set) bool {
 	if s.root == nil || t.root == nil {
 		return s.root == nil && t.root == nil
 	}
-	return s.root.equal(t.root, Equal)
+	c := newCloner(false, s.Count())
+	equalAsync := c.noneFalse()
+	equal := s.root.equal(t.root, Equal, 0, c)
+	return equal && equalAsync()
 }
 
 // IsSubsetOf returns true iff no element in s is not in t.
 func (s Set) IsSubsetOf(t Set) bool {
-	return s.root.isSubsetOf(t.root, 0)
+	c := newCloner(false, s.Count())
+	isSubsetAsync := c.noneFalse()
+	c.update(s.root.isSubsetOf(t.root, 0, c))
+	return isSubsetAsync()
 }
 
 // Has returns the value associated with key and true iff the key was found.
@@ -129,53 +135,108 @@ func (s Set) Without(values ...interface{}) Set {
 }
 
 // Where returns a Set with all elements that are in s and satisfy pred.
-func (s Set) Where(pred func(el interface{}) bool) Set {
-	var b SetBuilder
-	for i := s.Range(); i.Next(); {
-		v := i.Value()
-		if pred(v) {
-			b.Add(v)
-		}
-	}
-	return b.Finish()
+func (s Set) Where(pred func(elem interface{}) bool) Set {
+	c := newCloner(false, s.Count())
+	matches := 0
+	matchesAsync := c.counter()
+	var root *node
+	s.root.where(pred, 0, &matches, c, &root)
+	matches += matchesAsync()
+	return Set{root: root, count: matches}
 }
 
 // Map returns a Set with all the results of applying f to all elements in s.
-func (s Set) Map(f func(el interface{}) interface{}) Set {
-	var b SetBuilder
-	for i := s.Range(); i.Next(); {
-		b.Add(f(i.Value()))
+func (s Set) Map(f func(elem interface{}) interface{}) Set {
+	sbs := []*SetBuilder{}
+	var spawn func() *foreacher
+	spawn = func() *foreacher {
+		var sb SetBuilder
+		sbs = append(sbs, &sb)
+		return &foreacher{
+			f:     func(elem interface{}) { sb.Add(f(elem)) },
+			spawn: spawn,
+		}
 	}
-	return b.Finish()
+	c := newCloner(false, s.Count())
+	s.root.foreach(spawn(), 0, c)
+	c.wait()
+
+	sets := make([]Set, 0, len(sbs))
+	for _, sb := range sbs {
+		sets = append(sets, sb.Finish())
+	}
+
+	return Union(sets...)
 }
 
-// Reduce returns the result of applying f to each element of s. The result of
-// each call is used as the acc argument for the next element.
-func (s Set) Reduce(f func(acc, el interface{}) interface{}, acc interface{}) interface{} {
-	for i := s.Range(); i.Next(); {
-		acc = f(acc, i.Value())
+// Reduce returns the result of applying `reduce` to the elements of `s` or
+// `nil` if `s.IsEmpty()`. The result of each call is used as the acc argument
+// for the next element.
+//
+// The `reduce` function must have the following properties:
+//
+//   - commutative: `reduce(a, b, c) == reduce(c, a, b)`
+//   - associative: `reduce(reduce(a, b), c) == reduce(a, reduce(b, c))`
+//
+// By implication, `reduce` must accept its own output as input.
+//
+// 'elems` will never be empty.
+func (s Set) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
+	if i := s.Range(); i.Next() {
+		acc := i.Value()
+		for i.Next() {
+			acc = reduce(acc, i.Value())
+		}
+		return acc
 	}
-	return acc
+	return nil
+}
+
+// Reduce2 is a convenience wrapper for `Reduce`, allowing the caller to
+// implement a simpler, albeit less efficient, binary `reduce` function instead
+// of an n-adic one.
+func (s Set) Reduce2(reduce func(a, b interface{}) interface{}) interface{} {
+	return s.Reduce(func(elems ...interface{}) interface{} {
+		acc := elems[0]
+		for _, elem := range elems[1:] {
+			acc = reduce(acc, elem)
+		}
+		return acc
+	})
 }
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set) Intersection(t Set) Set {
+	if s.Count() > t.Count() {
+		s, t = t, s
+	}
+	c := newCloner(false, (s.Count()+t.Count())/2)
+	countAsync := c.counter()
 	count := 0
-	root := s.root.intersection(t.root, 0, &count)
+	var root *node
+	s.root.intersection(t.root, 0, &count, c, &root)
+	count += countAsync()
 	return Set{root: root, count: count}
 }
 
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
+	c := newCloner(false, s.Count()+t.Count())
+	matchesAsync := c.counter()
 	matches := 0
-	root := s.root.union(t.root, true, 0, &matches, theCopier)
+	root := s.root.union(t.root, true, 0, &matches, c)
+	matches += matchesAsync()
 	return Set{root: root, count: s.Count() + t.Count() - matches}
 }
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set) Difference(t Set) Set {
+	c := newCloner(false, s.Count())
+	matchesAsync := c.counter()
 	matches := 0
-	root := s.root.difference(t.root, 0, &matches, theCopier)
+	var root *node
+	s.root.difference(t.root, 0, &matches, c, &root)
+	matches += matchesAsync()
 	return Set{root: root, count: s.Count() - matches}
 }
 

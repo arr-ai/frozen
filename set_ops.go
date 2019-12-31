@@ -15,12 +15,10 @@ func Intersection(sets Set) Set {
 }
 
 // Union returns the n-ary union of a Set of Sets.
-func Union(relations Set) Set {
-	var b SetBuilder
-	for r := relations.Range(); r.Next(); {
-		for t := r.Value().(Set).Range(); t.Next(); {
-			b.Add(t.Value())
-		}
+func Union(sets ...Set) Set {
+	var result Set
+	for _, s := range sets {
+		result = result.Union(s)
 	}
-	return b.Finish()
+	return result
 }

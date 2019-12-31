@@ -257,10 +257,14 @@ func TestSetReduce(t *testing.T) {
 
 	sum := func(acc, b interface{}) interface{} { return acc.(int) + b.(int) }
 	product := func(acc, b interface{}) interface{} { return acc.(int) * b.(int) }
-	assert.Equal(t, 0, Set{}.Reduce(sum, 0))
-	assert.Equal(t, 1, Set{}.Reduce(product, 1))
-	assert.Equal(t, 55, Iota2(1, 11).Reduce(sum, 0))
-	assert.Equal(t, 720, Iota2(2, 7).Reduce(product, 1))
+	assert.Nil(t, Set{}.Reduce2(sum))
+	assert.Nil(t, Set{}.Reduce2(product))
+	assert.Equal(t, 42, NewSet(42).Reduce2(sum))
+	assert.Equal(t, 42, NewSet(42).Reduce2(product))
+	assert.Equal(t, 12, NewSet(5, 7).Reduce2(sum))
+	assert.Equal(t, 35, NewSet(5, 7).Reduce2(product))
+	assert.Equal(t, 55, Iota2(1, 11).Reduce2(sum))
+	assert.Equal(t, 720, Iota2(2, 7).Reduce2(product))
 }
 
 func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set) Set) {

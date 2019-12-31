@@ -11,7 +11,7 @@ type MapBuilder struct {
 }
 
 func NewMapBuilder(capacity int) *MapBuilder {
-	return &MapBuilder{cloner: newCloner(capacity)}
+	return &MapBuilder{cloner: newCloner(true, capacity)}
 }
 
 // Count returns the number of entries in the Map under construction.

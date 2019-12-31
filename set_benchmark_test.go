@@ -121,30 +121,11 @@ func BenchmarkSetParallelWith1M(b *testing.B) {
 	}
 }
 
-func BenchmarkSetParallelBuilder1M(b *testing.B) {
-	D := runtime.GOMAXPROCS(0)
+func BenchmarkSetUnion1M(b *testing.B) {
+	s5 := Iota(1 << 19).Map(func(i interface{}) interface{} { return 5 * i.(int) })
+	s7 := Iota(1 << 20).Map(func(i interface{}) interface{} { return 7 * i.(int) })
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		builders := make([]SetBuilder, D)
-		var wg sync.WaitGroup
-		wg.Add(D)
-		for d := 0; d < D; d++ {
-			d := d
-			go func() {
-				sb := &builders[d]
-				for i := d; i < 1<<20; i += D {
-					sb.Add(i)
-				}
-				wg.Done()
-			}()
-		}
-		wg.Wait()
-		sets := make([]Set, 0, D)
-		for _, builder := range builders {
-			sets = append(sets, builder.Finish())
-		}
-		s := parallelUnion(sets)
-		if s.Count() != 1<<20 {
-			b.Errorf("Wrong count: %x", s.Count())
-		}
+		s5.Union(s7)
 	}
 }

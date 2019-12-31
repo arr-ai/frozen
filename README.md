@@ -31,7 +31,7 @@ with 1M elements. The implementations are as follows:
 In all cases, ints are mapped to ints.
 
 ```bash
-$ go test -run ^$ -cpuprofile cpu.prof -memprofile mem.prof -benchmem -bench ^BenchmarkInsert ./
+$ go test -run ^$ -cpuprofile cpu.prof -memprofile mem.prof -benchmem -bench ^BenchmarkInsert .
 goos: linux
 goarch: amd64
 pkg: github.com/marcelocantos/frozen

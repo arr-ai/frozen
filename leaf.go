@@ -118,6 +118,27 @@ func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
 	return l.isSubsetOf(m, eq) && m.isSubsetOf(l, eq)
 }
 
+func (l *leaf) where(pred func(elem interface{}) bool, matches *int) *node {
+	result := leaf{lastIndex: -1}
+	for i := l.iterator(); i.Next(); {
+		v := *i.elem()
+		if pred(v) {
+			*matches++
+			result.push(v, theMutator)
+		}
+	}
+	if result.lastIndex < 0 {
+		return nil
+	}
+	return result.node()
+}
+
+func (l *leaf) foreach(f func(elem interface{})) {
+	for i := l.iterator(); i.Next(); {
+		f(*i.elem())
+	}
+}
+
 func (l *leaf) intersection(n *node, depth int, count *int) *node {
 	result := leaf{lastIndex: -1}
 	for i := l.iterator(); i.Next(); {

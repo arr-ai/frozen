@@ -11,7 +11,7 @@ type SetBuilder struct {
 }
 
 func NewSetBuilder(capacity int) *SetBuilder {
-	return &SetBuilder{cloner: newCloner(capacity)}
+	return &SetBuilder{cloner: newCloner(true, capacity)}
 }
 
 func (b *SetBuilder) getCloner() *cloner {

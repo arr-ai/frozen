@@ -1,3 +1,4 @@
+//nolint:dupl
 package frozen
 
 import (
@@ -32,5 +33,5 @@ func (b MaskIterator) Without(i int) MaskIterator {
 }
 
 func (b MaskIterator) String() string {
-	return brailleEncoded(uint64(bits.Reverse16(uint16(b))))
+	return brailleEncoded(bits.Reverse64(uint64(b)))
 }
