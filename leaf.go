@@ -35,6 +35,13 @@ func (l *leaf) node() *node {
 	return (*node)(unsafe.Pointer(l))
 }
 
+func (l *leaf) count() int {
+	if l.lastIndex > leafElems {
+		return int(l.lastIndex)
+	}
+	return int(l.lastIndex) + 1
+}
+
 func (l *leaf) last() *interface{} { //nolint:gocritic
 	return &l.elems[leafElems-1]
 }
