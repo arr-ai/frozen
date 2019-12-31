@@ -2,6 +2,7 @@ package frozen
 
 import (
 	"fmt"
+	"math/bits"
 
 	"github.com/marcelocantos/hash"
 )
@@ -182,14 +183,35 @@ func (s Set) Map(f func(elem interface{}) interface{}) Set {
 //
 // 'elems` will never be empty.
 func (s Set) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
-	if i := s.Range(); i.Next() {
-		acc := i.Value()
-		for i.Next() {
-			acc = reduce(acc, i.Value())
-		}
-		return acc
+	if s.Count() == 0 {
+		return nil
 	}
-	return nil
+
+	pointers := make([]*[]interface{}, 0, bits.Len(uint(s.Count()))>>15)
+	var spawn func() *forbatcher
+	spawn = func() *forbatcher {
+		var value []interface{}
+		pointers = append(pointers, &value)
+		return &forbatcher{
+			f: func(elems ...interface{}) {
+				value = append(value, reduce(elems...))
+			},
+			spawn: spawn,
+		}
+	}
+	c := newCloner(false, s.Count())
+	s.root.forbatches(spawn(), 0, c)
+	c.wait()
+
+	values := make([]interface{}, 0, len(pointers))
+	// In case there are no elements above the parallelisation waterline.
+	if *pointers[0] != nil {
+		values = append(values, reduce(*pointers[0]...))
+	}
+	for _, p := range pointers[1:] {
+		values = append(values, reduce(*p...))
+	}
+	return reduce(values...)
 }
 
 // Reduce2 is a convenience wrapper for `Reduce`, allowing the caller to

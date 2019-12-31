@@ -228,14 +228,85 @@ func (n *node) foreach(f *foreacher, depth int, c *cloner) {
 		if depth == c.parallelDepth {
 			for mask := n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
+				g := f.spawn()
 				c.run(func() {
-					n.children[i].foreach(f, depth+1, c)
+					n.children[i].foreach(g, depth+1, c)
 				})
 			}
 		} else {
 			for mask := n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
 				n.children[i].foreach(f, depth+1, c)
+			}
+		}
+	}
+}
+
+type forbatcher struct {
+	f     func(elem ...interface{})
+	spawn func() *forbatcher
+}
+
+const forbatchSize = 1 << 16
+
+type forbatch struct {
+	singular bool
+	f        func(elem ...interface{})
+	buf      []interface{}
+}
+
+func newForbatch(singular bool, f func(elem ...interface{})) *forbatch {
+	return &forbatch{
+		singular: singular,
+		f:        f,
+		buf:      make([]interface{}, 0, forbatchSize),
+	}
+}
+
+func (b *forbatch) add(elem interface{}) {
+	if cap(b.buf) == 0 && !b.singular {
+		b.flush()
+	}
+	b.buf = append(b.buf, elem)
+}
+
+func (b *forbatch) flush() {
+	if len(b.buf) > 0 {
+		b.f(b.buf...)
+		b.buf = b.buf[:0]
+	}
+}
+
+func (n *node) forbatches(f *forbatcher, depth int, c *cloner) {
+	b := newForbatch(false, f.f)
+	defer b.flush()
+	n.forbatchesImpl(f, depth, c, b)
+}
+
+func (n *node) forbatchesImpl(f *forbatcher, depth int, c *cloner, fb *forbatch) {
+	switch {
+	case n == nil:
+	case n.isLeaf():
+		for i := n.leaf().iterator(); i.Next(); {
+			fb.add(i.Value())
+		}
+	default:
+		if depth == c.parallelDepth {
+			for mask := n.mask; mask != 0; mask = mask.Next() {
+				i := mask.Index()
+				g := f.spawn()
+				c.run(func() {
+					b := newForbatch(true, g.f)
+					defer b.flush()
+					for i := n.children[i].iterator(); i.Next(); {
+						b.add(i.Value())
+					}
+				})
+			}
+		} else {
+			for mask := n.mask; mask != 0; mask = mask.Next() {
+				i := mask.Index()
+				n.children[i].forbatchesImpl(f, depth+1, c, fb)
 			}
 		}
 	}
