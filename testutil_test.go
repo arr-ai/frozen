@@ -105,3 +105,25 @@ func nodesDiff(a, b *node) string {
 	diffs := dmp.DiffMain(a.String(), b.String(), true)
 	return dmp.DiffPrettyText(diffs)
 }
+
+func generateSortedIntArray(start, end, step int) []interface{} {
+	if step == 0 {
+		if start == step {
+			return []interface{}{}
+		}
+		panic("zero step size")
+	}
+	if (step > 0 && start > end) || (step < 0 && start < end) {
+		panic("array will never reach end value")
+	}
+	len := (start - end) / step
+	if len < 0 {
+		len *= -1
+	}
+	result := make([]interface{}, len)
+	currentVal := start
+	for i := 0; i < len; i++ {
+		result[i] = currentVal + step*i
+	}
+	return result
+}

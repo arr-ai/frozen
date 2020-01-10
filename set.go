@@ -53,12 +53,31 @@ func (s Set) Elements() []interface{} {
 	return result
 }
 
+// OrderedElements takes elements in a defined order.
+func (s Set) OrderedElements(less Less) []interface{} {
+	result := make([]interface{}, 0, s.Count())
+	for i := s.OrderedRange(less); i.Next(); {
+		result = append(result, i.Value())
+	}
+	return result
+}
+
 // Any returns an arbitrary element from the Set.
 func (s Set) Any() interface{} {
 	for i := s.Range(); i.Next(); {
 		return i.Value()
 	}
 	panic("empty set")
+}
+
+// AnyN returns a set of N arbitrary elements from the Set.
+func (s Set) AnyN(n int) Set {
+	count := 0
+	var setBuilder SetBuilder
+	for i := s.Range(); i.Next() && count < n; count++ {
+		setBuilder.Add(i.Value())
+	}
+	return setBuilder.Finish()
 }
 
 // String returns a string representation of the Set.
@@ -78,9 +97,9 @@ func (s Set) Format(state fmt.State, _ rune) {
 	state.Write([]byte("}"))
 }
 
-// RangeBy returns a SetIterator for the Set that iterates over the elements in
+// OrderedRange returns a SetIterator for the Set that iterates over the elements in
 // a specified order.
-func (s Set) RangeBy(less func(a, b interface{}) bool) Iterator {
+func (s Set) OrderedRange(less Less) Iterator {
 	return s.root.orderedIterator(less, s.Count())
 }
 

@@ -137,6 +137,33 @@ func TestSetAny(t *testing.T) {
 	assert.Contains(t, []int{1, 2}, s.Any())
 }
 
+func TestSetAnyN(t *testing.T) {
+	t.Parallel()
+
+	var s Set
+	assert.Equal(t, 0, s.AnyN(0).Count())
+
+	s = s.With(1)
+	assert.Equal(t, 1, s.AnyN(1).Count())
+	assert.Equal(t, 1, s.AnyN(2).Count())
+	assert.Equal(t, 1, s.AnyN(1<<12-1).Count())
+
+	s = Iota(1<<12 - 1)
+	assert.Equal(t, 1, s.AnyN(1).Count())
+	assert.True(t, s.AnyN(1<<12-1).Equal(Iota(1<<12-1)))
+}
+
+func TestSetOrderedElements(t *testing.T) {
+	t.Parallel()
+
+	s := Iota(1<<12 - 1)
+	less := func(a, b interface{}) bool { return a.(int) < b.(int) }
+	assert.Equal(t, generateSortedIntArray(0, 1<<12-1, 1), s.OrderedElements(less))
+
+	less = func(a, b interface{}) bool { return a.(int) > b.(int) }
+	assert.Equal(t, generateSortedIntArray(1<<12-2, -1, -1), s.OrderedElements(less))
+}
+
 func TestSetHash(t *testing.T) {
 	t.Parallel()
 
@@ -415,17 +442,17 @@ func TestSetRange(t *testing.T) {
 	assert.Equal(t, ^uint64(0), mask)
 }
 
-func TestSetRangeBy(t *testing.T) {
+func TestSetOrderedRange(t *testing.T) {
 	t.Parallel()
 
 	output := []int{}
-	for i := Iota(10).RangeBy(func(a, b interface{}) bool { return a.(int) < b.(int) }); i.Next(); {
+	for i := Iota(10).OrderedRange(func(a, b interface{}) bool { return a.(int) < b.(int) }); i.Next(); {
 		output = append(output, i.Value().(int))
 	}
 	assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, output)
 
 	output = output[:0]
-	for i := Iota(10).RangeBy(func(a, b interface{}) bool { return a.(int) > b.(int) }); i.Next(); {
+	for i := Iota(10).OrderedRange(func(a, b interface{}) bool { return a.(int) > b.(int) }); i.Next(); {
 		output = append(output, i.Value().(int))
 	}
 	assert.Equal(t, []int{9, 8, 7, 6, 5, 4, 3, 2, 1, 0}, output)
