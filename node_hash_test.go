@@ -3,7 +3,7 @@ package frozen
 import (
 	"testing"
 
-	"github.com/marcelocantos/hash"
+	"github.com/arr-ai/hash"
 	"github.com/stretchr/testify/assert"
 )
 

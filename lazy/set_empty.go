@@ -2,7 +2,7 @@ package lazy
 
 import (
 	"github.com/arr-ai/frozen"
-	"github.com/marcelocantos/hash"
+	"github.com/arr-ai/hash"
 )
 
 type emptySet struct{}

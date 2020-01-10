@@ -1,6 +1,6 @@
 package frozen
 
-import "github.com/marcelocantos/hash"
+import "github.com/arr-ai/hash"
 
 // Equatable represents a type that can be compared for equality with another
 // value.

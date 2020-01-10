@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/marcelocantos/hash"
+	"github.com/arr-ai/hash"
 )
 
 const (

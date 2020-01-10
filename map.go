@@ -3,7 +3,7 @@ package frozen
 import (
 	"fmt"
 
-	"github.com/marcelocantos/hash"
+	"github.com/arr-ai/hash"
 )
 
 // KeyValue represents a key-value pair for insertion into a Map.

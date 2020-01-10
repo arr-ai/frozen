@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/marcelocantos/hash"
+	"github.com/arr-ai/hash"
 )
 
 // Set holds a set of values. The zero value is the empty Set.
