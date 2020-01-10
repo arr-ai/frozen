@@ -3,7 +3,7 @@ package lazy
 import (
 	"testing"
 
-	"github.com/marcelocantos/frozen"
+	"github.com/arr-ai/frozen"
 )
 
 func TestSetEmpty(t *testing.T) {

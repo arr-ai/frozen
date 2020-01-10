@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"github.com/marcelocantos/frozen"
+	"github.com/arr-ai/frozen"
 )
 
 type memoSet struct {

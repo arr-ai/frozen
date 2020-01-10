@@ -4,7 +4,7 @@ package lazy
 import (
 	"testing"
 
-	"github.com/marcelocantos/frozen"
+	"github.com/arr-ai/frozen"
 	"github.com/stretchr/testify/assert"
 )
 

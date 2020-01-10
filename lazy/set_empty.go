@@ -1,7 +1,7 @@
 package lazy
 
 import (
-	"github.com/marcelocantos/frozen"
+	"github.com/arr-ai/frozen"
 	"github.com/marcelocantos/hash"
 )
 
