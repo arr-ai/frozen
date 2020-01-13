@@ -157,10 +157,10 @@ func TestSetOrderedElements(t *testing.T) {
 	t.Parallel()
 
 	s := Iota(1<<12 - 1)
-	less := func(a, b interface{}) bool { return a.(int) < b.(int) }
+	less := Less(func(a, b interface{}) bool { return a.(int) < b.(int) })
 	assert.Equal(t, generateSortedIntArray(0, 1<<12-1, 1), s.OrderedElements(less))
 
-	less = func(a, b interface{}) bool { return a.(int) > b.(int) }
+	less = Less(func(a, b interface{}) bool { return a.(int) > b.(int) })
 	assert.Equal(t, generateSortedIntArray(1<<12-2, -1, -1), s.OrderedElements(less))
 }
 
@@ -446,13 +446,15 @@ func TestSetOrderedRange(t *testing.T) {
 	t.Parallel()
 
 	output := []int{}
-	for i := Iota(10).OrderedRange(func(a, b interface{}) bool { return a.(int) < b.(int) }); i.Next(); {
+	less := Less(func(a, b interface{}) bool { return a.(int) < b.(int) })
+	for i := Iota(10).OrderedRange(less); i.Next(); {
 		output = append(output, i.Value().(int))
 	}
 	assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, output)
 
 	output = output[:0]
-	for i := Iota(10).OrderedRange(func(a, b interface{}) bool { return a.(int) > b.(int) }); i.Next(); {
+	less = Less(func(a, b interface{}) bool { return a.(int) > b.(int) })
+	for i := Iota(10).OrderedRange(less); i.Next(); {
 		output = append(output, i.Value().(int))
 	}
 	assert.Equal(t, []int{9, 8, 7, 6, 5, 4, 3, 2, 1, 0}, output)

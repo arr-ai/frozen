@@ -52,7 +52,7 @@ func (n *node) orderedIterator(less Less, capacity int) *ordered {
 }
 
 type ordered struct {
-	less  func(a, b interface{}) bool
+	less  Less
 	elems []interface{}
 	val   interface{}
 }
