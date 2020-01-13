@@ -208,6 +208,54 @@ func TestSetEqual(t *testing.T) {
 	}
 }
 
+func TestSetFirst(t *testing.T) {
+	t.Parallel()
+
+	var s Set
+	less := Less(func(a, b interface{}) bool { return a.(int) < b.(int) })
+	assert.Panics(t, func() { s.First(less) }, "empty set")
+
+	s = Iota(1<<12 - 1)
+	assert.Equal(t, 0, s.First(less))
+
+	less = Less(func(a, b interface{}) bool { return a.(int) > b.(int) })
+	assert.Equal(t, 1<<12-2, s.First(less))
+}
+
+func TestSetFirstN(t *testing.T) {
+	t.Parallel()
+
+	less := Less(func(a, b interface{}) bool { return a.(int) < b.(int) })
+
+	s := NewSet()
+	assert.True(t, NewSet().Equal(s.FirstN(0, less)))
+	assert.True(t, NewSet().Equal(s.FirstN(1, less)))
+
+	s = Iota(1<<12 - 1)
+	assert.True(t, NewSet(0).Equal(s.FirstN(1, less)))
+	assert.True(t, s.Equal(s.FirstN(1<<12-1, less)))
+
+	s = Iota(5)
+	assert.True(t, NewSet(0, 1, 2, 3, 4).Equal(s.FirstN(10, less)))
+}
+
+func TestSetOrderedFirstN(t *testing.T) {
+	t.Parallel()
+
+	less := Less(func(a, b interface{}) bool { return a.(int) < b.(int) })
+
+	s := NewSet()
+	assert.Equal(t, []interface{}{}, s.OrderedFirstN(0, less))
+	assert.Equal(t, []interface{}{}, s.OrderedFirstN(1, less))
+
+	s = Iota(1<<12 - 1)
+	assert.Equal(t, generateSortedIntArray(0, 1<<12-1, 1), s.OrderedFirstN(1<<12-1, less))
+	assert.Equal(t, []interface{}{0, 1, 2, 3, 4}, s.OrderedFirstN(5, less))
+
+	s = Iota(5)
+	assert.Equal(t, []interface{}{0, 1, 2, 3, 4}, s.OrderedFirstN(10, less))
+}
+
 func TestSetIsSubsetOf(t *testing.T) {
 	t.Parallel()
 	const N = 10

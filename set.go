@@ -80,6 +80,29 @@ func (s Set) AnyN(n int) Set {
 	return setBuilder.Finish()
 }
 
+// OrderedFirstN returns a list of elements in a defined order.
+func (s Set) OrderedFirstN(n int, less Less) []interface{} {
+	result := make([]interface{}, 0, n)
+	currentLength := 0
+	for i := s.root.orderedIterator(less, n); i.Next() && currentLength < n; currentLength++ {
+		result = append(result, i.Value())
+	}
+	return result
+}
+
+// First returns the first element in a defined order.
+func (s Set) First(less Less) interface{} {
+	for _, i := range s.OrderedFirstN(1, less) {
+		return i
+	}
+	panic("empty set")
+}
+
+// FirstN returns a set of the first n elements in a defined order.
+func (s Set) FirstN(n int, less Less) Set {
+	return NewSet(s.OrderedFirstN(n, less)...)
+}
+
 // String returns a string representation of the Set.
 func (s Set) String() string {
 	return fmt.Sprintf("%v", s)
