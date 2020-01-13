@@ -2,6 +2,9 @@ package frozen
 
 import "container/heap"
 
+// Less dictates the order of two elements.
+type Less func(a, b interface{}) bool
+
 type nodeIter struct {
 	stk [][]*node
 	li  Iterator
@@ -40,7 +43,7 @@ func (i *nodeIter) Value() interface{} {
 	return i.li.Value()
 }
 
-func (n *node) orderedIterator(less func(a, b interface{}) bool, capacity int) *ordered {
+func (n *node) orderedIterator(less Less, capacity int) *ordered {
 	o := &ordered{less: less, elems: make([]interface{}, 0, capacity)}
 	for i := n.iterator(); i.Next(); {
 		heap.Push(o, i.Value())
@@ -49,7 +52,7 @@ func (n *node) orderedIterator(less func(a, b interface{}) bool, capacity int) *
 }
 
 type ordered struct {
-	less  func(a, b interface{}) bool
+	less  Less
 	elems []interface{}
 	val   interface{}
 }
