@@ -326,6 +326,51 @@ func TestMapRange(t *testing.T) {
 	assert.Equal(t, map[int]int{1: 2, 3: 4, 4: 5, 6: 7}, output)
 }
 
+func TestMapMergeSameValueType(t *testing.T) {
+	t.Parallel()
+
+	m := NewMap(KV(1, 1), KV(2, 2), KV(3, 3))
+	n := NewMap(KV(1, 2), KV(2, 3), KV(4, 4))
+	resolve := func(key, a, b interface{}) interface{} {
+		return key.(int) + a.(int) + b.(int)
+	}
+	expected := NewMap(KV(1, 4), KV(2, 7), KV(3, 3), KV(4, 4))
+
+	assert.True(t, expected.Equal(m.Merge(n, resolve)))
+}
+
+func TestMapMergeDifferentValueType(t *testing.T) {
+	t.Parallel()
+
+	m := NewMap(KV(1, 1), KV(2, 2), KV(3, 5))
+	n := NewMap(KV(1, "A"), KV(2, 'K'), KV(3, byte(1)), KV(4, 4))
+	resolve := func(key, a, b interface{}) interface{} {
+		switch v := b.(type) {
+		case string:
+			return v
+		case rune:
+			return string(v)
+		case []byte:
+			return string(v)
+		default:
+			return a
+		}
+	}
+	expected := NewMap(KV(1, "A"), KV(2, "K"), KV(3, 5), KV(4, 4))
+
+	assert.True(t, expected.Equal(m.Merge(n, resolve)))
+}
+
+func TestMapMergeEmptyMap(t *testing.T) {
+	t.Parallel()
+
+	empty := NewMap()
+	nonEmpty := NewMap(KV("doesn't", "matter"), KV(1, 2), KV(2, 3))
+
+	assert.True(t, nonEmpty.Equal(empty.Merge(nonEmpty, func(key, a, b interface{}) interface{} { return a })))
+	assert.True(t, nonEmpty.Equal(nonEmpty.Merge(empty, func(key, a, b interface{}) interface{} { return a })))
+}
+
 var prepopMapInt = memoizePrepop(func(n int) interface{} {
 	m := make(map[int]int, n)
 	for i := 0; i < n; i++ {
