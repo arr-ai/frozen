@@ -56,7 +56,17 @@ func requireSameElements(t *testing.T, a, b []interface{}) {
 	}
 }
 
+func fromStringArr(a []string) []interface{} {
+	b := make([]interface{}, 0, len(a))
+	for _, i := range a {
+		b = append(b, i)
+	}
+	return b
+}
+
 func TestNewSet(t *testing.T) {
+	t.Parallel()
+
 	const N = 1000
 	arr := make([]interface{}, 0, N)
 	for i := 0; i < N; i++ {
@@ -65,6 +75,20 @@ func TestNewSet(t *testing.T) {
 
 	for i := N - 1; i >= 0; i-- {
 		assertSameElements(t, arr[i:], NewSet(arr[i:]...).Elements())
+	}
+}
+
+func TestNewSetFromStrings(t *testing.T) {
+	t.Parallel()
+
+	const N = 256
+	arr := make([]string, 0, N)
+	for i := 0; i < N; i++ {
+		arr = append(arr, string(rune(i)))
+	}
+
+	for i := N - 1; i >= 0; i-- {
+		assertSameElements(t, fromStringArr(arr[i:]), NewSet(fromStringArr(arr[i:])...).Elements())
 	}
 }
 

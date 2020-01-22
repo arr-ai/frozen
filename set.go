@@ -30,6 +30,15 @@ func NewSet(values ...interface{}) Set {
 	return b.Finish()
 }
 
+// NewSetFromStrings creates a new Set with values as elements.
+func NewSetFromStrings(values ...string) Set {
+	var b SetBuilder
+	for _, value := range values {
+		b.Add(value)
+	}
+	return b.Finish()
+}
+
 // IsEmpty returns true iff the Set has no elements.
 func (s Set) IsEmpty() bool {
 	return s.root == nil
