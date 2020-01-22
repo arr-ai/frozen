@@ -191,6 +191,26 @@ func (m Map) Reduce(f func(acc, key, val interface{}) interface{}, acc interface
 	return acc
 }
 
+// Merge returns a map from the merging between two maps, should there be a key overlap,
+// the value that corresponds to key will be replaced by the value resulted from the
+// provided resolve function.
+func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
+	if m.IsEmpty() {
+		return n
+	}
+
+	merged := m
+	for i := n.Range(); i.Next(); {
+		if val, exists := m.Get(i.Key()); exists {
+			merged = merged.With(i.Key(), resolve(i.Key(), val, i.Value()))
+		} else {
+			merged = merged.With(i.Key(), i.Value())
+		}
+	}
+
+	return merged
+}
+
 // Update returns a Map with key-value pairs from n added or replacing existing
 // keys.
 func (m Map) Update(n Map) Map {
