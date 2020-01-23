@@ -214,11 +214,14 @@ func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
 // Update returns a Map with key-value pairs from n added or replacing existing
 // keys.
 func (m Map) Update(n Map) Map {
+	left, right := m, n
+	useRHS := true
 	if m.Count() > n.Count() {
-		return n.Update(m)
+		left, right = n, m
+		useRHS = false
 	}
 	matches := 0
-	root := m.root.union(n.root, true, 0, &matches, theCopier)
+	root := left.root.union(right.root, useRHS, 0, &matches, theCopier)
 	return Map{root: root, count: m.Count() + n.Count() - matches}
 }
 

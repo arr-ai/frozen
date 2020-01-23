@@ -270,10 +270,29 @@ func TestMapReduce(t *testing.T) {
 
 func TestMapUpdate(t *testing.T) {
 	t.Parallel()
-
 	m := NewMap(KV(3, 4), KV(4, 5), KV(1, 2))
 	n := NewMap(KV(3, 4), KV(4, 7), KV(6, 7))
 	assertMapEqual(t, NewMap(KV(1, 2), KV(3, 4), KV(4, 7), KV(6, 7)), m.Update(n))
+	lotsa := Iota(5).Powerset()
+	plus := func(n int) func(interface{}) interface{} {
+		return func(key interface{}) interface{} { return n + key.(int) }
+	}
+	for i := lotsa.Range(); i.Next(); {
+		s := i.Value().(Set)
+		a := NewMapFromKeys(s, plus(0))
+		for j := lotsa.Range(); j.Next(); {
+			u := j.Value().(Set)
+			b := NewMapFromKeys(u, plus(10))
+			actual := a.Update(b)
+			expected := NewMapFromKeys(s.Union(u), func(key interface{}) interface{} {
+				if u.Has(key) {
+					return 10 + key.(int)
+				}
+				return key
+			})
+			assertMapEqual(t, expected, actual)
+		}
+	}
 }
 
 func TestMapHashAndEqual(t *testing.T) {
