@@ -13,7 +13,7 @@ type nodeIter struct {
 }
 
 func newNodeIter(base []*node, count int) *nodeIter {
-	depth := (bits.Len64(uint64(count)) + 2) / 2 // 1.5 log₈(n)
+	depth := (bits.Len64(uint64(count)) + 5) / 2 // 1.5 (log₈(n) + 1)
 	stk := append(make([][]*node, 0, depth), base)
 	return &nodeIter{stk: stk, li: exhaustedIterator{}}
 }
