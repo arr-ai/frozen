@@ -51,7 +51,7 @@ func (s Set) Count() int {
 
 // Range returns an Iterator over the Set.
 func (s Set) Range() Iterator {
-	return s.root.iterator()
+	return s.root.iterator(s.count)
 }
 
 func (s Set) Elements() []interface{} {

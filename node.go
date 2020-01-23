@@ -298,7 +298,8 @@ func (n *node) forbatchesImpl(f *forbatcher, depth int, c *cloner, fb *forbatch)
 				c.run(func() {
 					b := newForbatch(true, g.f)
 					defer b.flush()
-					for i := n.children[i].iterator(); i.Next(); {
+					// TODO: 1<<15 is based on heuristics in newCloner. Confirm.
+					for i := n.children[i].iterator(1 << 15); i.Next(); {
 						b.add(i.Value())
 					}
 				})
@@ -466,19 +467,19 @@ func (n *node) String() string {
 	return sb.String()
 }
 
-func (n *node) iterator() Iterator {
+func (n *node) iterator(count int) Iterator {
 	if n == nil {
 		return exhaustedIterator{}
 	}
 	if n.isLeaf() {
-		return newNodeIter([]*node{n})
+		return newNodeIter([]*node{n}, count)
 	}
-	return newNodeIter(n.children[:])
+	return newNodeIter(n.children[:], count)
 }
 
-func (n *node) elements() []interface{} {
+func (n *node) elements(count int) []interface{} {
 	elems := []interface{}{}
-	for i := n.iterator(); i.Next(); {
+	for i := n.iterator(count); i.Next(); {
 		elems = append(elems, i.Value())
 	}
 	return elems
