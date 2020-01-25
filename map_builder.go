@@ -22,7 +22,7 @@ func (b *MapBuilder) Count() int {
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder) Put(key, value interface{}) {
 	kv := KV(key, value)
-	b.root = b.root.with(kv, true, 0, newHasher(kv, 0), &b.redundantPuts, theMutator, &b.prepared)
+	b.root = b.root.with(kv, useRHS, 0, newHasher(kv, 0), &b.redundantPuts, theMutator, &b.prepared)
 	b.attemptedAdds++
 }
 

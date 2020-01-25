@@ -354,8 +354,9 @@ func TestMapMergeSameValueType(t *testing.T) {
 		return key.(int) + a.(int) + b.(int)
 	}
 	expected := NewMap(KV(1, 4), KV(2, 7), KV(3, 3), KV(4, 4))
-
-	assert.True(t, expected.Equal(m.Merge(n, resolve)))
+	result := m.Merge(n, resolve)
+	t.Log(result.String())
+	assert.True(t, expected.Equal(result))
 }
 
 func TestMapMergeDifferentValueType(t *testing.T) {
@@ -472,4 +473,34 @@ func BenchmarkInsertFrozenMap1k(b *testing.B) {
 
 func BenchmarkInsertFrozenMap1M(b *testing.B) {
 	benchmarkInsertFrozenMap(b, 1<<20)
+}
+
+func benchmarkMergeFrozenMap(b *testing.B, limit int) {
+	plus := func(_, a, b interface{}) interface{} { return a.(int) + b.(int) }
+	mapToTest := NewMapFromKeys(Iota(limit), func(key interface{}) interface{} {
+		return key
+	})
+	for i := 0; i < b.N; i++ {
+		mapToTest.Merge(mapToTest, plus)
+	}
+}
+
+func BenchmarkMergeFrozenMap10(b *testing.B) {
+	benchmarkMergeFrozenMap(b, 10)
+}
+
+func BenchmarkMergeFrozenMap100(b *testing.B) {
+	benchmarkMergeFrozenMap(b, 100)
+}
+
+func BenchmarkMergeFrozenMap1k(b *testing.B) {
+	benchmarkMergeFrozenMap(b, 1000)
+}
+
+func BenchmarkMergeFrozenMap100k(b *testing.B) {
+	benchmarkMergeFrozenMap(b, 100000)
+}
+
+func BenchmarkMergeFrozenMap1M(b *testing.B) {
+	benchmarkMergeFrozenMap(b, 1000000)
 }

@@ -28,7 +28,7 @@ func (b *SetBuilder) Count() int {
 
 // Add adds el to the Set under construction.
 func (b *SetBuilder) Add(v interface{}) {
-	b.root = b.root.with(v, true, 0, newHasher(v, 0), &b.redundantAdds, b.getCloner(), &b.prepared)
+	b.root = b.root.with(v, useRHS, 0, newHasher(v, 0), &b.redundantAdds, b.getCloner(), &b.prepared)
 	b.attemptedAdds++
 }
 

@@ -162,13 +162,10 @@ func (l *leaf) intersection(n *node, depth int, count *int) *node {
 	return result.node()
 }
 
-func (l *leaf) with(v interface{}, useRHS bool, depth int, h hasher, matches *int, c *cloner) *node {
+func (l *leaf) with(v interface{}, f func(key, a, b interface{}) interface{}, depth int, h hasher, matches *int, c *cloner) *node {
 	if elem, i := l.get(v, Equal); elem != nil {
 		*matches++
-		if useRHS {
-			return c.leaf(l).set(i, v).node()
-		}
-		return l.node()
+		return c.leaf(l).set(i, f(v, elem, v)).node()
 	}
 	h0 := newHasher(l.elems[0], depth)
 	if h == h0 {
