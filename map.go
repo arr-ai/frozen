@@ -267,7 +267,7 @@ func (m Map) Format(state fmt.State, _ rune) {
 
 // Range returns a MapIterator over the Map.
 func (m Map) Range() *MapIterator {
-	return &MapIterator{i: m.root.iterator()}
+	return &MapIterator{i: m.root.iterator(m.count)}
 }
 
 // MapIterator provides for iterating over a Map.

@@ -58,7 +58,7 @@ func TestSetBuilderIncremental(t *testing.T) {
 						b.Add(value)
 					}
 					expected := corpus[:j+1]
-					actual := b.root.elements()
+					actual := b.root.elements(0)
 					if !assertSameElements(t, expected, actual) {
 						after := b.root.String()
 						log.Printf("after = %v", after)
