@@ -199,10 +199,10 @@ func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
 		return n
 	}
 	matches := 0
-	extractAndResolve := func(key, a, b interface{}) interface{} {
+	extractAndResolve := func(a, b interface{}) interface{} {
 		i := a.(KeyValue)
 		j := b.(KeyValue)
-		return resolve(i.Key, i.Value, j.Value)
+		return KV(i.Key, resolve(i.Key, i.Value, j.Value))
 	}
 	root := m.root.union(n.root, extractAndResolve, 0, &matches, theCopier)
 	return Map{root: root, count: m.Count() + n.Count() - matches}

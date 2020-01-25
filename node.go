@@ -9,8 +9,8 @@ import (
 
 const nodeCount = 1 << nodeBits
 
-var useRHS = func(_, _, b interface{}) interface{} { return b }
-var useLHS = func(_, a, _ interface{}) interface{} { return a }
+var useRHS = func(_, b interface{}) interface{} { return b }
+var useLHS = func(a, _ interface{}) interface{} { return a }
 
 type node struct {
 	mask     MaskIterator
@@ -331,7 +331,7 @@ func (n *node) intersection(o *node, depth int, count *int, c *cloner, result **
 	}
 }
 
-func (n *node) union(o *node, f func(key, a, b interface{}) interface{}, depth int, matches *int, c *cloner) *node {
+func (n *node) union(o *node, f func(a, b interface{}) interface{}, depth int, matches *int, c *cloner) *node {
 	var prepared *node
 	transform := f
 	switch {
@@ -340,7 +340,7 @@ func (n *node) union(o *node, f func(key, a, b interface{}) interface{}, depth i
 	case o == nil:
 		return n
 	case n.isLeaf():
-		n, o, transform = o, n, func(key, a, b interface{}) interface{} { return f(key, b, a) }
+		n, o, transform = o, n, func(a, b interface{}) interface{} { return f(b, a) }
 		fallthrough
 	case o.isLeaf():
 		for i := o.leaf().iterator(); i.Next(); {
@@ -371,7 +371,7 @@ func (n *node) union(o *node, f func(key, a, b interface{}) interface{}, depth i
 	}
 }
 
-func (n *node) with(v interface{}, f func(key, a, b interface{}) interface{}, depth int, h hasher, matches *int, c *cloner, prepared **node) *node {
+func (n *node) with(v interface{}, f func(a, b interface{}) interface{}, depth int, h hasher, matches *int, c *cloner, prepared **node) *node {
 	switch {
 	case n == nil:
 		return newLeaf(v).node()
