@@ -6,7 +6,7 @@ import (
 )
 
 // BitIterator represents a set of one-bits and the ability to enumerate them.
-type BitIterator uint
+type BitIterator uintptr
 
 func (b BitIterator) Next() BitIterator {
 	return b & (b - 1)
