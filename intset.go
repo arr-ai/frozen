@@ -61,7 +61,9 @@ func (s IntSet) Count() int {
 	return s.count
 }
 
-// func (s IntSet) Range() IntIterator {}
+func (s IntSet) Range() IntIterator {
+	return &intSetIterator{blockIter: s.data.Range()}
+}
 
 // func (s IntSet) Elements() []int {
 // 	result := make([]int, 0, s.Count())
