@@ -39,6 +39,8 @@ func NewIntSet(is ...int) IntSet {
 			prevBlockIndex = blockIndex
 			if v, has := b.Get(blockIndex); has {
 				block = v.(cellBlock)
+			} else {
+				block = emptyBlock
 			}
 		}
 		if block[cellIndex]&bitMask == 0 {
@@ -101,9 +103,6 @@ func (s IntSet) Any() int {
 // func (s IntSet) IsSubsetOf(t IntSet) bool             {}
 func (s IntSet) Has(val int) bool {
 	block, _, cellIndex, bitMask := s.locate(val)
-	if len(block) == 0 {
-		return false
-	}
 	return block[cellIndex]&bitMask != 0
 }
 
