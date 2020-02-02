@@ -65,13 +65,13 @@ func (s IntSet) Range() IntIterator {
 	return &intSetIterator{blockIter: s.data.Range()}
 }
 
-// func (s IntSet) Elements() []int {
-// 	result := make([]int, 0, s.Count())
-// 	for i := s.Range(); i.Next(); {
-// 		result = append(result, i.Value())
-// 	}
-// 	return result
-// }
+func (s IntSet) Elements() []int {
+	result := make([]int, 0, s.Count())
+	for i := s.Range(); i.Next(); {
+		result = append(result, i.Value())
+	}
+	return result
+}
 
 // func (s IntSet) OrderedElements(less Less) []int {}
 
@@ -99,7 +99,13 @@ func (s IntSet) Any() int {
 // func (s IntSet) Equal(t int) bool                     {}
 // func (s IntSet) EqualSet(t IntSet) bool               {}
 // func (s IntSet) IsSubsetOf(t IntSet) bool             {}
-// func (s IntSet) Has(val int) bool                     {}
+func (s IntSet) Has(val int) bool {
+	block, _, cellIndex, bitMask := s.locate(val)
+	if len(block) == 0 {
+		return false
+	}
+	return block[cellIndex]&bitMask != 0
+}
 
 func (s IntSet) With(is ...int) IntSet {
 	for _, i := range is {
