@@ -31,13 +31,17 @@ func NewIntSet(is ...int) IntSet {
 	stale := false
 	prevBlockIndex := int(^uint(0) >> 1) // maxint
 	var block cellBlock
+	blockIsFilled := false
 	for _, i := range is {
 		blockIndex, cellIndex, bitMask := locateBlock(i)
 		if blockIndex != prevBlockIndex {
-			b.Put(prevBlockIndex, block)
+			if blockIsFilled {
+				b.Put(prevBlockIndex, block)
+			}
 			stale = false
 			prevBlockIndex = blockIndex
-			if v, has := b.Get(blockIndex); has {
+			var v interface{}
+			if v, blockIsFilled = b.Get(blockIndex); blockIsFilled {
 				block = v.(cellBlock)
 			} else {
 				block = emptyBlock
@@ -47,6 +51,7 @@ func NewIntSet(is ...int) IntSet {
 			block[cellIndex] |= bitMask
 			count++
 			stale = true
+			blockIsFilled = true
 		}
 	}
 	if stale {

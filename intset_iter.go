@@ -11,11 +11,18 @@ type IntIterator interface {
 type intSetIterator struct {
 	blockIter      *MapIterator
 	block          []cellMask
-	cell           cellMask
 	firstIntInCell int
 }
 
 func (i *intSetIterator) Next() bool {
+	if len(i.block) > 0 && i.block[0] == 0 {
+		for ; len(i.block) != 0 && i.block[0] == 0; i.block = i.block[1:] {
+			i.firstIntInCell += cellBits
+		}
+	} else if len(i.block) > 0 {
+		i.block[0] &= i.block[0] - 1
+	}
+
 	if len(i.block) == 0 {
 		if !i.blockIter.Next() {
 			return false
@@ -25,14 +32,8 @@ func (i *intSetIterator) Next() bool {
 		for i.block = block[:]; i.block[0] == 0; i.block = i.block[1:] {
 			i.firstIntInCell += cellBits
 		}
-	} else if i.block[0] == 0 {
-		for ; i.block[0] == 0; i.block = i.block[1:] {
-			i.firstIntInCell += cellBits
-		}
-	} else {
-		i.block[0] &= i.block[0] - 1
 	}
-	return true
+	return i.block[0] != 0
 }
 
 func (i *intSetIterator) Value() int {
