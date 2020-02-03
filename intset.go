@@ -128,8 +128,10 @@ func (s IntSet) Without(is ...int) IntSet {
 			block[cellIndex] &^= bitMask
 			if block == emptyBlock {
 				indexToRemove.Add(blockIndex)
+			} else {
+				//TODO: optimize this so it doesn't do With many times
+				s.data = s.data.With(blockIndex, block)
 			}
-			s.data = s.data.With(blockIndex, block)
 			s.count--
 		}
 	}
