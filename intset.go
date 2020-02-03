@@ -121,17 +121,19 @@ func (s IntSet) With(is ...int) IntSet {
 }
 
 func (s IntSet) Without(is ...int) IntSet {
+	indexToRemove := NewSetBuilder(0)
 	for _, i := range is {
 		block, blockIndex, cellIndex, bitMask := s.locate(i)
 		if block[cellIndex]&bitMask != 0 {
 			block[cellIndex] &^= bitMask
 			if block == emptyBlock {
-				return IntSet{}
+				indexToRemove.Add(blockIndex)
 			}
-			s.data = s.data.Without(NewSet(blockIndex))
+			s.data = s.data.With(blockIndex, block)
 			s.count--
 		}
 	}
+	s.data = s.data.Without(NewSet(indexToRemove.Finish()))
 	return s
 }
 
