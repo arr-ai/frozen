@@ -28,7 +28,6 @@ func locateBlock(i int) (blockIndex, cellIndex int, bitMask cellMask) {
 func NewIntSet(is ...int) IntSet {
 	var b MapBuilder
 	count := 0
-	stale := false
 	prevBlockIndex := int(^uint(0) >> 1) // maxint
 	var block cellBlock
 	blockIsFilled := false
@@ -38,7 +37,6 @@ func NewIntSet(is ...int) IntSet {
 			if blockIsFilled {
 				b.Put(prevBlockIndex, block)
 			}
-			stale = false
 			prevBlockIndex = blockIndex
 			var v interface{}
 			if v, blockIsFilled = b.Get(blockIndex); blockIsFilled {
@@ -50,11 +48,10 @@ func NewIntSet(is ...int) IntSet {
 		if block[cellIndex]&bitMask == 0 {
 			block[cellIndex] |= bitMask
 			count++
-			stale = true
 			blockIsFilled = true
 		}
 	}
-	if stale {
+	if blockIsFilled {
 		b.Put(prevBlockIndex, block)
 	}
 	return IntSet{data: b.Finish(), count: count}

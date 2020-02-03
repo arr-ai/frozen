@@ -11,6 +11,7 @@ func TestIntSetEmpty(t *testing.T) {
 
 	var s IntSet
 	assert.True(t, s.IsEmpty())
+	assert.False(t, s.Has(0))
 }
 
 func TestNewIntSet(t *testing.T) {
