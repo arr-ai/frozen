@@ -82,7 +82,7 @@ func (s IntSet) Elements() []int {
 func (s IntSet) Any() int {
 	k, v := s.data.Any()
 	blockIndex := k.(int)
-	block := v.(KeyValue).Value.(cellBlock)
+	block := v.(cellBlock)
 	for cellIndex, cell := range block {
 		if cell != 0 {
 			bit := BitIterator(cell).Index()
@@ -126,16 +126,15 @@ func (s IntSet) Without(is ...int) IntSet {
 		block, blockIndex, cellIndex, bitMask := s.locate(i)
 		if block[cellIndex]&bitMask != 0 {
 			block[cellIndex] &^= bitMask
+			//TODO: optimize this so it doesn't do With many times
+			s.data = s.data.With(blockIndex, block)
 			if block == emptyBlock {
 				indexToRemove.Add(blockIndex)
-			} else {
-				//TODO: optimize this so it doesn't do With many times
-				s.data = s.data.With(blockIndex, block)
 			}
 			s.count--
 		}
 	}
-	s.data = s.data.Without(NewSet(indexToRemove.Finish()))
+	s.data = s.data.Without(indexToRemove.Finish())
 	return s
 }
 
