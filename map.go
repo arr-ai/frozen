@@ -61,6 +61,15 @@ func NewMapFromKeys(keys Set, f func(key interface{}) interface{}) Map {
 	return b.Finish()
 }
 
+// ToFrozenMap takes a map[interface{}]interface{} and returns a frozen Map from it.
+func ToFrozenMap(m map[interface{}]interface{}) Map {
+	keys := NewSetBuilder(len(m))
+	for k, _ := range m {
+		keys.Add(k)
+	}
+	return NewMapFromKeys(keys.Finish(), func(key interface{}) interface{} { return m[key] })
+}
+
 // IsEmpty returns true if the Map has no entries.
 func (m Map) IsEmpty() bool {
 	return m.root == nil
