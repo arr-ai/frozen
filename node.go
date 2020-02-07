@@ -9,6 +9,9 @@ import (
 
 const nodeCount = 1 << nodeBits
 
+var useRHS = func(_, b interface{}) interface{} { return b }
+var useLHS = func(a, _ interface{}) interface{} { return a }
+
 type node struct {
 	mask     MaskIterator
 	_        uint16
@@ -329,20 +332,21 @@ func (n *node) intersection(o *node, depth int, count *int, c *cloner, result **
 	}
 }
 
-func (n *node) union(o *node, useRHS bool, depth int, matches *int, c *cloner) *node {
+func (n *node) union(o *node, f func(a, b interface{}) interface{}, depth int, matches *int, c *cloner) *node {
 	var prepared *node
+	transform := f
 	switch {
 	case n == nil:
 		return o
 	case o == nil:
 		return n
 	case n.isLeaf():
-		n, o, useRHS = o, n, !useRHS
+		n, o, transform = o, n, func(a, b interface{}) interface{} { return f(b, a) }
 		fallthrough
 	case o.isLeaf():
 		for i := o.leaf().iterator(); i.Next(); {
 			v := *i.elem()
-			n = n.with(v, useRHS, depth, newHasher(v, depth), matches, c, &prepared)
+			n = n.with(v, transform, depth, newHasher(v, depth), matches, c, &prepared)
 		}
 		return n
 	default:
@@ -354,30 +358,30 @@ func (n *node) union(o *node, useRHS bool, depth int, matches *int, c *cloner) *
 				i := mask.Index()
 				c.run(func() {
 					matches := 0
-					result.setChildAsync(i, n.children[i].union(o.children[i], useRHS, depth+1, &matches, c), &m)
+					result.setChildAsync(i, n.children[i].union(o.children[i], transform, depth+1, &matches, c), &m)
 					c.update(matches)
 				})
 			}
 		} else {
 			for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
-				result.setChild(i, n.children[i].union(o.children[i], useRHS, depth+1, matches, c))
+				result.setChild(i, n.children[i].union(o.children[i], transform, depth+1, matches, c))
 			}
 		}
 		return result
 	}
 }
 
-func (n *node) with(v interface{}, useRHS bool, depth int, h hasher, matches *int, c *cloner, prepared **node) *node {
+func (n *node) with(v interface{}, f func(a, b interface{}) interface{}, depth int, h hasher, matches *int, c *cloner, prepared **node) *node {
 	switch {
 	case n == nil:
 		return newLeaf(v).node()
 	case n.isLeaf():
-		return n.leaf().with(v, useRHS, depth, h, matches, c)
+		return n.leaf().with(v, f, depth, h, matches, c)
 	default:
 		offset := h.hash()
 		var childPrepared *node
-		child := n.children[offset].with(v, useRHS, depth+1, h.next(), matches, c, &childPrepared)
+		child := n.children[offset].with(v, f, depth+1, h.next(), matches, c, &childPrepared)
 		if child.isLeaf() && (n.mask|MaskIterator(1)<<offset).Count() == 1 {
 			return child
 		}

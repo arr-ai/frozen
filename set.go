@@ -297,7 +297,7 @@ func (s Set) Union(t Set) Set {
 	c := newCloner(false, s.Count()+t.Count())
 	matchesAsync := c.counter()
 	matches := 0
-	root := s.root.union(t.root, true, 0, &matches, c)
+	root := s.root.union(t.root, useRHS, 0, &matches, c)
 	matches += matchesAsync()
 	return Set{root: root, count: s.Count() + t.Count() - matches}
 }

@@ -77,7 +77,7 @@ func (m Map) With(key, val interface{}) Map {
 	kv := KV(key, val)
 	matches := 0
 	var prepared *node
-	root := m.root.with(kv, true, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
+	root := m.root.with(kv, useRHS, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
 	return Map{root: root, count: m.Count() + 1 - matches}
 }
 
@@ -198,28 +198,26 @@ func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
 	if m.IsEmpty() {
 		return n
 	}
-
-	merged := m
-	for i := n.Range(); i.Next(); {
-		if val, exists := m.Get(i.Key()); exists {
-			merged = merged.With(i.Key(), resolve(i.Key(), val, i.Value()))
-		} else {
-			merged = merged.With(i.Key(), i.Value())
-		}
+	matches := 0
+	extractAndResolve := func(a, b interface{}) interface{} {
+		i := a.(KeyValue)
+		j := b.(KeyValue)
+		return KV(i.Key, resolve(i.Key, i.Value, j.Value))
 	}
-
-	return merged
+	root := m.root.union(n.root, extractAndResolve, 0, &matches, theCopier)
+	return Map{root: root, count: m.Count() + n.Count() - matches}
 }
 
 // Update returns a Map with key-value pairs from n added or replacing existing
 // keys.
 func (m Map) Update(n Map) Map {
-	useRHS := m.Count() < n.Count()
-	if !useRHS {
+	f := useRHS
+	if m.Count() >= n.Count() {
 		m, n = n, m
+		f = useLHS
 	}
 	matches := 0
-	root := m.root.union(n.root, useRHS, 0, &matches, theCopier)
+	root := m.root.union(n.root, f, 0, &matches, theCopier)
 	return Map{root: root, count: m.Count() + n.Count() - matches}
 }
 
