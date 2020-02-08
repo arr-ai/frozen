@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+service Slave {
+    // Merge a set of maps.
+    rpc Merge(Set) returns (Map) {}
+}
+
+message Value {
+    oneof choice {
+        int64 i = 1;
+        float f = 2;
+        Set set = 3;
+        Map map = 4;
+    }
+}
+
+message Set {
+    repeated Value element = 1;
+}
+
+message Map {
+    repeated KV entry = 1;
+
+    message KV {
+        Value key = 1;
+        Value value = 2 ;
+    }
+}
