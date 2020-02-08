@@ -27,6 +27,7 @@ func locateBlock(i int) (blockIndex, cellIndex int, bitMask cellMask) {
 	return i / blockBits, i % blockBits / cellBits, cellMask(1) << (i % cellBits)
 }
 
+// NewIntSet returns an IntSet with the values provided.
 func NewIntSet(is ...int) IntSet {
 	var b MapBuilder
 	count := 0
@@ -59,18 +60,22 @@ func NewIntSet(is ...int) IntSet {
 	return IntSet{data: b.Finish(), count: count}
 }
 
+// IsEmpty returns true if there is no values in s and false otherwise.
 func (s IntSet) IsEmpty() bool {
 	return s.data.IsEmpty()
 }
 
+// Count returns the number of elements in IntSet.
 func (s IntSet) Count() int {
 	return s.count
 }
 
+// Range returns the iterator for IntSet.
 func (s IntSet) Range() IntIterator {
 	return &intSetIterator{blockIter: s.data.Range()}
 }
 
+// Elements returns all the values of IntSet.
 func (s IntSet) Elements() []int {
 	result := make([]int, 0, s.Count())
 	for i := s.Range(); i.Next(); {
@@ -81,6 +86,7 @@ func (s IntSet) Elements() []int {
 
 // func (s IntSet) OrderedElements(less Less) []int {}
 
+// Any returns a random value from s.
 func (s IntSet) Any() int {
 	k, v := s.data.Any()
 	blockIndex := k.(int)
@@ -98,6 +104,8 @@ func (s IntSet) Any() int {
 // func (s IntSet) OrderedFirstN(n int, less Less) []int {}
 // func (s IntSet) First(less Less) int                  {}
 // func (s IntSet) FirstN(n int, less Less) IntSet       {}
+
+// String returns a string representation of IntSet.
 func (s IntSet) String() string {
 	stringed := make([]string, 0, s.count)
 	for i := s.Range(); i.Next(); {
@@ -110,10 +118,13 @@ func (s IntSet) String() string {
 // func (s IntSet) OrderedRange(less Less) Iterator      {}
 // func (s IntSet) Hash(seed uintptr) uintptr            {}
 // func (s IntSet) Equal(t int) bool                     {}
+
+// EqualSet returns true if both IntSets are equal.
 func (s IntSet) EqualSet(t IntSet) bool {
 	return s.data.Equal(t.data)
 }
 
+// IsSubsetOf returns true if s is a subset of t and false otherwise.
 func (s IntSet) IsSubsetOf(t IntSet) bool {
 	for sBlock := s.data.Range(); sBlock.Next(); {
 		if tBlock, exists := t.data.Get(sBlock.Key()); !exists || tBlock != sBlock.Value() {
@@ -123,11 +134,13 @@ func (s IntSet) IsSubsetOf(t IntSet) bool {
 	return true
 }
 
+// Has returns true if value exists in the IntSet and false otherwise.
 func (s IntSet) Has(val int) bool {
 	block, _, cellIndex, bitMask := s.locate(val)
 	return block[cellIndex]&bitMask != 0
 }
 
+// With returns a new IntSet with the values of s and the provided values.
 func (s IntSet) With(is ...int) IntSet {
 	for _, i := range is {
 		block, blockIndex, cellIndex, bitMask := s.locate(i)
@@ -140,6 +153,7 @@ func (s IntSet) With(is ...int) IntSet {
 	return s
 }
 
+// Without returns an IntSet without the provided values.
 func (s IntSet) Without(is ...int) IntSet {
 	indexToRemove := NewSetBuilder(0)
 	for _, i := range is {
@@ -158,6 +172,7 @@ func (s IntSet) Without(is ...int) IntSet {
 	return s
 }
 
+// Where returns an IntSet whose values fulfill the provided condition.
 func (s IntSet) Where(pred func(elem int) bool) IntSet {
 	//TODO: find a way that works more on block level or maybe make IntSetBuilder?
 	arr := make([]int, 0, s.count)
@@ -169,6 +184,7 @@ func (s IntSet) Where(pred func(elem int) bool) IntSet {
 	return NewIntSet(arr...)
 }
 
+// Map returns an IntSet with whose values are mapped from s.
 func (s IntSet) Map(f func(elem int) int) IntSet {
 	arr := make([]int, 0, s.count)
 	for i := s.Range(); i.Next(); {
@@ -179,6 +195,8 @@ func (s IntSet) Map(f func(elem int) int) IntSet {
 
 // func (s IntSet) Reduce(reduce func(elems ...int) int) int {}
 // func (s IntSet) Reduce2(reduce func(a, b int) int) int    {}
+
+// Intersection returns an IntSet whose values exists in s and t.
 func (s IntSet) Intersection(t IntSet) IntSet {
 	var intersectMap MapBuilder
 	count := 0
@@ -194,6 +212,7 @@ func (s IntSet) Intersection(t IntSet) IntSet {
 	return IntSet{data: intersectMap.Finish(), count: count}
 }
 
+// Union returns an integer set that is a union of s and t.
 func (s IntSet) Union(t IntSet) IntSet {
 	unionMap := s.data
 	count := s.count
