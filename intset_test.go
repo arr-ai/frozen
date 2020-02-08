@@ -143,6 +143,51 @@ func TestIntSetIsSubsetOf(t *testing.T) {
 	assert.False(t, NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(NewIntSet(arr[int(len(arr)/3):]...)))
 }
 
+func TestIntSetWhere(t *testing.T) {
+	t.Parallel()
+
+	arr, fullSet := generateIntArrayAndSet()
+	var evens, odds []int
+	evenPred := func(e int) bool { return e%2 == 0 }
+	oddPred := func(e int) bool { return e%2 != 0 }
+
+	for _, i := range arr {
+		if evenPred(i) {
+			evens = append(evens, i)
+		} else {
+			odds = append(odds, i)
+		}
+	}
+
+	evenSet := NewIntSet(evens...)
+	oddSet := NewIntSet(odds...)
+
+	evenPredWhere := fullSet.Where(evenPred)
+	oddPredWhere := fullSet.Where(oddPred)
+	assert.True(t, evenPredWhere.EqualSet(evenSet))
+	assert.Equal(t, evenSet.count, evenPredWhere.count)
+	assert.True(t, oddPredWhere.EqualSet(oddSet))
+	assert.Equal(t, oddSet.count, oddPredWhere.count)
+	assert.True(t, NewIntSet().Where(evenPred).EqualSet(NewIntSet()))
+}
+
+func TestIntSetMap(t *testing.T) {
+	t.Parallel()
+
+	subtract := func(e int) int { return e - 1 }
+	arr, fullSet := generateIntArrayAndSet()
+	mappedArr := make([]int, 0, len(arr))
+
+	for _, i := range arr {
+		mappedArr = append(mappedArr, subtract(i))
+	}
+
+	mappedSet := NewIntSet(mappedArr...)
+
+	assert.True(t, mappedSet.EqualSet(fullSet.Map(subtract)))
+	assert.True(t, NewIntSet().EqualSet(NewIntSet().Map(subtract)))
+}
+
 func generateIntArrayAndSet() ([]int, IntSet) {
 	arr := make([]int, 0, maxIntArrLen)
 	curr := float64(1.0)

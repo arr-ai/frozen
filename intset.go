@@ -1,6 +1,8 @@
 package frozen
 
 import (
+	"strconv"
+	"strings"
 	"unsafe"
 )
 
@@ -96,7 +98,14 @@ func (s IntSet) Any() int {
 // func (s IntSet) OrderedFirstN(n int, less Less) []int {}
 // func (s IntSet) First(less Less) int                  {}
 // func (s IntSet) FirstN(n int, less Less) IntSet       {}
-// func (s IntSet) String() string                       {}
+func (s IntSet) String() string {
+	stringed := make([]string, 0, s.count)
+	for i := s.Range(); i.Next(); {
+		stringed = append(stringed, strconv.Itoa(i.Value()))
+	}
+	return "[" + strings.Join(stringed, ", ") + "]"
+}
+
 // func (s IntSet) Format(state fmt.State, _ rune)       {}
 // func (s IntSet) OrderedRange(less Less) Iterator      {}
 // func (s IntSet) Hash(seed uintptr) uintptr            {}
@@ -149,8 +158,25 @@ func (s IntSet) Without(is ...int) IntSet {
 	return s
 }
 
-// func (s IntSet) Where(pred func(elem int) bool) IntSet    {}
-// func (s IntSet) Map(f func(elem int) int) IntSet          {}
+func (s IntSet) Where(pred func(elem int) bool) IntSet {
+	//TODO: find a way that works more on block level or maybe make IntSetBuilder?
+	arr := make([]int, 0, s.count)
+	for i := s.Range(); i.Next(); {
+		if pred(i.Value()) {
+			arr = append(arr, i.Value())
+		}
+	}
+	return NewIntSet(arr...)
+}
+
+func (s IntSet) Map(f func(elem int) int) IntSet {
+	arr := make([]int, 0, s.count)
+	for i := s.Range(); i.Next(); {
+		arr = append(arr, f(i.Value()))
+	}
+	return NewIntSet(arr...)
+}
+
 // func (s IntSet) Reduce(reduce func(elems ...int) int) int {}
 // func (s IntSet) Reduce2(reduce func(a, b int) int) int    {}
 func (s IntSet) Intersection(t IntSet) IntSet {
