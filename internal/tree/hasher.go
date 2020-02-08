@@ -20,11 +20,11 @@ func NewHasher(key interface{}, depth int) Hasher {
 	return Hasher(hash.Interface(key, 0)) << (depth * nodeBits)
 }
 
-func (h Hasher) next() Hasher {
+func (h Hasher) Next() Hasher {
 	return h << nodeBits
 }
 
-func (h Hasher) hash() int {
+func (h Hasher) Hash() int {
 	return int(h >> hashBitsOffset)
 }
 
@@ -40,7 +40,7 @@ func (h Hasher) String() string {
 		sb.WriteByte('#')
 		// Braille-encode octal digits in pairs.
 		for ; h != 0; h <<= 6 {
-			sb.WriteRune(rune(0x2800 + h.hash() + h.next().hash()<<3))
+			sb.WriteRune(rune(0x2800 + h.Hash() + h.Next().Hash()<<3))
 		}
 		return sb.String()
 	case 4:

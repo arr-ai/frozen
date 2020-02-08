@@ -161,8 +161,8 @@ func (n *Node) getImpl(v interface{}, h Hasher) interface{} {
 		}
 		return nil
 	default:
-		i := h.hash()
-		return n.children[i].getImpl(v, h.next())
+		i := h.Hash()
+		return n.children[i].getImpl(v, h.Next())
 	}
 }
 
@@ -398,9 +398,9 @@ func (n *Node) With(
 	case n.isLeaf():
 		return n.leaf().with(v, f, depth, h, matches, c)
 	default:
-		offset := h.hash()
+		offset := h.Hash()
 		var childPrepared *Node
-		child := n.children[offset].With(v, f, depth+1, h.next(), matches, c, &childPrepared)
+		child := n.children[offset].With(v, f, depth+1, h.Next(), matches, c, &childPrepared)
 		if child.isLeaf() && (n.mask|types.MaskIterator(1)<<offset).Count() == 1 {
 			return child
 		}
@@ -443,9 +443,9 @@ func (n *Node) Without(v interface{}, depth int, h Hasher, matches *int, c *Clon
 	case n.isLeaf():
 		return n.leaf().without(v, matches, c)
 	default:
-		offset := h.hash()
+		offset := h.Hash()
 		var childPrepared *Node
-		child := n.children[offset].Without(v, depth+1, h.next(), matches, c, &childPrepared)
+		child := n.children[offset].Without(v, depth+1, h.Next(), matches, c, &childPrepared)
 		return c.node(n, prepared).setChild(offset, child).canonical()
 	}
 }

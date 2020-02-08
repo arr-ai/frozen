@@ -183,14 +183,14 @@ func (l *Leaf) with(
 	}
 	result := &Node{}
 	last := result
-	noffset, offset := h0.hash(), h.hash()
+	noffset, offset := h0.Hash(), h.Hash()
 	for noffset == offset {
 		last.mask = 1 << offset
 		newLast := &Node{}
 		last.children[offset] = newLast
 		last = newLast
-		h0, h = h0.next(), h.next()
-		noffset, offset = h0.hash(), h.hash()
+		h0, h = h0.Next(), h.Next()
+		noffset, offset = h0.Hash(), h.Hash()
 	}
 	last.mask = 1<<noffset | 1<<offset
 	last.children[noffset] = l.node()
