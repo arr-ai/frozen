@@ -101,8 +101,19 @@ func (s IntSet) Any() int {
 // func (s IntSet) OrderedRange(less Less) Iterator      {}
 // func (s IntSet) Hash(seed uintptr) uintptr            {}
 // func (s IntSet) Equal(t int) bool                     {}
-// func (s IntSet) EqualSet(t IntSet) bool               {}
-// func (s IntSet) IsSubsetOf(t IntSet) bool             {}
+func (s IntSet) EqualSet(t IntSet) bool {
+	return s.data.Equal(t.data)
+}
+
+func (s IntSet) IsSubsetOf(t IntSet) bool {
+	for sBlock := s.data.Range(); sBlock.Next(); {
+		if tBlock, exists := t.data.Get(sBlock.Key()); !exists || tBlock != sBlock.Value() {
+			return false
+		}
+	}
+	return true
+}
+
 func (s IntSet) Has(val int) bool {
 	block, _, cellIndex, bitMask := s.locate(val)
 	return block[cellIndex]&bitMask != 0
@@ -142,8 +153,36 @@ func (s IntSet) Without(is ...int) IntSet {
 // func (s IntSet) Map(f func(elem int) int) IntSet          {}
 // func (s IntSet) Reduce(reduce func(elems ...int) int) int {}
 // func (s IntSet) Reduce2(reduce func(a, b int) int) int    {}
-// func (s IntSet) Intersection(t IntSet) IntSet             {}
-// func (s IntSet) Union(t IntSet) IntSet                    {}
+func (s IntSet) Intersection(t IntSet) IntSet {
+	var intersectMap MapBuilder
+	count := 0
+	for tBlock := t.data.Range(); tBlock.Next(); {
+		if sBlock, exists := s.data.Get(tBlock.Key()); exists {
+			intersectBlock := sBlock.(cellBlock).intersection(tBlock.Value().(cellBlock))
+			intersectMap.Put(tBlock.Key(), intersectBlock)
+			count += intersectBlock.count()
+		}
+	}
+	return IntSet{data: intersectMap.Finish(), count: count}
+}
+
+func (s IntSet) Union(t IntSet) IntSet {
+	unionMap := s.data
+	count := s.count
+	var unionBlock cellBlock
+	for tBlock := t.data.Range(); tBlock.Next(); {
+		if sBlock, exists := s.data.Get(tBlock.Key()); exists {
+			unionBlock = sBlock.(cellBlock).union(tBlock.Value().(cellBlock))
+			count += unionBlock.diffCount(sBlock.(cellBlock))
+		} else {
+			unionBlock = tBlock.Value().(cellBlock)
+			count += unionBlock.count()
+		}
+		unionMap = unionMap.With(tBlock.Key(), unionBlock)
+	}
+	return IntSet{data: unionMap, count: count}
+}
+
 // func (s IntSet) Difference(t IntSet) IntSet               {}
 // func (s IntSet) SymmetricDifference(t IntSet) IntSet      {}
 // func (s IntSet) Powerset() IntSet                         {}
@@ -153,6 +192,43 @@ func (s IntSet) locate(i int) (block cellBlock, blockIndex, cellIndex int, bitMa
 	blockIndex, cellIndex, bitMask = locateBlock(i)
 	if v, has := s.data.Get(blockIndex); has {
 		block = v.(cellBlock)
+	}
+	return
+}
+
+func (b cellBlock) intersection(b2 cellBlock) (intersect cellBlock) {
+	for i := range b {
+		intersect[i] = b[i] & b2[i]
+	}
+	return
+}
+
+func (b cellBlock) union(b2 cellBlock) (u cellBlock) {
+	for i := range b {
+		u[i] = b[i] | b2[i]
+	}
+	return
+}
+
+func (b cellBlock) diffCount(b2 cellBlock) (diffCount int) {
+	for i := range b {
+		diffCount += b[i].diffCount(b2[i])
+	}
+	return
+}
+
+func (b cellBlock) count() (count int) {
+	for _, c := range b {
+		count += c.onesCount()
+	}
+	return
+}
+
+func (c cellMask) diffCount(c2 cellMask) int { return (c ^ c2).onesCount() }
+
+func (c cellMask) onesCount() (count int) {
+	for ; c != 0; c &= c - 1 {
+		count++
 	}
 	return
 }

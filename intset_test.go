@@ -86,6 +86,62 @@ func TestIntSetWithout(t *testing.T) {
 	}
 }
 
+func TestIntSetIntersection(t *testing.T) {
+	t.Parallel()
+
+	arr, fullSet := generateIntArrayAndSet()
+	firstQuartile := NewIntSet(arr[:int(len(arr)/4)]...)
+	secondToFifthDecile := NewIntSet(arr[int(len(arr)/5):int(len(arr)/2)]...)
+	thirdQuartile := NewIntSet(arr[int(len(arr)/2):int(3*len(arr)/4)]...)
+
+	intersect := fullSet.Intersection(firstQuartile)
+	assert.True(t, intersect.EqualSet(firstQuartile))
+	assert.Equal(t, firstQuartile.count, intersect.count)
+
+	intersect = firstQuartile.Intersection(thirdQuartile)
+	assert.True(t, intersect.IsEmpty())
+	assert.Equal(t, 0, intersect.count)
+
+	intersect = secondToFifthDecile.Intersection(firstQuartile)
+	distinctNums := len(getDistinctInts(arr[int(len(arr)/5):int(len(arr)/4)]))
+	for i := intersect.Range(); i.Next(); {
+		assert.True(t, secondToFifthDecile.Has(i.Value()) && firstQuartile.Has(i.Value()))
+	}
+	assert.Equal(t, distinctNums, intersect.count)
+}
+
+func TestIntSetUnion(t *testing.T) {
+	t.Parallel()
+
+	arr, fullSet := generateIntArrayAndSet()
+	set := NewIntSet(arr[:len(arr)/2]...)
+	distinct := getDistinctInts(arr)
+	for _, i := range arr[len(arr)/2:] {
+		assert.False(t, set.Has(i))
+	}
+
+	union := set.Union(fullSet)
+	for _, i := range distinct {
+		assert.True(t, union.Has(i))
+	}
+	assert.Equal(t, len(distinct), union.count)
+
+	union = fullSet.Union(set)
+	for _, i := range distinct {
+		assert.True(t, union.Has(i))
+	}
+	assert.Equal(t, len(distinct), union.count)
+}
+
+func TestIntSetIsSubsetOf(t *testing.T) {
+	t.Parallel()
+
+	arr, fullSet := generateIntArrayAndSet()
+	assert.True(t, NewIntSet().IsSubsetOf(fullSet))
+	assert.True(t, fullSet.IsSubsetOf(fullSet))
+	assert.True(t, NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(fullSet))
+	assert.False(t, NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(NewIntSet(arr[int(len(arr)/3):]...)))
+}
 
 func generateIntArrayAndSet() ([]int, IntSet) {
 	arr := make([]int, 0, maxIntArrLen)
