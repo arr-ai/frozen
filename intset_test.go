@@ -1,11 +1,14 @@
 package frozen
 
 import (
-	"testing"
+	"math"
 	"sort"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+const maxIntArrLen = 1000000
 
 func TestIntSetEmpty(t *testing.T) {
 	t.Parallel()
@@ -18,9 +21,8 @@ func TestIntSetEmpty(t *testing.T) {
 func TestNewIntSet(t *testing.T) {
 	t.Parallel()
 
-	n := 1000
-	set := intSetIota(n)
-	for i := 0; i < n; i++ {
+	arr, set := generateIntArrayAndSet()
+	for _, i := range arr {
 		assert.True(t, set.Has(i), i)
 	}
 }
@@ -28,56 +30,55 @@ func TestNewIntSet(t *testing.T) {
 func TestIntSetIter(t *testing.T) {
 	t.Parallel()
 
-	n := 1000
-	container := makeIntArray(0, n, 1)
-	set := intSetIota(n)
-	arr := make([]int, 0, n)
+	arr, set := generateIntArrayAndSet()
+	container := make([]int, 0, maxIntArrLen)
 	for i := set.Range(); i.Next(); {
-		arr = append(arr, i.Value())
+		container = append(container, i.Value())
 	}
-	sort.Ints(arr)
-	assert.Equal(t, container, arr)
+	distinct := getDistinctInts(arr)
+	sort.Ints(distinct)
+	sort.Ints(container)
+	assert.Equal(t, distinct, container)
 }
 
 func TestIntSetHas(t *testing.T) {
 	t.Parallel()
 
-	set := intSetIota(100)
-	assert.True(t, set.Has(99))
-	assert.False(t, set.Has(100))
+	arr, set := generateIntArrayAndSet()
+	for _, i := range arr {
+		assert.True(t, set.Has(i))
+	}
+	assert.False(t, set.Has(arr[len(arr)-1]-1))
 }
 
 func TestIntSetWith(t *testing.T) {
 	t.Parallel()
 
-	n := 1000
-	set := intSetIota(n)
-	arr := makeIntArray(n, 2*n, 1)
-	for i := n; i < 2*n; i++ {
+	arr, _ := generateIntArrayAndSet()
+	set := NewIntSet(arr[:len(arr)/2]...)
+
+	for _, i := range arr[len(arr)/2:] {
 		assert.False(t, set.Has(i))
 	}
 
-	set = set.With(arr...)
+	set = set.With(arr[len(arr)/2:]...)
 
-	for i := n; i < 2*n; i++ {
+	for _, i := range arr[len(arr)/2:] {
 		assert.True(t, set.Has(i))
 	}
-	assert.Equal(t, 2*n, set.count)
+	assert.Equal(t, len(getDistinctInts(arr)), set.count)
 }
 
 func TestIntSetWithout(t *testing.T) {
 	t.Parallel()
 
-	n := 1024
-	set := intSetIota(n)
-	for i := 0; i < n; i++ {
-		assert.True(t, set.Has(i))
-	}
-
-	set = set.Without(makeIntArray(n/2, n, 1)...)
-	assert.Equal(t, n/2, set.count)
-	for i := n / 2; i < n; i++ {
-		assert.False(t, set.Has(i), i)
+	arr, set := generateIntArrayAndSet()
+	half := arr[:len(arr)/2]
+	set = set.Without(half...)
+	expectedCount := len(getDistinctInts(arr)) - len(getDistinctInts(half))
+	assert.Equal(t, expectedCount, set.count)
+	for _, i := range half {
+		assert.False(t, set.Has(i))
 	}
 
 	for i := set.data.Range(); i.Next(); {
@@ -85,19 +86,26 @@ func TestIntSetWithout(t *testing.T) {
 	}
 }
 
-func intSetIota(n int) IntSet {
-	arr := make([]int, 0, n)
-	for i := 0; i < n; i++ {
-		arr = append(arr, i)
+
+func generateIntArrayAndSet() ([]int, IntSet) {
+	arr := make([]int, 0, maxIntArrLen)
+	curr := float64(1.0)
+	for i := 1; i < maxIntArrLen; i++ {
+		arr = append(arr, int(curr))
+		curr *= math.Pow(2, 64/math.Pow(10, 6))
 	}
-	return NewIntSet(arr...)
+	return arr, NewIntSet(arr...)
 }
 
-func makeIntArray(start, stop, step int) []int {
-	arr := generateSortedIntArray(start, stop, step)
-	intArr := make([]int, 0, len(arr))
-	for _, i := range arr {
-		intArr = append(intArr, i.(int))
+func getDistinctInts(x []int) []int {
+	m := make(map[int]byte)
+	for _, i := range x {
+		m[i] = 'a'
 	}
-	return intArr
+
+	distinct := make([]int, 0, len(m))
+	for k := range m {
+		distinct = append(distinct, k)
+	}
+	return distinct
 }
