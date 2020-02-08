@@ -159,8 +159,10 @@ func (s IntSet) Intersection(t IntSet) IntSet {
 	for tBlock := t.data.Range(); tBlock.Next(); {
 		if sBlock, exists := s.data.Get(tBlock.Key()); exists {
 			intersectBlock := sBlock.(cellBlock).intersection(tBlock.Value().(cellBlock))
-			intersectMap.Put(tBlock.Key(), intersectBlock)
-			count += intersectBlock.count()
+			if intersectBlock != emptyBlock {
+				intersectMap.Put(tBlock.Key(), intersectBlock)
+				count += intersectBlock.count()
+			}
 		}
 	}
 	return IntSet{data: intersectMap.Finish(), count: count}
