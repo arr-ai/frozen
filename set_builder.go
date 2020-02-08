@@ -1,22 +1,24 @@
 package frozen
 
+import "github.com/arr-ai/frozen/internal/tree"
+
 // SetBuilder provides a more efficient way to build sets incrementally.
 type SetBuilder struct {
-	root          *node
-	prepared      *node
+	root          *tree.Node
+	prepared      *tree.Node
 	attemptedAdds int
 	redundantAdds int
 	removals      int
-	cloner        *cloner
+	cloner        *tree.Cloner
 }
 
 func NewSetBuilder(capacity int) *SetBuilder {
-	return &SetBuilder{cloner: newCloner(true, capacity)}
+	return &SetBuilder{cloner: tree.NewCloner(true, capacity)}
 }
 
-func (b *SetBuilder) getCloner() *cloner {
+func (b *SetBuilder) getCloner() *tree.Cloner {
 	if b.cloner == nil {
-		b.cloner = theMutator
+		b.cloner = tree.Mutator
 	}
 	return b.cloner
 }
@@ -28,17 +30,17 @@ func (b *SetBuilder) Count() int {
 
 // Add adds el to the Set under construction.
 func (b *SetBuilder) Add(v interface{}) {
-	b.root = b.root.with(v, useRHS, 0, newHasher(v, 0), &b.redundantAdds, b.getCloner(), &b.prepared)
+	b.root = b.root.With(v, useRHS, 0, tree.NewHasher(v, 0), &b.redundantAdds, b.getCloner(), &b.prepared)
 	b.attemptedAdds++
 }
 
 // Remove removes el to the Set under construction.
 func (b *SetBuilder) Remove(v interface{}) {
-	b.root = b.root.without(v, 0, newHasher(v, 0), &b.removals, b.getCloner(), &b.prepared)
+	b.root = b.root.Without(v, 0, tree.NewHasher(v, 0), &b.removals, b.getCloner(), &b.prepared)
 }
 
 func (b *SetBuilder) Has(el interface{}) bool {
-	return b.root.get(el) != nil
+	return b.root.Get(el) != nil
 }
 
 // Finish returns a Set containing all elements added since the SetBuilder was

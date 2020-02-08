@@ -1,8 +1,10 @@
 //nolint:dupl
-package frozen
+package types
 
 import (
 	"math/bits"
+
+	"github.com/arr-ai/frozen/internal/fmtutil"
 )
 
 // MaskIterator represents a set of one-bits and the ability to enumerate them.
@@ -33,5 +35,5 @@ func (b MaskIterator) Without(i int) MaskIterator {
 }
 
 func (b MaskIterator) String() string {
-	return brailleEncoded(bits.Reverse64(uint64(b)))
+	return fmtutil.BrailleEncoded(bits.Reverse64(uint64(b)))
 }

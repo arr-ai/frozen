@@ -1,4 +1,4 @@
-package frozen
+package tree
 
 type exhaustedIterator struct{}
 
@@ -11,12 +11,12 @@ func (exhaustedIterator) Value() interface{} {
 }
 
 type leafIterator struct {
-	l      *leaf
+	l      *Leaf
 	index  int
 	extras extraLeafElems
 }
 
-func newLeafIterator(l *leaf) *leafIterator {
+func newLeafIterator(l *Leaf) *leafIterator {
 	return &leafIterator{
 		l:     l,
 		index: -1,

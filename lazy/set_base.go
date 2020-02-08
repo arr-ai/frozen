@@ -2,6 +2,7 @@ package lazy
 
 import (
 	"github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/types"
 	"github.com/arr-ai/hash"
 )
 
@@ -83,7 +84,7 @@ func (s *baseSet) Has(el interface{}) bool {
 		return has
 	}
 	for i := s.set.Range(); i.Next(); {
-		if frozen.Equal(el, i.Value()) {
+		if types.Equal(el, i.Value()) {
 			return true
 		}
 	}

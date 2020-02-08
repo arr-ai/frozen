@@ -1,5 +1,7 @@
 package frozen
 
+import "github.com/arr-ai/frozen/types"
+
 // IntLess dictates the order of two elements.
 type IntLess func(a, b int) bool
 
@@ -39,5 +41,5 @@ func (i *intSetIterator) Next() bool {
 }
 
 func (i *intSetIterator) Value() int {
-	return i.firstIntInCell + BitIterator(i.block[0]).Index()
+	return i.firstIntInCell + types.BitIterator(i.block[0]).Index()
 }

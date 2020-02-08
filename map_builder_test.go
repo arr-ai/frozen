@@ -3,6 +3,7 @@ package frozen
 import (
 	"testing"
 
+	"github.com/arr-ai/frozen/internal/tree"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -70,7 +71,7 @@ func TestMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 					t.Log(b.root)
 					t.FailNow()
 				}
-				if !assert.Equal(t, u, v, "h(u)=%v h(v)=%v", newHasher(u, 0), newHasher(v, 0)) {
+				if !assert.Equal(t, u, v, "h(u)=%v h(v)=%v", tree.NewHasher(u, 0), tree.NewHasher(v, 0)) {
 					t.Log(b.root)
 					t.FailNow()
 				}

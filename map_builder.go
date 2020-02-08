@@ -1,17 +1,19 @@
 package frozen
 
+import "github.com/arr-ai/frozen/internal/tree"
+
 // MapBuilder provides a more efficient way to build Maps incrementally.
 type MapBuilder struct {
-	root          *node
-	prepared      *node
+	root          *tree.Node
+	prepared      *tree.Node
 	redundantPuts int
 	removals      int
 	attemptedAdds int
-	cloner        *cloner
+	cloner        *tree.Cloner
 }
 
 func NewMapBuilder(capacity int) *MapBuilder {
-	return &MapBuilder{cloner: newCloner(true, capacity)}
+	return &MapBuilder{cloner: tree.NewCloner(true, capacity)}
 }
 
 // Count returns the number of entries in the Map under construction.
@@ -22,20 +24,20 @@ func (b *MapBuilder) Count() int {
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder) Put(key, value interface{}) {
 	kv := KV(key, value)
-	b.root = b.root.with(kv, useRHS, 0, newHasher(kv, 0), &b.redundantPuts, theMutator, &b.prepared)
+	b.root = b.root.With(kv, useRHS, 0, tree.NewHasher(kv, 0), &b.redundantPuts, tree.Mutator, &b.prepared)
 	b.attemptedAdds++
 }
 
 // Remove removes an entry from the Map under construction.
 func (b *MapBuilder) Remove(key interface{}) {
 	kv := KV(key, nil)
-	b.root = b.root.without(kv, 0, newHasher(kv, 0), &b.removals, theMutator, &b.prepared)
+	b.root = b.root.Without(kv, 0, tree.NewHasher(kv, 0), &b.removals, tree.Mutator, &b.prepared)
 }
 
 // Get returns the value for key from the Map under construction or false if
 // not found.
 func (b *MapBuilder) Get(key interface{}) (interface{}, bool) {
-	if entry := b.root.get(KV(key, nil)); entry != nil {
+	if entry := b.root.Get(KV(key, nil)); entry != nil {
 		return entry.(KeyValue).Value, true
 	}
 	return nil, false

@@ -1,29 +1,31 @@
-package frozen
+package tree
 
 import (
 	"fmt"
 	"strings"
 	"unsafe"
+
+	"github.com/arr-ai/frozen/types"
 )
 
 const (
-	leafElems = nodeCount / 2
+	leafElems = NodeCount / 2
 )
 
 // Compile-time assert that node and leaf have the same size and alignment.
-const _ = -uint(unsafe.Sizeof(node{}) ^ unsafe.Sizeof(leaf{}))
-const _ = -uint(unsafe.Alignof(node{}) ^ unsafe.Alignof(leaf{}))
+const _ = -uint(unsafe.Sizeof(Node{}) ^ unsafe.Sizeof(Leaf{}))
+const _ = -uint(unsafe.Alignof(Node{}) ^ unsafe.Alignof(Leaf{}))
 
 type extraLeafElems []interface{}
 
-type leaf struct { //nolint:maligned
+type Leaf struct { //nolint:maligned
 	_         uint16 // mask only accessed via *node
 	lastIndex int16
 	elems     [leafElems]interface{}
 }
 
-func newLeaf(elems ...interface{}) *leaf {
-	l := &leaf{lastIndex: int16(len(elems) - 1)}
+func newLeaf(elems ...interface{}) *Leaf {
+	l := &Leaf{lastIndex: int16(len(elems) - 1)}
 	copy(l.elems[:], elems)
 	if len(elems) > leafElems {
 		panic("too many elems")
@@ -31,39 +33,39 @@ func newLeaf(elems ...interface{}) *leaf {
 	return l
 }
 
-func (l *leaf) node() *node {
-	return (*node)(unsafe.Pointer(l))
+func (l *Leaf) node() *Node {
+	return (*Node)(unsafe.Pointer(l))
 }
 
-func (l *leaf) count() int {
+func (l *Leaf) count() int {
 	if l.lastIndex > leafElems {
 		return int(l.lastIndex)
 	}
 	return int(l.lastIndex) + 1
 }
 
-func (l *leaf) last() *interface{} { //nolint:gocritic
+func (l *Leaf) last() *interface{} { //nolint:gocritic
 	return &l.elems[leafElems-1]
 }
 
-func (l *leaf) extras() extraLeafElems {
+func (l *Leaf) extras() extraLeafElems {
 	extras, _ := (*l.last()).(extraLeafElems)
 	return extras
 }
 
-func (l *leaf) elem(i int) *interface{} { //nolint:gocritic
+func (l *Leaf) elem(i int) *interface{} { //nolint:gocritic
 	if i < leafElems {
 		return &l.elems[i]
 	}
 	return &l.extras()[i-leafElems]
 }
 
-func (l *leaf) set(i int, v interface{}) *leaf {
+func (l *Leaf) set(i int, v interface{}) *Leaf {
 	*l.elem(i) = v
 	return l
 }
 
-func (l *leaf) push(v interface{}, c *cloner) *leaf {
+func (l *Leaf) push(v interface{}, c *Cloner) *Leaf {
 	l = c.leaf(l)
 	l.lastIndex++
 	switch {
@@ -78,7 +80,7 @@ func (l *leaf) push(v interface{}, c *cloner) *leaf {
 	return l
 }
 
-func (l *leaf) pop(c *cloner) (result *leaf, v interface{}) {
+func (l *Leaf) pop(c *Cloner) (result *Leaf, v interface{}) {
 	if l.lastIndex == 0 {
 		return nil, l.elems[0]
 	}
@@ -103,7 +105,7 @@ func (l *leaf) pop(c *cloner) (result *leaf, v interface{}) {
 	return l, v
 }
 
-func (l *leaf) remove(i int, c *cloner) *leaf {
+func (l *Leaf) remove(i int, c *Cloner) *Leaf {
 	if i == int(l.lastIndex) {
 		result, _ := l.pop(c)
 		return result
@@ -121,17 +123,17 @@ func (l *leaf) remove(i int, c *cloner) *leaf {
 	return nil
 }
 
-func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
+func (l *Leaf) equal(m *Leaf, eq func(a, b interface{}) bool) bool {
 	return l.isSubsetOf(m, eq) && m.isSubsetOf(l, eq)
 }
 
-func (l *leaf) where(pred func(elem interface{}) bool, matches *int) *node {
-	result := leaf{lastIndex: -1}
+func (l *Leaf) where(pred func(elem interface{}) bool, matches *int) *Node {
+	result := Leaf{lastIndex: -1}
 	for i := l.iterator(); i.Next(); {
 		v := *i.elem()
 		if pred(v) {
 			*matches++
-			result.push(v, theMutator)
+			result.push(v, Mutator)
 		}
 	}
 	if result.lastIndex < 0 {
@@ -140,20 +142,20 @@ func (l *leaf) where(pred func(elem interface{}) bool, matches *int) *node {
 	return result.node()
 }
 
-func (l *leaf) foreach(f func(elem interface{})) {
+func (l *Leaf) foreach(f func(elem interface{})) {
 	for i := l.iterator(); i.Next(); {
 		f(*i.elem())
 	}
 }
 
-func (l *leaf) intersection(n *node, depth int, count *int) *node {
-	result := leaf{lastIndex: -1}
+func (l *Leaf) intersection(n *Node, depth int, count *int) *Node {
+	result := Leaf{lastIndex: -1}
 	for i := l.iterator(); i.Next(); {
 		v := *i.elem()
-		h := newHasher(v, depth)
+		h := NewHasher(v, depth)
 		if n.getImpl(v, h) != nil {
 			*count++
-			result.push(v, theMutator)
+			result.push(v, Mutator)
 		}
 	}
 	if result.lastIndex < 0 {
@@ -162,22 +164,29 @@ func (l *leaf) intersection(n *node, depth int, count *int) *node {
 	return result.node()
 }
 
-func (l *leaf) with(v interface{}, f func(a, b interface{}) interface{}, depth int, h hasher, matches *int, c *cloner) *node {
-	if elem, i := l.get(v, Equal); elem != nil {
+func (l *Leaf) with(
+	v interface{},
+	f func(a, b interface{}) interface{},
+	depth int,
+	h Hasher,
+	matches *int,
+	c *Cloner,
+) *Node {
+	if elem, i := l.get(v, types.Equal); elem != nil {
 		*matches++
 		res := f(elem, v)
 		return c.leaf(l).set(i, res).node()
 	}
-	h0 := newHasher(l.elems[0], depth)
+	h0 := NewHasher(l.elems[0], depth)
 	if h == h0 {
 		return l.push(v, c).node()
 	}
-	result := &node{}
+	result := &Node{}
 	last := result
 	noffset, offset := h0.hash(), h.hash()
 	for noffset == offset {
 		last.mask = 1 << offset
-		newLast := &node{}
+		newLast := &Node{}
 		last.children[offset] = newLast
 		last = newLast
 		h0, h = h0.next(), h.next()
@@ -189,13 +198,13 @@ func (l *leaf) with(v interface{}, f func(a, b interface{}) interface{}, depth i
 	return result
 }
 
-func (l *leaf) difference(n *node, depth int, matches *int) *node {
-	result := leaf{lastIndex: -1}
+func (l *Leaf) difference(n *Node, depth int, matches *int) *Node {
+	result := Leaf{lastIndex: -1}
 	for i := l.iterator(); i.Next(); {
 		v := *i.elem()
-		h := newHasher(v, depth)
+		h := NewHasher(v, depth)
 		if n.getImpl(v, h) == nil {
-			result.push(v, theMutator)
+			result.push(v, Mutator)
 		} else {
 			*matches++
 		}
@@ -206,15 +215,15 @@ func (l *leaf) difference(n *node, depth int, matches *int) *node {
 	return result.node()
 }
 
-func (l *leaf) without(v interface{}, matches *int, c *cloner) *node {
-	if elem, i := l.get(v, Equal); elem != nil {
+func (l *Leaf) without(v interface{}, matches *int, c *Cloner) *Node {
+	if elem, i := l.get(v, types.Equal); elem != nil {
 		*matches++
 		return l.remove(i, c).node()
 	}
 	return l.node()
 }
 
-func (l *leaf) isSubsetOf(m *leaf, eq func(a, b interface{}) bool) bool {
+func (l *Leaf) isSubsetOf(m *Leaf, eq func(a, b interface{}) bool) bool {
 	for i := l.iterator(); i.Next(); {
 		if elem, _ := m.get(*i.elem(), eq); elem == nil {
 			return false
@@ -223,7 +232,7 @@ func (l *leaf) isSubsetOf(m *leaf, eq func(a, b interface{}) bool) bool {
 	return true
 }
 
-func (l *leaf) get(v interface{}, eq func(a, b interface{}) bool) (_ interface{}, index int) { //nolint:gocritic
+func (l *Leaf) get(v interface{}, eq func(a, b interface{}) bool) (_ interface{}, index int) { //nolint:gocritic
 	for i := l.iterator(); i.Next(); {
 		if elem := i.elem(); eq(*elem, v) {
 			return *elem, i.index
@@ -232,7 +241,7 @@ func (l *leaf) get(v interface{}, eq func(a, b interface{}) bool) (_ interface{}
 	return nil, -1
 }
 
-func (l *leaf) String() string {
+func (l *Leaf) String() string {
 	var b strings.Builder
 	b.WriteString("(")
 	for i, j := l.iterator(), 0; i.Next(); j++ {
@@ -245,6 +254,6 @@ func (l *leaf) String() string {
 	return b.String()
 }
 
-func (l *leaf) iterator() *leafIterator {
+func (l *Leaf) iterator() *leafIterator {
 	return newLeafIterator(l)
 }

@@ -3,6 +3,8 @@ package frozen
 import (
 	"fmt"
 
+	"github.com/arr-ai/frozen/internal/tree"
+	"github.com/arr-ai/frozen/types"
 	"github.com/arr-ai/hash"
 )
 
@@ -24,7 +26,7 @@ func (kv KeyValue) Hash(seed uintptr) uintptr {
 // Equal returns true iff i is a KeyValue whose key equals this KeyValue's key.
 func (kv KeyValue) Equal(i interface{}) bool {
 	if kv2, ok := i.(KeyValue); ok {
-		return Equal(kv.Key, kv2.Key)
+		return types.Equal(kv.Key, kv2.Key)
 	}
 	return false
 }
@@ -36,11 +38,11 @@ func (kv KeyValue) String() string {
 
 // Map maps keys to values. The zero value is the empty Map.
 type Map struct {
-	root  *node
+	root  *tree.Node
 	count int
 }
 
-var _ Key = Map{}
+var _ types.Key = Map{}
 
 // NewMap creates a new Map with kvs as keys and values.
 func NewMap(kvs ...KeyValue) Map {
@@ -93,8 +95,8 @@ func (m Map) Any() (key, value interface{}) {
 func (m Map) With(key, val interface{}) Map {
 	kv := KV(key, val)
 	matches := 0
-	var prepared *node
-	root := m.root.with(kv, useRHS, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
+	var prepared *tree.Node
+	root := m.root.With(kv, useRHS, 0, tree.NewHasher(kv, 0), &matches, tree.Copier, &prepared)
 	return Map{root: root, count: m.Count() + 1 - matches}
 }
 
@@ -104,22 +106,22 @@ func (m Map) Without(keys Set) Map {
 	// TODO: O(m+n)
 	root := m.root
 	matches := 0
-	var prepared *node
+	var prepared *tree.Node
 	for k := keys.Range(); k.Next(); {
 		kv := KV(k.Value(), nil)
-		root = root.without(kv, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
+		root = root.Without(kv, 0, tree.NewHasher(kv, 0), &matches, tree.Copier, &prepared)
 	}
 	return Map{root: root, count: m.Count() - matches}
 }
 
 // Has returns true iff the key exists in the map.
 func (m Map) Has(key interface{}) bool {
-	return m.root.get(KV(key, nil)) != nil
+	return m.root.Get(KV(key, nil)) != nil
 }
 
 // Get returns the value associated with key in m and true iff the key is found.
 func (m Map) Get(key interface{}) (interface{}, bool) {
-	if kv := m.root.get(KV(key, nil)); kv != nil {
+	if kv := m.root.Get(KV(key, nil)); kv != nil {
 		return kv.(KeyValue).Value, true
 	}
 	return nil, false
@@ -221,7 +223,7 @@ func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
 		j := b.(KeyValue)
 		return KV(i.Key, resolve(i.Key, i.Value, j.Value))
 	}
-	root := m.root.union(n.root, extractAndResolve, 0, &matches, theCopier)
+	root := m.root.Union(n.root, extractAndResolve, 0, &matches, tree.Copier)
 	return Map{root: root, count: m.Count() + n.Count() - matches}
 }
 
@@ -234,7 +236,7 @@ func (m Map) Update(n Map) Map {
 		f = useLHS
 	}
 	matches := 0
-	root := m.root.union(n.root, f, 0, &matches, theCopier)
+	root := m.root.Union(n.root, f, 0, &matches, tree.Copier)
 	return Map{root: root, count: m.Count() + n.Count() - matches}
 }
 
@@ -251,12 +253,12 @@ func (m Map) Hash(seed uintptr) uintptr {
 // Map.
 func (m Map) Equal(i interface{}) bool {
 	if n, ok := i.(Map); ok {
-		c := newCloner(false, m.Count())
-		equalAsync := c.noneFalse()
-		equal := m.root.equal(n.root, func(a, b interface{}) bool {
+		c := tree.NewCloner(false, m.Count())
+		equalAsync := c.NoneFalse()
+		equal := m.root.Equal(n.root, func(a, b interface{}) bool {
 			kva := a.(KeyValue)
 			kvb := b.(KeyValue)
-			return Equal(kva.Key, kvb.Key) && Equal(kva.Value, kvb.Value)
+			return types.Equal(kva.Key, kvb.Key) && types.Equal(kva.Value, kvb.Value)
 		}, 0, c)
 		return equal && equalAsync()
 	}
@@ -282,12 +284,12 @@ func (m Map) Format(state fmt.State, _ rune) {
 
 // Range returns a MapIterator over the Map.
 func (m Map) Range() *MapIterator {
-	return &MapIterator{i: m.root.iterator(m.count)}
+	return &MapIterator{i: m.root.Iterator(m.count)}
 }
 
 // MapIterator provides for iterating over a Map.
 type MapIterator struct {
-	i  Iterator
+	i  types.Iterator
 	kv KeyValue
 }
 

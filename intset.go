@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"unsafe"
+
+	"github.com/arr-ai/frozen/types"
 )
 
 type IntSet struct {
@@ -93,7 +95,7 @@ func (s IntSet) Any() int {
 	block := v.(cellBlock)
 	for cellIndex, cell := range block {
 		if cell != 0 {
-			bit := BitIterator(cell).Index()
+			bit := types.BitIterator(cell).Index()
 			return blockBits*blockIndex + cellBits*cellIndex + bit
 		}
 	}

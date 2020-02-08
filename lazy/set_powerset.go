@@ -4,6 +4,7 @@ import (
 	"unsafe"
 
 	"github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/types"
 )
 
 type powerSet struct {
@@ -65,14 +66,14 @@ func (s *powerSet) Range() SetIterator {
 	return &powerSetSetIterator{
 		i:    s.set.Range(),
 		end:  1,
-		mask: ^frozen.BitIterator(0),
+		mask: ^types.BitIterator(0),
 	}
 }
 
 type powerSetSetIterator struct {
 	i     SetIterator
-	end   frozen.BitIterator
-	mask  frozen.BitIterator
+	end   types.BitIterator
+	mask  types.BitIterator
 	elems []interface{}
 	value frozen.Set
 }

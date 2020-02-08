@@ -1,5 +1,5 @@
 // +build node4
 
-package frozen
+package tree
 
 const nodeBits = 2

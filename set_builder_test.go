@@ -4,6 +4,7 @@ import (
 	"log"
 	"testing"
 
+	"github.com/arr-ai/frozen/types"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 )
@@ -58,7 +59,7 @@ func TestSetBuilderIncremental(t *testing.T) {
 						b.Add(value)
 					}
 					expected := corpus[:j+1]
-					actual := b.root.elements(0)
+					actual := b.root.Elements(0)
 					if !assertSameElements(t, expected, actual) {
 						after := b.root.String()
 						log.Printf("after = %v", after)
@@ -113,7 +114,7 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 		requireMatch := func(format string, args ...interface{}) {
 			for j := 0; j < 35; j++ {
 				if !assert.Equalf(t, s&(uint64(1)<<j) != 0, b.Has(j), format+" j=%v", append(args, j)...) {
-					log.Print(s&(uint64(1)<<j) != 0, b.Has(j), BitIterator(s), b.root)
+					log.Print(s&(uint64(1)<<j) != 0, b.Has(j), types.BitIterator(s), b.root)
 					b.Has(j)
 					r.replay()
 					t.FailNow()
@@ -143,7 +144,7 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 
 		for i := 5; i < 15; i++ {
 			if r.mark(i).isTarget {
-				log.Print(BitIterator(s), b.root)
+				log.Print(types.BitIterator(s), b.root)
 			}
 			add(i)
 			requireMatch("i=%v", i)

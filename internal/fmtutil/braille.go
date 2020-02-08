@@ -1,24 +1,8 @@
-package frozen
+package fmtutil
 
 import (
-	"fmt"
-	"regexp"
 	"strings"
 )
-
-func padFormat(f fmt.State, N int) {
-	if width, ok := f.Width(); ok {
-		if padding := width - N; padding > 0 {
-			fmt.Fprintf(f, "%*s", padding, "")
-		}
-	}
-}
-
-var indentRE = regexp.MustCompile("(?m)^")
-
-func indentBlock(s string) string {
-	return indentRE.ReplaceAllLiteralString(s, "    ")
-}
 
 var brailleBytes = func() [0x100]rune {
 	// 7 -> 0 |• •| 3 <- 3
@@ -43,7 +27,7 @@ var brailleBytes = func() [0x100]rune {
 	return bytes
 }()
 
-func brailleEncoded(i uint64) string {
+func BrailleEncoded(i uint64) string {
 	var sb strings.Builder
 	for ; i != 0; i <<= 8 {
 		sb.WriteRune(brailleBytes[i>>(64-8)])

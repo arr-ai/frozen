@@ -1,10 +1,11 @@
-package frozen
+package tree
 
 import (
 	"fmt"
 	"strings"
 	"unsafe"
 
+	"github.com/arr-ai/frozen/internal/fmtutil"
 	"github.com/arr-ai/hash"
 )
 
@@ -13,21 +14,21 @@ const (
 	hashBitsOffset = hashBits - nodeBits
 )
 
-type hasher uintptr
+type Hasher uintptr
 
-func newHasher(key interface{}, depth int) hasher {
-	return hasher(hash.Interface(key, 0)) << (depth * nodeBits)
+func NewHasher(key interface{}, depth int) Hasher {
+	return Hasher(hash.Interface(key, 0)) << (depth * nodeBits)
 }
 
-func (h hasher) next() hasher {
+func (h Hasher) next() Hasher {
 	return h << nodeBits
 }
 
-func (h hasher) hash() int {
+func (h Hasher) hash() int {
 	return int(h >> hashBitsOffset)
 }
 
-func (h hasher) String() string {
+func (h Hasher) String() string {
 	const dregs = hashBits % nodeBits
 	var s string
 	switch nodeBits {
@@ -43,12 +44,12 @@ func (h hasher) String() string {
 		}
 		return sb.String()
 	case 4:
-		return "#" + brailleEncoded(uint64(h))
+		return "#" + fmtutil.BrailleEncoded(uint64(h))
 	default:
 		panic("not implemented")
 	}
 	if dregs != 0 {
-		s += fmt.Sprintf("%d", h<<(nodeBits-dregs)%nodeCount)
+		s += fmt.Sprintf("%d", h<<(nodeBits-dregs)%NodeCount)
 	}
 	return strings.TrimRight(s, "0")
 }

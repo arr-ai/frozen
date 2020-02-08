@@ -5,6 +5,7 @@ import (
 	"runtime/debug"
 	"testing"
 
+	"github.com/arr-ai/frozen/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -181,10 +182,10 @@ func TestSetOrderedElements(t *testing.T) {
 	t.Parallel()
 
 	s := Iota(1<<12 - 1)
-	less := Less(func(a, b interface{}) bool { return a.(int) < b.(int) })
+	less := func(a, b interface{}) bool { return a.(int) < b.(int) }
 	assert.Equal(t, generateSortedIntArray(0, 1<<12-1, 1), s.OrderedElements(less))
 
-	less = Less(func(a, b interface{}) bool { return a.(int) > b.(int) })
+	less = func(a, b interface{}) bool { return a.(int) > b.(int) }
 	assert.Equal(t, generateSortedIntArray(1<<12-2, -1, -1), s.OrderedElements(less))
 }
 
@@ -236,20 +237,20 @@ func TestSetFirst(t *testing.T) {
 	t.Parallel()
 
 	var s Set
-	less := Less(func(a, b interface{}) bool { return a.(int) < b.(int) })
+	less := func(a, b interface{}) bool { return a.(int) < b.(int) }
 	assert.Panics(t, func() { s.First(less) }, "empty set")
 
 	s = Iota(1<<12 - 1)
 	assert.Equal(t, 0, s.First(less))
 
-	less = Less(func(a, b interface{}) bool { return a.(int) > b.(int) })
+	less = func(a, b interface{}) bool { return a.(int) > b.(int) }
 	assert.Equal(t, 1<<12-2, s.First(less))
 }
 
 func TestSetFirstN(t *testing.T) {
 	t.Parallel()
 
-	less := Less(func(a, b interface{}) bool { return a.(int) < b.(int) })
+	less := func(a, b interface{}) bool { return a.(int) < b.(int) }
 
 	s := NewSet()
 	assert.True(t, NewSet().Equal(s.FirstN(0, less)))
@@ -266,7 +267,7 @@ func TestSetFirstN(t *testing.T) {
 func TestSetOrderedFirstN(t *testing.T) {
 	t.Parallel()
 
-	less := Less(func(a, b interface{}) bool { return a.(int) < b.(int) })
+	less := func(a, b interface{}) bool { return a.(int) < b.(int) }
 
 	s := NewSet()
 	assert.Equal(t, []interface{}{}, s.OrderedFirstN(0, less))
@@ -283,15 +284,15 @@ func TestSetOrderedFirstN(t *testing.T) {
 func TestSetIsSubsetOf(t *testing.T) {
 	t.Parallel()
 	const N = 10
-	for i := BitIterator(0); i < N; i++ {
+	for i := types.BitIterator(0); i < N; i++ {
 		a := NewSetFromMask64(uint64(i))
-		for j := BitIterator(0); j < N; j++ {
+		for j := types.BitIterator(0); j < N; j++ {
 			b := NewSetFromMask64(uint64(j))
 			if !assert.Equal(t, i&^j == 0, a.IsSubsetOf(b), "i=%b j=%b\na=%v\nb=%v", i, j, a.root, b.root) {
 				if a.Count()+b.Count() < 12 {
 					log.Printf("%v\n\t(%v&^%v(%v) == %v) == %v != %v",
 						mapOfSet{"a": a, "b": b},
-						i, j, i&^j, BitIterator(0), i&^j == 0, a.IsSubsetOf(b),
+						i, j, i&^j, types.BitIterator(0), i&^j == 0, a.IsSubsetOf(b),
 					)
 					func() {
 						// defer logrus.SetLevel(logrus.GetLevel())
@@ -365,7 +366,7 @@ func TestSetReduce(t *testing.T) {
 	assert.Equal(t, 55, Iota2(1, 11).Reduce2(sum))
 	assert.Equal(t, 720, Iota2(2, 7).Reduce2(product))
 	assert.Equal(t, (1_000_000-1)*1_000_000/2, Iota(1_000_000).Reduce2(sum))
-	log.Printf("%#v", Iota(1_000_000).root.profile(false))
+	log.Printf("%#v", Iota(1_000_000).root.Profile(false))
 }
 
 func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set) Set) {
@@ -493,7 +494,7 @@ func TestSetPowersetLarge(t *testing.T) {
 
 	expected := NewSet()
 	var b SetBuilder
-	for i := BitIterator(0); i <= 1<<15; i++ {
+	for i := types.BitIterator(0); i <= 1<<15; i++ {
 		if i.Count() == 1 {
 			expected = expected.Union(b.Finish())
 			assertSetEqual(t, expected, NewSetFromMask64(uint64(i-1)).Powerset(), "i=%v", i)
@@ -531,14 +532,14 @@ func TestSetOrderedRange(t *testing.T) {
 	t.Parallel()
 
 	output := []int{}
-	less := Less(func(a, b interface{}) bool { return a.(int) < b.(int) })
+	less := func(a, b interface{}) bool { return a.(int) < b.(int) }
 	for i := Iota(10).OrderedRange(less); i.Next(); {
 		output = append(output, i.Value().(int))
 	}
 	assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, output)
 
 	output = output[:0]
-	less = Less(func(a, b interface{}) bool { return a.(int) > b.(int) })
+	less = func(a, b interface{}) bool { return a.(int) > b.(int) }
 	for i := Iota(10).OrderedRange(less); i.Next(); {
 		output = append(output, i.Value().(int))
 	}

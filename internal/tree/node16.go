@@ -1,5 +1,5 @@
 // +build node16
 
-package frozen
+package tree
 
 const nodeBits = 2

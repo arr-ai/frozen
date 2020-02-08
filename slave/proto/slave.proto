@@ -1,28 +1,45 @@
 syntax = "proto3";
 
 service Slave {
-    // Merge a set of maps.
-    rpc Merge(Set) returns (Map) {}
+    // Union a set of maps.
+    rpc Union(UnionRequest) returns (Tree) {}
+}
+
+message UnionRequest {
+    Tree a = 1;
+    Tree b = 2;
+    Op op = 3;
+
+    enum Op {
+        OP_UNSPECIFIED = 0;
+        OP_CARTESIAN_PRODUCT = 1;
+    }
 }
 
 message Value {
     oneof choice {
         int64 i = 1;
         float f = 2;
-        Set set = 3;
-        Map map = 4;
+        KV kv = 4;
     }
-}
-
-message Set {
-    repeated Value element = 1;
-}
-
-message Map {
-    repeated KV entry = 1;
 
     message KV {
         Value key = 1;
         Value value = 2 ;
+    }
+}
+
+message Tree {
+    oneof choice {
+        Node node = 1;
+        Leaf leaf = 2;
+    }
+
+    message Node {
+        repeated Tree children = 1;
+    }
+
+    message Leaf {
+        repeated Value values = 1;
     }
 }

@@ -1,6 +1,6 @@
-package frozen
+package tree
 
-type nodeAnalysis struct {
+type NodeAnalysis struct {
 	nodes    int
 	leaves   int
 	elements int
@@ -10,7 +10,7 @@ type nodeAnalysis struct {
 	nodeFillses map[int]map[int]int
 	leafFillses map[int]map[int]int
 
-	hashers map[hasher]int
+	hashers map[Hasher]int
 }
 
 func incrementFills(fillses map[int]map[int]int, depth, count int) {
@@ -22,12 +22,12 @@ func incrementFills(fillses map[int]map[int]int, depth, count int) {
 	fills[count] = fills[count] + 1
 }
 
-func (a *nodeAnalysis) node(n *node, depth int) {
+func (a *NodeAnalysis) node(n *Node, depth int) {
 	a.nodes++
 	incrementFills(a.nodeFillses, depth, n.mask.Count())
 }
 
-func (a *nodeAnalysis) leaf(l *leaf, depth int) {
+func (a *NodeAnalysis) leaf(l *Leaf, depth int) {
 	a.leaves++
 
 	count := l.count()
@@ -41,28 +41,28 @@ func (a *nodeAnalysis) leaf(l *leaf, depth int) {
 	incrementFills(a.leafFillses, depth, count)
 }
 
-func (a *nodeAnalysis) element(elem interface{}) {
+func (a *NodeAnalysis) element(elem interface{}) {
 	a.elements++
 
 	if a.hashers != nil {
-		h := newHasher(elem, 0)
+		h := NewHasher(elem, 0)
 		a.hashers[h] = a.hashers[h] + 1
 	}
 }
 
-func (n *node) profile(includeHasher bool) *nodeAnalysis {
-	result := &nodeAnalysis{
+func (n *Node) Profile(includeHasher bool) *NodeAnalysis {
+	result := &NodeAnalysis{
 		nodeFillses: map[int]map[int]int{},
 		leafFillses: map[int]map[int]int{},
 	}
 	if includeHasher {
-		result.hashers = map[hasher]int{}
+		result.hashers = map[Hasher]int{}
 	}
 	n.profileImpl(result, 0)
 	return result
 }
 
-func (n *node) profileImpl(a *nodeAnalysis, depth int) {
+func (n *Node) profileImpl(a *NodeAnalysis, depth int) {
 	switch {
 	case n == nil:
 		return

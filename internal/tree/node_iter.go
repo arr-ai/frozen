@@ -1,20 +1,20 @@
-package frozen
+package tree
 
-import "container/heap"
+import (
+	"container/heap"
+	"math/bits"
 
-import "math/bits"
-
-// Less dictates the order of two elements.
-type Less func(a, b interface{}) bool
+	"github.com/arr-ai/frozen/types"
+)
 
 type nodeIter struct {
-	stk [][]*node
-	li  Iterator
+	stk [][]*Node
+	li  types.Iterator
 }
 
-func newNodeIter(base []*node, count int) *nodeIter {
+func newNodeIter(base []*Node, count int) *nodeIter {
 	depth := (bits.Len64(uint64(count)) + 5) / 2 // 1.5 (log₈(n) + 1)
-	stk := append(make([][]*node, 0, depth), base)
+	stk := append(make([][]*Node, 0, depth), base)
 	return &nodeIter{stk: stk, li: exhaustedIterator{}}
 }
 
@@ -44,16 +44,16 @@ func (i *nodeIter) Value() interface{} {
 	return i.li.Value()
 }
 
-func (n *node) orderedIterator(less Less, capacity int) *ordered {
+func (n *Node) OrderedIterator(less types.Less, capacity int) types.Iterator {
 	o := &ordered{less: less, elems: make([]interface{}, 0, capacity)}
-	for i := n.iterator(capacity); i.Next(); {
+	for i := n.Iterator(capacity); i.Next(); {
 		heap.Push(o, i.Value())
 	}
 	return o
 }
 
 type ordered struct {
-	less  Less
+	less  types.Less
 	elems []interface{}
 	val   interface{}
 }

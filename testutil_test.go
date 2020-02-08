@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/arr-ai/frozen/internal/tree"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 )
@@ -100,7 +101,7 @@ func (m mapOfSet) String() string {
 	return sb.String()
 }
 
-func nodesDiff(a, b *node) string {
+func nodesDiff(a, b *tree.Node) string {
 	dmp := diffmatchpatch.New()
 	diffs := dmp.DiffMain(a.String(), b.String(), true)
 	return dmp.DiffPrettyText(diffs)

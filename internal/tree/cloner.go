@@ -1,4 +1,4 @@
-package frozen
+package tree
 
 import (
 	"math/bits"
@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 )
 
-type cloner struct {
+type Cloner struct {
 	parallelDepth int
 	wg            sync.WaitGroup
 	mutate        bool
@@ -17,11 +17,11 @@ type cloner struct {
 }
 
 var (
-	theCopier  = &cloner{mutate: false, parallelDepth: -1}
-	theMutator = &cloner{mutate: true, parallelDepth: -1}
+	Copier  = &Cloner{mutate: false, parallelDepth: -1}
+	Mutator = &Cloner{mutate: true, parallelDepth: -1}
 )
 
-func newCloner(mutate bool, capacity int) *cloner {
+func NewCloner(mutate bool, capacity int) *Cloner {
 	frozenConcurrency := os.Getenv("FROZEN_CONCURRENCY")
 	var maxConcurrency int
 	var err error
@@ -33,7 +33,7 @@ func newCloner(mutate bool, capacity int) *cloner {
 			maxConcurrency = 15
 		}
 	}
-	return &cloner{
+	return &Cloner{
 		mutate: mutate,
 
 		// Give parallel workers O(32k) elements each to process. If
@@ -42,7 +42,11 @@ func newCloner(mutate bool, capacity int) *cloner {
 	}
 }
 
-func (c *cloner) node(n *node, prepared **node) *node {
+func (c *Cloner) Update(v interface{}) {
+	c.update(v)
+}
+
+func (c *Cloner) node(n *Node, prepared **Node) *Node {
 	switch {
 	case c.mutate:
 		return n
@@ -55,7 +59,7 @@ func (c *cloner) node(n *node, prepared **node) *node {
 	}
 }
 
-func (c *cloner) leaf(l *leaf) *leaf {
+func (c *Cloner) leaf(l *Leaf) *Leaf {
 	switch {
 	case c.mutate:
 		return l
@@ -65,7 +69,7 @@ func (c *cloner) leaf(l *leaf) *leaf {
 	}
 }
 
-func (c *cloner) extras(l *leaf, capacityIncrease int) extraLeafElems {
+func (c *Cloner) extras(l *Leaf, capacityIncrease int) extraLeafElems {
 	if c.mutate {
 		return l.extras()
 	}
@@ -74,7 +78,7 @@ func (c *cloner) extras(l *leaf, capacityIncrease int) extraLeafElems {
 	return x
 }
 
-func (c *cloner) run(f func()) {
+func (c *Cloner) run(f func()) {
 	c.wg.Add(1)
 	go func() {
 		defer c.wg.Done()
@@ -82,11 +86,11 @@ func (c *cloner) run(f func()) {
 	}()
 }
 
-func (c *cloner) wait() {
+func (c *Cloner) Wait() {
 	c.wg.Wait()
 }
 
-func (c *cloner) chain(update func(interface{})) {
+func (c *Cloner) chain(update func(interface{})) {
 	if next := c.update; next != nil {
 		c.update = func(arg interface{}) {
 			update(arg)
@@ -97,7 +101,7 @@ func (c *cloner) chain(update func(interface{})) {
 	}
 }
 
-func (c *cloner) counter() func() int {
+func (c *Cloner) Counter() func() int {
 	n := uintptr(0)
 	c.chain(func(arg interface{}) {
 		if i, ok := arg.(int); ok {
@@ -105,12 +109,12 @@ func (c *cloner) counter() func() int {
 		}
 	})
 	return func() int {
-		c.wait()
+		c.Wait()
 		return int(n)
 	}
 }
 
-func (c *cloner) noneFalse() func() bool {
+func (c *Cloner) NoneFalse() func() bool {
 	someFalse := uintptr(0)
 	c.chain(func(arg interface{}) {
 		if b, ok := arg.(bool); ok {
@@ -120,7 +124,7 @@ func (c *cloner) noneFalse() func() bool {
 		}
 	})
 	return func() bool {
-		c.wait()
+		c.Wait()
 		return someFalse == 0
 	}
 }

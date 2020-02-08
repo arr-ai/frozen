@@ -4,22 +4,18 @@ import (
 	"fmt"
 	"math/bits"
 
+	"github.com/arr-ai/frozen/internal/tree"
+	"github.com/arr-ai/frozen/types"
 	"github.com/arr-ai/hash"
 )
 
 // Set holds a set of values. The zero value is the empty Set.
 type Set struct {
-	root  *node
+	root  *tree.Node
 	count int
 }
 
-var _ Key = Set{}
-
-// Iterator provides for iterating over a Set.
-type Iterator interface {
-	Next() bool
-	Value() interface{}
-}
+var _ types.Key = Set{}
 
 // NewSet creates a new Set with values as elements.
 func NewSet(values ...interface{}) Set {
@@ -50,8 +46,8 @@ func (s Set) Count() int {
 }
 
 // Range returns an Iterator over the Set.
-func (s Set) Range() Iterator {
-	return s.root.iterator(s.count)
+func (s Set) Range() types.Iterator {
+	return s.root.Iterator(s.count)
 }
 
 func (s Set) Elements() []interface{} {
@@ -63,7 +59,7 @@ func (s Set) Elements() []interface{} {
 }
 
 // OrderedElements takes elements in a defined order.
-func (s Set) OrderedElements(less Less) []interface{} {
+func (s Set) OrderedElements(less types.Less) []interface{} {
 	result := make([]interface{}, 0, s.Count())
 	for i := s.OrderedRange(less); i.Next(); {
 		result = append(result, i.Value())
@@ -90,17 +86,17 @@ func (s Set) AnyN(n int) Set {
 }
 
 // OrderedFirstN returns a list of elements in a defined order.
-func (s Set) OrderedFirstN(n int, less Less) []interface{} {
+func (s Set) OrderedFirstN(n int, less types.Less) []interface{} {
 	result := make([]interface{}, 0, n)
 	currentLength := 0
-	for i := s.root.orderedIterator(less, n); i.Next() && currentLength < n; currentLength++ {
+	for i := s.root.OrderedIterator(less, n); i.Next() && currentLength < n; currentLength++ {
 		result = append(result, i.Value())
 	}
 	return result
 }
 
 // First returns the first element in a defined order.
-func (s Set) First(less Less) interface{} {
+func (s Set) First(less types.Less) interface{} {
 	for _, i := range s.OrderedFirstN(1, less) {
 		return i
 	}
@@ -108,7 +104,7 @@ func (s Set) First(less Less) interface{} {
 }
 
 // FirstN returns a set of the first n elements in a defined order.
-func (s Set) FirstN(n int, less Less) Set {
+func (s Set) FirstN(n int, less types.Less) Set {
 	return NewSet(s.OrderedFirstN(n, less)...)
 }
 
@@ -131,8 +127,8 @@ func (s Set) Format(state fmt.State, _ rune) {
 
 // OrderedRange returns a SetIterator for the Set that iterates over the elements in
 // a specified order.
-func (s Set) OrderedRange(less Less) Iterator {
-	return s.root.orderedIterator(less, s.Count())
+func (s Set) OrderedRange(less types.Less) Iterator {
+	return s.root.OrderedIterator(less, s.Count())
 }
 
 // Hash computes a hash value for s.
@@ -157,23 +153,23 @@ func (s Set) EqualSet(t Set) bool {
 	if s.root == nil || t.root == nil {
 		return s.root == nil && t.root == nil
 	}
-	c := newCloner(false, s.Count())
-	equalAsync := c.noneFalse()
-	equal := s.root.equal(t.root, Equal, 0, c)
+	c := tree.NewCloner(false, s.Count())
+	equalAsync := c.NoneFalse()
+	equal := s.root.Equal(t.root, types.Equal, 0, c)
 	return equal && equalAsync()
 }
 
 // IsSubsetOf returns true iff no element in s is not in t.
 func (s Set) IsSubsetOf(t Set) bool {
-	c := newCloner(false, s.Count())
-	isSubsetAsync := c.noneFalse()
-	c.update(s.root.isSubsetOf(t.root, 0, c))
+	c := tree.NewCloner(false, s.Count())
+	isSubsetAsync := c.NoneFalse()
+	c.Update(s.root.IsSubsetOf(t.root, 0, c))
 	return isSubsetAsync()
 }
 
 // Has returns the value associated with key and true iff the key was found.
 func (s Set) Has(val interface{}) bool {
-	return s.root.get(val) != nil
+	return s.root.Get(val) != nil
 }
 
 // With returns a new Set retaining all the elements of the Set as well as values.
@@ -188,11 +184,11 @@ func (s Set) Without(values ...interface{}) Set {
 
 // Where returns a Set with all elements that are in s and satisfy pred.
 func (s Set) Where(pred func(elem interface{}) bool) Set {
-	c := newCloner(false, s.Count())
+	c := tree.NewCloner(false, s.Count())
 	matches := 0
-	matchesAsync := c.counter()
-	var root *node
-	s.root.where(pred, 0, &matches, c, &root)
+	matchesAsync := c.Counter()
+	var root *tree.Node
+	s.root.Where(pred, 0, &matches, c, &root)
 	matches += matchesAsync()
 	return Set{root: root, count: matches}
 }
@@ -200,18 +196,15 @@ func (s Set) Where(pred func(elem interface{}) bool) Set {
 // Map returns a Set with all the results of applying f to all elements in s.
 func (s Set) Map(f func(elem interface{}) interface{}) Set {
 	sbs := []*SetBuilder{}
-	var spawn func() *foreacher
-	spawn = func() *foreacher {
+	var spawn func() *tree.ForEacher
+	spawn = func() *tree.ForEacher {
 		var sb SetBuilder
 		sbs = append(sbs, &sb)
-		return &foreacher{
-			f:     func(elem interface{}) { sb.Add(f(elem)) },
-			spawn: spawn,
-		}
+		return tree.NewForEacher(func(elem interface{}) { sb.Add(f(elem)) }, spawn)
 	}
-	c := newCloner(false, s.Count())
-	s.root.foreach(spawn(), 0, c)
-	c.wait()
+	c := tree.NewCloner(false, s.Count())
+	s.root.ForEach(spawn(), 0, c)
+	c.Wait()
 
 	sets := make([]Set, 0, len(sbs))
 	for _, sb := range sbs {
@@ -239,20 +232,20 @@ func (s Set) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
 	}
 
 	pointers := make([]*[]interface{}, 0, bits.Len(uint(s.Count()))>>15)
-	var spawn func() *forbatcher
-	spawn = func() *forbatcher {
+	var spawn func() *tree.ForBatcher
+	spawn = func() *tree.ForBatcher {
 		var value []interface{}
 		pointers = append(pointers, &value)
-		return &forbatcher{
-			f: func(elems ...interface{}) {
+		return tree.NewForBatcher(
+			func(elems ...interface{}) {
 				value = append(value, reduce(elems...))
 			},
-			spawn: spawn,
-		}
+			spawn,
+		)
 	}
-	c := newCloner(false, s.Count())
-	s.root.forbatches(spawn(), 0, c)
-	c.wait()
+	c := tree.NewCloner(false, s.Count())
+	s.root.ForBatches(spawn(), 0, c)
+	c.Wait()
 
 	values := make([]interface{}, 0, len(pointers))
 	// In case there are no elements above the parallelisation waterline.
@@ -283,32 +276,32 @@ func (s Set) Intersection(t Set) Set {
 	if s.Count() > t.Count() {
 		s, t = t, s
 	}
-	c := newCloner(false, (s.Count()+t.Count())/2)
-	countAsync := c.counter()
+	c := tree.NewCloner(false, (s.Count()+t.Count())/2)
+	countAsync := c.Counter()
 	count := 0
-	var root *node
-	s.root.intersection(t.root, 0, &count, c, &root)
+	var root *tree.Node
+	s.root.Intersection(t.root, 0, &count, c, &root)
 	count += countAsync()
 	return Set{root: root, count: count}
 }
 
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
-	c := newCloner(false, s.Count()+t.Count())
-	matchesAsync := c.counter()
+	c := tree.NewCloner(false, s.Count()+t.Count())
+	matchesAsync := c.Counter()
 	matches := 0
-	root := s.root.union(t.root, useRHS, 0, &matches, c)
+	root := s.root.Union(t.root, useRHS, 0, &matches, c)
 	matches += matchesAsync()
 	return Set{root: root, count: s.Count() + t.Count() - matches}
 }
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set) Difference(t Set) Set {
-	c := newCloner(false, s.Count())
-	matchesAsync := c.counter()
+	c := tree.NewCloner(false, s.Count())
+	matchesAsync := c.Counter()
 	matches := 0
-	var root *node
-	s.root.difference(t.root, 0, &matches, c, &root)
+	var root *tree.Node
+	s.root.Difference(t.root, 0, &matches, c, &root)
 	matches += matchesAsync()
 	return Set{root: root, count: s.Count() - matches}
 }
@@ -327,7 +320,7 @@ func (s Set) Powerset() Set {
 	elems := s.Elements()
 	subset := Set{}
 	result := NewSet(subset)
-	for i := BitIterator(1); i < 1<<n; i++ {
+	for i := types.BitIterator(1); i < 1<<n; i++ {
 		// Use a special counting order that flips a single bit at at time. The
 		// bit to flip is the same as the lowest-order 1-bit in the normal
 		// counting order, denoted by `(1)`. The flipped bit's new value is the

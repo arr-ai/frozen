@@ -1,6 +1,9 @@
-package frozen
+package types
 
 import "github.com/arr-ai/hash"
+
+// Less dictates the order of two elements.
+type Less func(a, b interface{}) bool
 
 // Equatable represents a type that can be compared for equality with another
 // value.

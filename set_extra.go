@@ -2,6 +2,8 @@ package frozen
 
 import (
 	"encoding/json"
+
+	"github.com/arr-ai/frozen/types"
 )
 
 // Iota returns Iota3(0, stop, 1).
@@ -40,7 +42,7 @@ func Iota3(start, stop, step int) Set {
 // of mask is set.
 func NewSetFromMask64(mask uint64) Set {
 	var b SetBuilder
-	for mask := BitIterator(mask); mask != 0; mask = mask.Next() {
+	for mask := types.BitIterator(mask); mask != 0; mask = mask.Next() {
 		b.Add(mask.Index())
 	}
 	return b.Finish()
