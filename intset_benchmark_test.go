@@ -14,12 +14,18 @@ func benchmarkNewIntSet(b *testing.B, n int) {
 }
 
 func benchmarkWithIntSet(b *testing.B, n int) {
-	arr, _ := generateIntArrayAndSet(n)
-	set := NewIntSet(arr[:n-1]...)
+	_, set := generateIntArrayAndSet(n)
+	multiplier := 2147483647 % n
+	withouts := make([]int, 0, b.N)
+	for i := 0; i < b.N; i++ {
+		num := i * multiplier
+		withouts = append(withouts, num)
+	}
+	set = set.Without(withouts...)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		set.With(arr[n-1])
+		set.With(i * multiplier)
 	}
 }
 
