@@ -2,6 +2,9 @@ package frozen
 
 import (
 	"math/bits"
+	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -19,12 +22,23 @@ var (
 )
 
 func newCloner(mutate bool, capacity int) *cloner {
+	frozenConcurrency := os.Getenv("FROZEN_CONCURRENCY")
+	var maxConcurrency int
+	var err error
+	if strings.ToLower(frozenConcurrency) == "off" {
+		maxConcurrency = 1<<(bits.UintSize-1) - 1
+	} else {
+		maxConcurrency, err = strconv.Atoi(frozenConcurrency)
+		if err != nil {
+			maxConcurrency = 15
+		}
+	}
 	return &cloner{
 		mutate: mutate,
 
 		// Give parallel workers O(32k) elements each to process. If
 		// parallelDepth < 0, it won't parallelise.
-		parallelDepth: (bits.Len64(uint64(capacity)) - 15) / 3,
+		parallelDepth: (bits.Len64(uint64(capacity)) - maxConcurrency) / 3,
 	}
 }
 
