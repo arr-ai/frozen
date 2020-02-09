@@ -127,6 +127,22 @@ func TestMapRedundantWithWithout(t *testing.T) {
 	}
 }
 
+func TestNewMapFromGoMap(t *testing.T) {
+	t.Parallel()
+
+	N := 1000000
+	m := make(map[interface{}]interface{}, N)
+	for i := 0; i < N; i++ {
+		m[i] = i * i
+	}
+
+	fm := NewMapFromGoMap(m)
+	expected := NewMapFromKeys(Iota(N), func(k interface{}) interface{} {
+		return k.(int) * k.(int)
+	})
+	assert.True(t, fm.Equal(expected))
+}
+
 func TestMapGetElse(t *testing.T) {
 	t.Parallel()
 
