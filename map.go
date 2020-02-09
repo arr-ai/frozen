@@ -80,6 +80,14 @@ func (m Map) Count() int {
 	return m.count
 }
 
+// Any returns an arbitrary entry from the Map.
+func (m Map) Any() (key, value interface{}) {
+	for i := m.Range(); i.Next(); {
+		return i.Entry()
+	}
+	panic("empty map")
+}
+
 // With returns a new Map with key associated with val and all other keys
 // retained from m.
 func (m Map) With(key, val interface{}) Map {
