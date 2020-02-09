@@ -431,6 +431,19 @@ func TestSetIntersection(t *testing.T) {
 	)
 }
 
+func TestSetIntersectionLarge(t *testing.T) {
+	t.Parallel()
+
+	for i := 0; i <= 13; i++ {
+		a := Iota2(1<<i, 9<<i)
+		b := Iota(9 << i).Intersection(Iota2(1<<i, 10<<i))
+		if !assertSetEqual(t, a, b, "%d", i) {
+			assert.ElementsMatch(t, a.Elements(), b.Elements())
+			t.FailNow()
+		}
+	}
+}
+
 func TestSetUnion(t *testing.T) {
 	t.Parallel()
 

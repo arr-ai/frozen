@@ -80,7 +80,9 @@ func (n *node) opCanonical(
 	op func(a, b *node, count *int, result **node),
 ) {
 	if depth == c.parallelDepth {
+		c.wg.Add(1)
 		go func() {
+			defer c.wg.Done()
 			var m sync.Mutex
 			var wg sync.WaitGroup
 			for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
