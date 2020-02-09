@@ -21,7 +21,7 @@ func TestIntSetEmpty(t *testing.T) {
 func TestNewIntSet(t *testing.T) {
 	t.Parallel()
 
-	arr, set := generateIntArrayAndSet()
+	arr, set := generateIntArrayAndSet(maxIntArrLen)
 	for _, i := range arr {
 		assert.True(t, set.Has(i), i)
 	}
@@ -30,7 +30,7 @@ func TestNewIntSet(t *testing.T) {
 func TestIntSetIter(t *testing.T) {
 	t.Parallel()
 
-	arr, set := generateIntArrayAndSet()
+	arr, set := generateIntArrayAndSet(maxIntArrLen)
 	container := make([]int, 0, maxIntArrLen)
 	for i := set.Range(); i.Next(); {
 		container = append(container, i.Value())
@@ -44,7 +44,7 @@ func TestIntSetIter(t *testing.T) {
 func TestIntSetHas(t *testing.T) {
 	t.Parallel()
 
-	arr, set := generateIntArrayAndSet()
+	arr, set := generateIntArrayAndSet(maxIntArrLen)
 	for _, i := range arr {
 		assert.True(t, set.Has(i))
 	}
@@ -54,7 +54,7 @@ func TestIntSetHas(t *testing.T) {
 func TestIntSetWith(t *testing.T) {
 	t.Parallel()
 
-	arr, _ := generateIntArrayAndSet()
+	arr, _ := generateIntArrayAndSet(maxIntArrLen)
 	set := NewIntSet(arr[:len(arr)/2]...)
 
 	for _, i := range arr[len(arr)/2:] {
@@ -72,7 +72,7 @@ func TestIntSetWith(t *testing.T) {
 func TestIntSetWithout(t *testing.T) {
 	t.Parallel()
 
-	arr, set := generateIntArrayAndSet()
+	arr, set := generateIntArrayAndSet(maxIntArrLen)
 	half := arr[:len(arr)/2]
 	set = set.Without(half...)
 	expectedCount := len(getDistinctInts(arr)) - len(getDistinctInts(half))
@@ -89,7 +89,7 @@ func TestIntSetWithout(t *testing.T) {
 func TestIntSetIntersection(t *testing.T) {
 	t.Parallel()
 
-	arr, fullSet := generateIntArrayAndSet()
+	arr, fullSet := generateIntArrayAndSet(maxIntArrLen)
 	firstQuartile := NewIntSet(arr[:int(len(arr)/4)]...)
 	secondToFifthDecile := NewIntSet(arr[int(len(arr)/5):int(len(arr)/2)]...)
 	thirdQuartile := NewIntSet(arr[int(len(arr)/2):int(3*len(arr)/4)]...)
@@ -113,7 +113,7 @@ func TestIntSetIntersection(t *testing.T) {
 func TestIntSetUnion(t *testing.T) {
 	t.Parallel()
 
-	arr, fullSet := generateIntArrayAndSet()
+	arr, fullSet := generateIntArrayAndSet(maxIntArrLen)
 	set := NewIntSet(arr[:len(arr)/2]...)
 	distinct := getDistinctInts(arr)
 	for _, i := range arr[len(arr)/2:] {
@@ -136,7 +136,7 @@ func TestIntSetUnion(t *testing.T) {
 func TestIntSetIsSubsetOf(t *testing.T) {
 	t.Parallel()
 
-	arr, fullSet := generateIntArrayAndSet()
+	arr, fullSet := generateIntArrayAndSet(maxIntArrLen)
 	assert.True(t, NewIntSet().IsSubsetOf(fullSet))
 	assert.True(t, fullSet.IsSubsetOf(fullSet))
 	assert.True(t, NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(fullSet))
@@ -146,7 +146,7 @@ func TestIntSetIsSubsetOf(t *testing.T) {
 func TestIntSetWhere(t *testing.T) {
 	t.Parallel()
 
-	arr, fullSet := generateIntArrayAndSet()
+	arr, fullSet := generateIntArrayAndSet(maxIntArrLen)
 	var evens, odds []int
 	evenPred := func(e int) bool { return e%2 == 0 }
 	oddPred := func(e int) bool { return e%2 != 0 }
@@ -175,7 +175,7 @@ func TestIntSetMap(t *testing.T) {
 	t.Parallel()
 
 	subtract := func(e int) int { return e - 1 }
-	arr, fullSet := generateIntArrayAndSet()
+	arr, fullSet := generateIntArrayAndSet(maxIntArrLen)
 	mappedArr := make([]int, 0, len(arr))
 
 	for _, i := range arr {
@@ -188,12 +188,13 @@ func TestIntSetMap(t *testing.T) {
 	assert.True(t, NewIntSet().EqualSet(NewIntSet().Map(subtract)))
 }
 
-func generateIntArrayAndSet() ([]int, IntSet) {
-	arr := make([]int, 0, maxIntArrLen)
+func generateIntArrayAndSet(maxLen int) ([]int, IntSet) {
+	arr := make([]int, 0, maxLen)
 	curr := float64(1.0)
-	for i := 1; i < maxIntArrLen; i++ {
+	multiplier := math.Pow(2, 64/1e6)
+	for i := 0; i < maxLen; i++ {
 		arr = append(arr, int(curr))
-		curr *= math.Pow(2, 64/math.Pow(10, 6))
+		curr *= multiplier
 	}
 	return arr, NewIntSet(arr...)
 }

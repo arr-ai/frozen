@@ -5,13 +5,7 @@ import (
 )
 
 func benchmarkNewIntSet(b *testing.B, n int) {
-	arr, _ := generateIntArrayAndSet()
-	max := n
-	if n > len(arr) {
-			b.Logf("n of %d is bigger than the generated array length of %d", n, len(arr))
-			max = len(arr)
-	}
-	arr = arr[:max]
+	arr, _ := generateIntArrayAndSet(n)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -20,18 +14,12 @@ func benchmarkNewIntSet(b *testing.B, n int) {
 }
 
 func benchmarkWithIntSet(b *testing.B, n int) {
-	arr, _ := generateIntArrayAndSet()
-	max := n
-	if n > len(arr) {
-			b.Logf("n of %d is bigger than the generated array length of %d", n, len(arr))
-			max = len(arr)
-	}
-	arr = arr[:max]
-	set := NewIntSet()
+	arr, _ := generateIntArrayAndSet(n)
+	set := NewIntSet(arr[:n-1]...)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		set.With(arr...)
+		set.With(arr[n-1])
 	}
 }
 
