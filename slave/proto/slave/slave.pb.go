@@ -24,45 +24,99 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-type UnionRequest_Op int32
-
-const (
-	UnionRequest_OP_UNSPECIFIED       UnionRequest_Op = 0
-	UnionRequest_OP_CARTESIAN_PRODUCT UnionRequest_Op = 1
-)
-
-var UnionRequest_Op_name = map[int32]string{
-	0: "OP_UNSPECIFIED",
-	1: "OP_CARTESIAN_PRODUCT",
+type SetSeedRequest struct {
+	A                    []byte   `protobuf:"bytes,1,opt,name=a,proto3" json:"a,omitempty"`
+	H                    []uint64 `protobuf:"varint,2,rep,packed,name=h,proto3" json:"h,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-var UnionRequest_Op_value = map[string]int32{
-	"OP_UNSPECIFIED":       0,
-	"OP_CARTESIAN_PRODUCT": 1,
+func (m *SetSeedRequest) Reset()         { *m = SetSeedRequest{} }
+func (m *SetSeedRequest) String() string { return proto.CompactTextString(m) }
+func (*SetSeedRequest) ProtoMessage()    {}
+func (*SetSeedRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5203a3ed916706d4, []int{0}
 }
 
-func (x UnionRequest_Op) String() string {
-	return proto.EnumName(UnionRequest_Op_name, int32(x))
+func (m *SetSeedRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetSeedRequest.Unmarshal(m, b)
+}
+func (m *SetSeedRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetSeedRequest.Marshal(b, m, deterministic)
+}
+func (m *SetSeedRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetSeedRequest.Merge(m, src)
+}
+func (m *SetSeedRequest) XXX_Size() int {
+	return xxx_messageInfo_SetSeedRequest.Size(m)
+}
+func (m *SetSeedRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetSeedRequest.DiscardUnknown(m)
 }
 
-func (UnionRequest_Op) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_5203a3ed916706d4, []int{0, 0}
+var xxx_messageInfo_SetSeedRequest proto.InternalMessageInfo
+
+func (m *SetSeedRequest) GetA() []byte {
+	if m != nil {
+		return m.A
+	}
+	return nil
 }
+
+func (m *SetSeedRequest) GetH() []uint64 {
+	if m != nil {
+		return m.H
+	}
+	return nil
+}
+
+type SetSeedResponse struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetSeedResponse) Reset()         { *m = SetSeedResponse{} }
+func (m *SetSeedResponse) String() string { return proto.CompactTextString(m) }
+func (*SetSeedResponse) ProtoMessage()    {}
+func (*SetSeedResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5203a3ed916706d4, []int{1}
+}
+
+func (m *SetSeedResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetSeedResponse.Unmarshal(m, b)
+}
+func (m *SetSeedResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetSeedResponse.Marshal(b, m, deterministic)
+}
+func (m *SetSeedResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetSeedResponse.Merge(m, src)
+}
+func (m *SetSeedResponse) XXX_Size() int {
+	return xxx_messageInfo_SetSeedResponse.Size(m)
+}
+func (m *SetSeedResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetSeedResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetSeedResponse proto.InternalMessageInfo
 
 type UnionRequest struct {
-	A                    *Tree           `protobuf:"bytes,1,opt,name=a,proto3" json:"a,omitempty"`
-	B                    *Tree           `protobuf:"bytes,2,opt,name=b,proto3" json:"b,omitempty"`
-	Op                   UnionRequest_Op `protobuf:"varint,3,opt,name=op,proto3,enum=UnionRequest_Op" json:"op,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
+	A                    *Tree    `protobuf:"bytes,1,opt,name=a,proto3" json:"a,omitempty"`
+	B                    *Tree    `protobuf:"bytes,2,opt,name=b,proto3" json:"b,omitempty"`
+	Resolver             string   `protobuf:"bytes,3,opt,name=resolver,proto3" json:"resolver,omitempty"`
+	Depth                int32    `protobuf:"varint,4,opt,name=depth,proto3" json:"depth,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
 func (m *UnionRequest) Reset()         { *m = UnionRequest{} }
 func (m *UnionRequest) String() string { return proto.CompactTextString(m) }
 func (*UnionRequest) ProtoMessage()    {}
 func (*UnionRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5203a3ed916706d4, []int{0}
+	return fileDescriptor_5203a3ed916706d4, []int{2}
 }
 
 func (m *UnionRequest) XXX_Unmarshal(b []byte) error {
@@ -97,18 +151,88 @@ func (m *UnionRequest) GetB() *Tree {
 	return nil
 }
 
-func (m *UnionRequest) GetOp() UnionRequest_Op {
+func (m *UnionRequest) GetResolver() string {
 	if m != nil {
-		return m.Op
+		return m.Resolver
 	}
-	return UnionRequest_OP_UNSPECIFIED
+	return ""
+}
+
+func (m *UnionRequest) GetDepth() int32 {
+	if m != nil {
+		return m.Depth
+	}
+	return 0
+}
+
+type UnionResponse struct {
+	Union                *Tree    `protobuf:"bytes,1,opt,name=union,proto3" json:"union,omitempty"`
+	Matches              int64    `protobuf:"varint,2,opt,name=matches,proto3" json:"matches,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *UnionResponse) Reset()         { *m = UnionResponse{} }
+func (m *UnionResponse) String() string { return proto.CompactTextString(m) }
+func (*UnionResponse) ProtoMessage()    {}
+func (*UnionResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5203a3ed916706d4, []int{3}
+}
+
+func (m *UnionResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UnionResponse.Unmarshal(m, b)
+}
+func (m *UnionResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UnionResponse.Marshal(b, m, deterministic)
+}
+func (m *UnionResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UnionResponse.Merge(m, src)
+}
+func (m *UnionResponse) XXX_Size() int {
+	return xxx_messageInfo_UnionResponse.Size(m)
+}
+func (m *UnionResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_UnionResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UnionResponse proto.InternalMessageInfo
+
+func (m *UnionResponse) GetUnion() *Tree {
+	if m != nil {
+		return m.Union
+	}
+	return nil
+}
+
+func (m *UnionResponse) GetMatches() int64 {
+	if m != nil {
+		return m.Matches
+	}
+	return 0
 }
 
 type Value struct {
 	// Types that are valid to be assigned to Choice:
 	//	*Value_I
-	//	*Value_F
+	//	*Value_U
+	//	*Value_D
 	//	*Value_Kv
+	//	*Value_B
+	//	*Value_S
+	//	*Value_Data
+	//	*Value_I8
+	//	*Value_I16
+	//	*Value_I32
+	//	*Value_I64
+	//	*Value_U8
+	//	*Value_U16
+	//	*Value_U32
+	//	*Value_U64
+	//	*Value_Uptr
+	//	*Value_F
+	//	*Value_C64
+	//	*Value_C128
 	Choice               isValue_Choice `protobuf_oneof:"choice"`
 	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
 	XXX_unrecognized     []byte         `json:"-"`
@@ -119,7 +243,7 @@ func (m *Value) Reset()         { *m = Value{} }
 func (m *Value) String() string { return proto.CompactTextString(m) }
 func (*Value) ProtoMessage()    {}
 func (*Value) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5203a3ed916706d4, []int{1}
+	return fileDescriptor_5203a3ed916706d4, []int{4}
 }
 
 func (m *Value) XXX_Unmarshal(b []byte) error {
@@ -148,19 +272,115 @@ type Value_I struct {
 	I int64 `protobuf:"varint,1,opt,name=i,proto3,oneof"`
 }
 
-type Value_F struct {
-	F float64 `protobuf:"fixed64,2,opt,name=f,proto3,oneof"`
+type Value_U struct {
+	U uint64 `protobuf:"varint,2,opt,name=u,proto3,oneof"`
+}
+
+type Value_D struct {
+	D float64 `protobuf:"fixed64,3,opt,name=d,proto3,oneof"`
 }
 
 type Value_Kv struct {
 	Kv *Value_KV `protobuf:"bytes,4,opt,name=kv,proto3,oneof"`
 }
 
+type Value_B struct {
+	B bool `protobuf:"varint,5,opt,name=b,proto3,oneof"`
+}
+
+type Value_S struct {
+	S string `protobuf:"bytes,6,opt,name=s,proto3,oneof"`
+}
+
+type Value_Data struct {
+	Data []byte `protobuf:"bytes,7,opt,name=data,proto3,oneof"`
+}
+
+type Value_I8 struct {
+	I8 int32 `protobuf:"varint,8,opt,name=i8,proto3,oneof"`
+}
+
+type Value_I16 struct {
+	I16 int32 `protobuf:"varint,9,opt,name=i16,proto3,oneof"`
+}
+
+type Value_I32 struct {
+	I32 int32 `protobuf:"varint,10,opt,name=i32,proto3,oneof"`
+}
+
+type Value_I64 struct {
+	I64 int64 `protobuf:"varint,11,opt,name=i64,proto3,oneof"`
+}
+
+type Value_U8 struct {
+	U8 uint32 `protobuf:"varint,12,opt,name=u8,proto3,oneof"`
+}
+
+type Value_U16 struct {
+	U16 uint32 `protobuf:"varint,13,opt,name=u16,proto3,oneof"`
+}
+
+type Value_U32 struct {
+	U32 uint32 `protobuf:"varint,14,opt,name=u32,proto3,oneof"`
+}
+
+type Value_U64 struct {
+	U64 uint64 `protobuf:"varint,15,opt,name=u64,proto3,oneof"`
+}
+
+type Value_Uptr struct {
+	Uptr uint64 `protobuf:"varint,16,opt,name=uptr,proto3,oneof"`
+}
+
+type Value_F struct {
+	F float32 `protobuf:"fixed32,17,opt,name=f,proto3,oneof"`
+}
+
+type Value_C64 struct {
+	C64 *Value_Complex64 `protobuf:"bytes,18,opt,name=c64,proto3,oneof"`
+}
+
+type Value_C128 struct {
+	C128 *Value_Complex128 `protobuf:"bytes,19,opt,name=c128,proto3,oneof"`
+}
+
 func (*Value_I) isValue_Choice() {}
+
+func (*Value_U) isValue_Choice() {}
+
+func (*Value_D) isValue_Choice() {}
+
+func (*Value_Kv) isValue_Choice() {}
+
+func (*Value_B) isValue_Choice() {}
+
+func (*Value_S) isValue_Choice() {}
+
+func (*Value_Data) isValue_Choice() {}
+
+func (*Value_I8) isValue_Choice() {}
+
+func (*Value_I16) isValue_Choice() {}
+
+func (*Value_I32) isValue_Choice() {}
+
+func (*Value_I64) isValue_Choice() {}
+
+func (*Value_U8) isValue_Choice() {}
+
+func (*Value_U16) isValue_Choice() {}
+
+func (*Value_U32) isValue_Choice() {}
+
+func (*Value_U64) isValue_Choice() {}
+
+func (*Value_Uptr) isValue_Choice() {}
 
 func (*Value_F) isValue_Choice() {}
 
-func (*Value_Kv) isValue_Choice() {}
+func (*Value_C64) isValue_Choice() {}
+
+func (*Value_C128) isValue_Choice() {}
 
 func (m *Value) GetChoice() isValue_Choice {
 	if m != nil {
@@ -176,9 +396,16 @@ func (m *Value) GetI() int64 {
 	return 0
 }
 
-func (m *Value) GetF() float64 {
-	if x, ok := m.GetChoice().(*Value_F); ok {
-		return x.F
+func (m *Value) GetU() uint64 {
+	if x, ok := m.GetChoice().(*Value_U); ok {
+		return x.U
+	}
+	return 0
+}
+
+func (m *Value) GetD() float64 {
+	if x, ok := m.GetChoice().(*Value_D); ok {
+		return x.D
 	}
 	return 0
 }
@@ -190,12 +417,133 @@ func (m *Value) GetKv() *Value_KV {
 	return nil
 }
 
+func (m *Value) GetB() bool {
+	if x, ok := m.GetChoice().(*Value_B); ok {
+		return x.B
+	}
+	return false
+}
+
+func (m *Value) GetS() string {
+	if x, ok := m.GetChoice().(*Value_S); ok {
+		return x.S
+	}
+	return ""
+}
+
+func (m *Value) GetData() []byte {
+	if x, ok := m.GetChoice().(*Value_Data); ok {
+		return x.Data
+	}
+	return nil
+}
+
+func (m *Value) GetI8() int32 {
+	if x, ok := m.GetChoice().(*Value_I8); ok {
+		return x.I8
+	}
+	return 0
+}
+
+func (m *Value) GetI16() int32 {
+	if x, ok := m.GetChoice().(*Value_I16); ok {
+		return x.I16
+	}
+	return 0
+}
+
+func (m *Value) GetI32() int32 {
+	if x, ok := m.GetChoice().(*Value_I32); ok {
+		return x.I32
+	}
+	return 0
+}
+
+func (m *Value) GetI64() int64 {
+	if x, ok := m.GetChoice().(*Value_I64); ok {
+		return x.I64
+	}
+	return 0
+}
+
+func (m *Value) GetU8() uint32 {
+	if x, ok := m.GetChoice().(*Value_U8); ok {
+		return x.U8
+	}
+	return 0
+}
+
+func (m *Value) GetU16() uint32 {
+	if x, ok := m.GetChoice().(*Value_U16); ok {
+		return x.U16
+	}
+	return 0
+}
+
+func (m *Value) GetU32() uint32 {
+	if x, ok := m.GetChoice().(*Value_U32); ok {
+		return x.U32
+	}
+	return 0
+}
+
+func (m *Value) GetU64() uint64 {
+	if x, ok := m.GetChoice().(*Value_U64); ok {
+		return x.U64
+	}
+	return 0
+}
+
+func (m *Value) GetUptr() uint64 {
+	if x, ok := m.GetChoice().(*Value_Uptr); ok {
+		return x.Uptr
+	}
+	return 0
+}
+
+func (m *Value) GetF() float32 {
+	if x, ok := m.GetChoice().(*Value_F); ok {
+		return x.F
+	}
+	return 0
+}
+
+func (m *Value) GetC64() *Value_Complex64 {
+	if x, ok := m.GetChoice().(*Value_C64); ok {
+		return x.C64
+	}
+	return nil
+}
+
+func (m *Value) GetC128() *Value_Complex128 {
+	if x, ok := m.GetChoice().(*Value_C128); ok {
+		return x.C128
+	}
+	return nil
+}
+
 // XXX_OneofWrappers is for the internal use of the proto package.
 func (*Value) XXX_OneofWrappers() []interface{} {
 	return []interface{}{
 		(*Value_I)(nil),
-		(*Value_F)(nil),
+		(*Value_U)(nil),
+		(*Value_D)(nil),
 		(*Value_Kv)(nil),
+		(*Value_B)(nil),
+		(*Value_S)(nil),
+		(*Value_Data)(nil),
+		(*Value_I8)(nil),
+		(*Value_I16)(nil),
+		(*Value_I32)(nil),
+		(*Value_I64)(nil),
+		(*Value_U8)(nil),
+		(*Value_U16)(nil),
+		(*Value_U32)(nil),
+		(*Value_U64)(nil),
+		(*Value_Uptr)(nil),
+		(*Value_F)(nil),
+		(*Value_C64)(nil),
+		(*Value_C128)(nil),
 	}
 }
 
@@ -211,7 +559,7 @@ func (m *Value_KV) Reset()         { *m = Value_KV{} }
 func (m *Value_KV) String() string { return proto.CompactTextString(m) }
 func (*Value_KV) ProtoMessage()    {}
 func (*Value_KV) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5203a3ed916706d4, []int{1, 0}
+	return fileDescriptor_5203a3ed916706d4, []int{4, 0}
 }
 
 func (m *Value_KV) XXX_Unmarshal(b []byte) error {
@@ -246,6 +594,100 @@ func (m *Value_KV) GetValue() *Value {
 	return nil
 }
 
+type Value_Complex64 struct {
+	Re                   float32  `protobuf:"fixed32,1,opt,name=re,proto3" json:"re,omitempty"`
+	Im                   float32  `protobuf:"fixed32,2,opt,name=im,proto3" json:"im,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Value_Complex64) Reset()         { *m = Value_Complex64{} }
+func (m *Value_Complex64) String() string { return proto.CompactTextString(m) }
+func (*Value_Complex64) ProtoMessage()    {}
+func (*Value_Complex64) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5203a3ed916706d4, []int{4, 1}
+}
+
+func (m *Value_Complex64) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Value_Complex64.Unmarshal(m, b)
+}
+func (m *Value_Complex64) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Value_Complex64.Marshal(b, m, deterministic)
+}
+func (m *Value_Complex64) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Value_Complex64.Merge(m, src)
+}
+func (m *Value_Complex64) XXX_Size() int {
+	return xxx_messageInfo_Value_Complex64.Size(m)
+}
+func (m *Value_Complex64) XXX_DiscardUnknown() {
+	xxx_messageInfo_Value_Complex64.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Value_Complex64 proto.InternalMessageInfo
+
+func (m *Value_Complex64) GetRe() float32 {
+	if m != nil {
+		return m.Re
+	}
+	return 0
+}
+
+func (m *Value_Complex64) GetIm() float32 {
+	if m != nil {
+		return m.Im
+	}
+	return 0
+}
+
+type Value_Complex128 struct {
+	Re                   float64  `protobuf:"fixed64,1,opt,name=re,proto3" json:"re,omitempty"`
+	Im                   float64  `protobuf:"fixed64,2,opt,name=im,proto3" json:"im,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Value_Complex128) Reset()         { *m = Value_Complex128{} }
+func (m *Value_Complex128) String() string { return proto.CompactTextString(m) }
+func (*Value_Complex128) ProtoMessage()    {}
+func (*Value_Complex128) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5203a3ed916706d4, []int{4, 2}
+}
+
+func (m *Value_Complex128) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Value_Complex128.Unmarshal(m, b)
+}
+func (m *Value_Complex128) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Value_Complex128.Marshal(b, m, deterministic)
+}
+func (m *Value_Complex128) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Value_Complex128.Merge(m, src)
+}
+func (m *Value_Complex128) XXX_Size() int {
+	return xxx_messageInfo_Value_Complex128.Size(m)
+}
+func (m *Value_Complex128) XXX_DiscardUnknown() {
+	xxx_messageInfo_Value_Complex128.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Value_Complex128 proto.InternalMessageInfo
+
+func (m *Value_Complex128) GetRe() float64 {
+	if m != nil {
+		return m.Re
+	}
+	return 0
+}
+
+func (m *Value_Complex128) GetIm() float64 {
+	if m != nil {
+		return m.Im
+	}
+	return 0
+}
+
 type Tree struct {
 	// Types that are valid to be assigned to Choice:
 	//	*Tree_Empty_
@@ -261,7 +703,7 @@ func (m *Tree) Reset()         { *m = Tree{} }
 func (m *Tree) String() string { return proto.CompactTextString(m) }
 func (*Tree) ProtoMessage()    {}
 func (*Tree) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5203a3ed916706d4, []int{2}
+	return fileDescriptor_5203a3ed916706d4, []int{5}
 }
 
 func (m *Tree) XXX_Unmarshal(b []byte) error {
@@ -351,7 +793,7 @@ func (m *Tree_Empty) Reset()         { *m = Tree_Empty{} }
 func (m *Tree_Empty) String() string { return proto.CompactTextString(m) }
 func (*Tree_Empty) ProtoMessage()    {}
 func (*Tree_Empty) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5203a3ed916706d4, []int{2, 0}
+	return fileDescriptor_5203a3ed916706d4, []int{5, 0}
 }
 
 func (m *Tree_Empty) XXX_Unmarshal(b []byte) error {
@@ -384,7 +826,7 @@ func (m *Tree_Node) Reset()         { *m = Tree_Node{} }
 func (m *Tree_Node) String() string { return proto.CompactTextString(m) }
 func (*Tree_Node) ProtoMessage()    {}
 func (*Tree_Node) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5203a3ed916706d4, []int{2, 1}
+	return fileDescriptor_5203a3ed916706d4, []int{5, 1}
 }
 
 func (m *Tree_Node) XXX_Unmarshal(b []byte) error {
@@ -430,7 +872,7 @@ func (m *Tree_Leaf) Reset()         { *m = Tree_Leaf{} }
 func (m *Tree_Leaf) String() string { return proto.CompactTextString(m) }
 func (*Tree_Leaf) ProtoMessage()    {}
 func (*Tree_Leaf) Descriptor() ([]byte, []int) {
-	return fileDescriptor_5203a3ed916706d4, []int{2, 2}
+	return fileDescriptor_5203a3ed916706d4, []int{5, 2}
 }
 
 func (m *Tree_Leaf) XXX_Unmarshal(b []byte) error {
@@ -459,10 +901,14 @@ func (m *Tree_Leaf) GetValues() []*Value {
 }
 
 func init() {
-	proto.RegisterEnum("UnionRequest_Op", UnionRequest_Op_name, UnionRequest_Op_value)
+	proto.RegisterType((*SetSeedRequest)(nil), "SetSeedRequest")
+	proto.RegisterType((*SetSeedResponse)(nil), "SetSeedResponse")
 	proto.RegisterType((*UnionRequest)(nil), "UnionRequest")
+	proto.RegisterType((*UnionResponse)(nil), "UnionResponse")
 	proto.RegisterType((*Value)(nil), "Value")
 	proto.RegisterType((*Value_KV)(nil), "Value.KV")
+	proto.RegisterType((*Value_Complex64)(nil), "Value.Complex64")
+	proto.RegisterType((*Value_Complex128)(nil), "Value.Complex128")
 	proto.RegisterType((*Tree)(nil), "Tree")
 	proto.RegisterType((*Tree_Empty)(nil), "Tree.Empty")
 	proto.RegisterType((*Tree_Node)(nil), "Tree.Node")
@@ -472,32 +918,48 @@ func init() {
 func init() { proto.RegisterFile("slave.proto", fileDescriptor_5203a3ed916706d4) }
 
 var fileDescriptor_5203a3ed916706d4 = []byte{
-	// 398 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x54, 0x52, 0x4d, 0x8f, 0xd3, 0x30,
-	0x10, 0x8d, 0x9d, 0x0f, 0x96, 0x29, 0x5b, 0x55, 0x03, 0x07, 0x2b, 0x20, 0x08, 0x41, 0x42, 0x3d,
-	0xe5, 0x10, 0xae, 0x70, 0x58, 0xba, 0x41, 0xa9, 0x16, 0x35, 0x91, 0xfb, 0x71, 0xad, 0xd2, 0xd6,
-	0xd1, 0x46, 0xc9, 0xc6, 0xa1, 0xe9, 0x46, 0xe2, 0x3f, 0x20, 0xfe, 0x27, 0xff, 0x02, 0xd9, 0x69,
-	0xf6, 0xe3, 0xe6, 0x79, 0xef, 0xf9, 0x79, 0x9e, 0x67, 0x60, 0xd4, 0x56, 0x59, 0x27, 0x82, 0xe6,
-	0x28, 0x4f, 0xd2, 0xff, 0x4b, 0xe0, 0xd5, 0xba, 0x2e, 0x64, 0xcd, 0xc5, 0xaf, 0x7b, 0xd1, 0x9e,
-	0xf0, 0x35, 0x90, 0x8c, 0x11, 0x8f, 0x4c, 0x47, 0xa1, 0x1d, 0xac, 0x8e, 0x42, 0x70, 0x92, 0x29,
-	0x70, 0xc7, 0xe8, 0x33, 0x70, 0x87, 0x1e, 0x50, 0xd9, 0x30, 0xd3, 0x23, 0xd3, 0x71, 0x38, 0x09,
-	0x9e, 0x9a, 0x04, 0x49, 0xc3, 0xa9, 0x6c, 0xfc, 0x10, 0x68, 0xd2, 0x20, 0xc2, 0x38, 0x49, 0xb7,
-	0xeb, 0xc5, 0x32, 0x8d, 0x66, 0xf3, 0x1f, 0xf3, 0xe8, 0x7a, 0x62, 0x20, 0x83, 0x37, 0x49, 0xba,
-	0x9d, 0x5d, 0xf1, 0x55, 0xb4, 0x9c, 0x5f, 0x2d, 0xb6, 0x29, 0x4f, 0xae, 0xd7, 0xb3, 0xd5, 0x84,
-	0xf8, 0x7f, 0x08, 0xd8, 0x9b, 0xac, 0xba, 0x17, 0x38, 0x06, 0x52, 0xe8, 0x4e, 0xcc, 0xd8, 0xe0,
-	0xa4, 0x50, 0x75, 0xae, 0x9b, 0x20, 0xaa, 0xce, 0xf1, 0x2d, 0xd0, 0xb2, 0x63, 0x96, 0xee, 0xea,
-	0x65, 0xa0, 0xef, 0x04, 0x37, 0x9b, 0xd8, 0xe0, 0xb4, 0xec, 0xdc, 0xaf, 0x40, 0x6f, 0x36, 0xc8,
-	0xc0, 0x2c, 0xc5, 0xef, 0x73, 0x1c, 0xa7, 0xd7, 0x70, 0x05, 0xe1, 0x3b, 0xb0, 0x3b, 0x55, 0x9d,
-	0x53, 0x0d, 0x5c, 0x0f, 0x7e, 0xbf, 0x00, 0x67, 0x7f, 0x2b, 0x8b, 0xbd, 0xf0, 0xff, 0x11, 0xb0,
-	0x54, 0x60, 0xfc, 0x04, 0xb6, 0xb8, 0x6b, 0x4e, 0x83, 0xd9, 0x48, 0x7f, 0x43, 0x10, 0x29, 0x28,
-	0x36, 0x78, 0xcf, 0xa1, 0x07, 0x56, 0x2d, 0x0f, 0x83, 0x29, 0xf4, 0x9a, 0x85, 0x3c, 0x88, 0xd8,
-	0xe0, 0x9a, 0x51, 0x8a, 0x4a, 0x64, 0xb9, 0xfe, 0xb6, 0x07, 0xc5, 0x4f, 0x91, 0xe5, 0x4a, 0xa1,
-	0x18, 0xf7, 0x05, 0xd8, 0xda, 0xd5, 0xfd, 0x06, 0x96, 0xba, 0x8a, 0x08, 0xd6, 0x5d, 0xd6, 0x96,
-	0xfa, 0xe1, 0x4b, 0xae, 0xcf, 0xf8, 0x11, 0x2e, 0xf6, 0xb7, 0x45, 0x75, 0x38, 0x8a, 0x9a, 0x51,
-	0xcf, 0x7c, 0x9c, 0xcb, 0x03, 0xec, 0x7e, 0x06, 0x4b, 0xf9, 0xe2, 0x7b, 0x70, 0x74, 0xa8, 0x96,
-	0x11, 0x2d, 0x1c, 0xa2, 0x9e, 0xd1, 0xc7, 0xac, 0xe1, 0x14, 0xec, 0xa5, 0x5a, 0x0d, 0xfc, 0x00,
-	0xb6, 0x1e, 0x27, 0x5e, 0x3e, 0x1b, 0xab, 0xdb, 0xbf, 0xe1, 0x1b, 0x3b, 0x47, 0x2f, 0xcf, 0x97,
-	0xff, 0x01, 0x00, 0x00, 0xff, 0xff, 0xdb, 0xd1, 0x9c, 0x67, 0x4b, 0x02, 0x00, 0x00,
+	// 649 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x54, 0x4b, 0x6f, 0xd3, 0x4c,
+	0x14, 0xcd, 0x38, 0x76, 0x1e, 0x37, 0x8f, 0xa6, 0xb7, 0x5d, 0x8c, 0xdc, 0x4f, 0x9f, 0x8c, 0x41,
+	0x60, 0x89, 0xca, 0x52, 0x9c, 0xc8, 0xca, 0x02, 0x36, 0x20, 0x50, 0xa4, 0x22, 0x16, 0x53, 0xe8,
+	0xde, 0xb1, 0x27, 0x8a, 0xc9, 0xc3, 0xc1, 0x8f, 0x08, 0xfe, 0x1c, 0xff, 0x87, 0x7f, 0x81, 0xee,
+	0xf8, 0xd1, 0xa6, 0x3b, 0x9f, 0x33, 0x67, 0xce, 0x7d, 0x78, 0xee, 0x85, 0x41, 0xb6, 0x0b, 0x4e,
+	0xd2, 0x3d, 0xa6, 0x49, 0x9e, 0xd8, 0xb7, 0x30, 0xbe, 0x97, 0xf9, 0xbd, 0x94, 0x91, 0x90, 0x3f,
+	0x0b, 0x99, 0xe5, 0x38, 0x04, 0x16, 0x70, 0x66, 0x31, 0x67, 0x28, 0x58, 0x40, 0x68, 0xc3, 0x35,
+	0xab, 0xed, 0xe8, 0x82, 0x6d, 0xec, 0x4b, 0xb8, 0x68, 0xd4, 0xd9, 0x31, 0x39, 0x64, 0xd2, 0xfe,
+	0x01, 0xc3, 0xef, 0x87, 0x38, 0x39, 0xd4, 0xd7, 0xaf, 0xea, 0xeb, 0x03, 0xcf, 0x70, 0xbf, 0xa5,
+	0x52, 0x92, 0xcb, 0x15, 0xb0, 0x15, 0xd7, 0xce, 0xc8, 0x15, 0x9a, 0xd0, 0x4b, 0x65, 0x96, 0xec,
+	0x4e, 0x32, 0xe5, 0x6d, 0x8b, 0x39, 0x7d, 0xd1, 0x60, 0xbc, 0x06, 0x23, 0x92, 0xc7, 0x7c, 0xc3,
+	0x75, 0x8b, 0x39, 0x86, 0x28, 0x81, 0xfd, 0x19, 0x46, 0x55, 0xac, 0x32, 0x38, 0xde, 0x80, 0x51,
+	0x10, 0x71, 0x1e, 0xb0, 0xe4, 0x90, 0x43, 0x77, 0x1f, 0xe4, 0xe1, 0x46, 0x66, 0x2a, 0x74, 0x5b,
+	0xd4, 0xd0, 0xfe, 0xa3, 0x83, 0xf1, 0x10, 0xec, 0x0a, 0x89, 0x63, 0x60, 0xb1, 0xba, 0xdc, 0x5e,
+	0xb6, 0x04, 0x8b, 0x09, 0x17, 0x4a, 0xad, 0x13, 0x2e, 0x08, 0x47, 0x2a, 0x39, 0x46, 0x38, 0xc2,
+	0x1b, 0xd0, 0xb6, 0x27, 0x95, 0xd4, 0xc0, 0xeb, 0xbb, 0xca, 0xc3, 0xbd, 0x7b, 0x58, 0xb6, 0x84,
+	0xb6, 0x3d, 0x91, 0x78, 0xc5, 0x0d, 0x8b, 0x39, 0x3d, 0x12, 0xaf, 0x08, 0x67, 0xbc, 0x43, 0x95,
+	0x11, 0xce, 0xf0, 0x1a, 0xf4, 0x28, 0xc8, 0x03, 0xde, 0xa5, 0xe6, 0x2e, 0x5b, 0x42, 0x21, 0x9c,
+	0x80, 0x16, 0x2f, 0x78, 0x8f, 0xea, 0x24, 0x9f, 0x78, 0x81, 0x08, 0xed, 0x78, 0xea, 0xf3, 0x7e,
+	0x45, 0x11, 0x50, 0xdc, 0xcc, 0xe3, 0xd0, 0x70, 0x33, 0x4f, 0x71, 0xfe, 0x9c, 0x0f, 0xaa, 0xf4,
+	0x09, 0x90, 0x5b, 0xb1, 0xe0, 0x43, 0x8b, 0x39, 0x23, 0x72, 0x2b, 0x94, 0x5b, 0x31, 0xf5, 0xf9,
+	0xa8, 0xa2, 0x08, 0x28, 0x6e, 0xe6, 0xf1, 0x71, 0xc3, 0x95, 0x6e, 0x85, 0x3f, 0xe7, 0x17, 0x55,
+	0xf1, 0x04, 0x28, 0xe3, 0xe2, 0x98, 0xa7, 0x7c, 0x52, 0x91, 0x0a, 0x51, 0x5d, 0x6b, 0x7e, 0x69,
+	0x31, 0x47, 0xa3, 0xba, 0xd6, 0xf8, 0x0a, 0xda, 0xa1, 0x3f, 0xe7, 0xa8, 0xba, 0x32, 0xa9, 0xba,
+	0xf2, 0x31, 0xd9, 0x1f, 0x77, 0xf2, 0x97, 0x3f, 0x27, 0xaf, 0xd0, 0x9f, 0xe3, 0x1b, 0xd0, 0xc3,
+	0xa9, 0xb7, 0xe0, 0x57, 0x4a, 0x76, 0x79, 0x2e, 0x9b, 0x7a, 0x0b, 0xb2, 0x27, 0x81, 0xf9, 0x0e,
+	0xb4, 0xbb, 0x07, 0xe4, 0xd0, 0xde, 0xca, 0xdf, 0xd5, 0x8f, 0xed, 0x94, 0x6a, 0x41, 0x14, 0xfe,
+	0x07, 0xc6, 0x89, 0x50, 0xf5, 0xa0, 0xea, 0xb3, 0x92, 0x34, 0xdf, 0x42, 0xbf, 0x09, 0x8d, 0x63,
+	0xd0, 0x52, 0xa9, 0x3c, 0x34, 0xa1, 0xa5, 0xf4, 0xbb, 0xb5, 0x78, 0xaf, 0xee, 0x69, 0x42, 0x8b,
+	0xf7, 0xe6, 0x2d, 0xc0, 0x63, 0x02, 0x4f, 0xd4, 0xec, 0x99, 0x9a, 0x91, 0xfa, 0x43, 0x0f, 0x3a,
+	0xe1, 0x26, 0x89, 0x43, 0x69, 0xff, 0x65, 0xa0, 0xd3, 0x53, 0xc3, 0x97, 0x60, 0xc8, 0xfd, 0x31,
+	0xaf, 0xf3, 0x1c, 0xa8, 0x07, 0xe8, 0x7e, 0x22, 0x6a, 0xd9, 0x12, 0xe5, 0x19, 0x5a, 0xa0, 0x1f,
+	0x92, 0xa8, 0xce, 0x17, 0x4a, 0xcd, 0xd7, 0x24, 0x92, 0x54, 0x32, 0x9d, 0x90, 0x62, 0x27, 0x83,
+	0xb5, 0x7a, 0x69, 0x8d, 0xe2, 0x8b, 0x0c, 0xd6, 0xa4, 0xa0, 0x13, 0xb3, 0x0b, 0x86, 0x72, 0x35,
+	0xdf, 0x83, 0x4e, 0x57, 0x11, 0x41, 0xdf, 0x07, 0xd9, 0x56, 0x05, 0x1e, 0x09, 0xf5, 0x8d, 0x2f,
+	0xa0, 0x17, 0x6e, 0xe2, 0x5d, 0x94, 0xca, 0x83, 0x9a, 0xd9, 0x66, 0x22, 0x1a, 0xda, 0x7c, 0x0d,
+	0x3a, 0xf9, 0xe2, 0xff, 0xd0, 0x51, 0xfd, 0xca, 0x38, 0x53, 0xc2, 0xba, 0x8b, 0x15, 0xfb, 0x58,
+	0xab, 0x17, 0x80, 0x71, 0x4f, 0x0b, 0x03, 0x5d, 0xe8, 0x56, 0xc3, 0x8f, 0x17, 0xee, 0xf9, 0xd2,
+	0x30, 0x27, 0xee, 0xf3, 0xbd, 0xd0, 0x42, 0x07, 0x0c, 0x35, 0xad, 0x38, 0x72, 0x9f, 0x6e, 0x08,
+	0x73, 0xec, 0x9e, 0x0d, 0xb1, 0xdd, 0x5a, 0x75, 0xd4, 0x2e, 0x9a, 0xfd, 0x0b, 0x00, 0x00, 0xff,
+	0xff, 0x19, 0x90, 0x22, 0x2f, 0x9a, 0x04, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -512,8 +974,10 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type SlaveClient interface {
+	// Sets internal seeds to ensure hash consistency.
+	SetSeed(ctx context.Context, in *SetSeedRequest, opts ...grpc.CallOption) (*SetSeedResponse, error)
 	// Union a set of maps.
-	Union(ctx context.Context, in *UnionRequest, opts ...grpc.CallOption) (*Tree, error)
+	Union(ctx context.Context, in *UnionRequest, opts ...grpc.CallOption) (*UnionResponse, error)
 }
 
 type slaveClient struct {
@@ -524,8 +988,17 @@ func NewSlaveClient(cc grpc.ClientConnInterface) SlaveClient {
 	return &slaveClient{cc}
 }
 
-func (c *slaveClient) Union(ctx context.Context, in *UnionRequest, opts ...grpc.CallOption) (*Tree, error) {
-	out := new(Tree)
+func (c *slaveClient) SetSeed(ctx context.Context, in *SetSeedRequest, opts ...grpc.CallOption) (*SetSeedResponse, error) {
+	out := new(SetSeedResponse)
+	err := c.cc.Invoke(ctx, "/Slave/SetSeed", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *slaveClient) Union(ctx context.Context, in *UnionRequest, opts ...grpc.CallOption) (*UnionResponse, error) {
+	out := new(UnionResponse)
 	err := c.cc.Invoke(ctx, "/Slave/Union", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -535,20 +1008,43 @@ func (c *slaveClient) Union(ctx context.Context, in *UnionRequest, opts ...grpc.
 
 // SlaveServer is the server API for Slave service.
 type SlaveServer interface {
+	// Sets internal seeds to ensure hash consistency.
+	SetSeed(context.Context, *SetSeedRequest) (*SetSeedResponse, error)
 	// Union a set of maps.
-	Union(context.Context, *UnionRequest) (*Tree, error)
+	Union(context.Context, *UnionRequest) (*UnionResponse, error)
 }
 
 // UnimplementedSlaveServer can be embedded to have forward compatible implementations.
 type UnimplementedSlaveServer struct {
 }
 
-func (*UnimplementedSlaveServer) Union(ctx context.Context, req *UnionRequest) (*Tree, error) {
+func (*UnimplementedSlaveServer) SetSeed(ctx context.Context, req *SetSeedRequest) (*SetSeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetSeed not implemented")
+}
+func (*UnimplementedSlaveServer) Union(ctx context.Context, req *UnionRequest) (*UnionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Union not implemented")
 }
 
 func RegisterSlaveServer(s *grpc.Server, srv SlaveServer) {
 	s.RegisterService(&_Slave_serviceDesc, srv)
+}
+
+func _Slave_SetSeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetSeedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SlaveServer).SetSeed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Slave/SetSeed",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SlaveServer).SetSeed(ctx, req.(*SetSeedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Slave_Union_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -573,6 +1069,10 @@ var _Slave_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "Slave",
 	HandlerType: (*SlaveServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SetSeed",
+			Handler:    _Slave_SetSeed_Handler,
+		},
 		{
 			MethodName: "Union",
 			Handler:    _Slave_Union_Handler,

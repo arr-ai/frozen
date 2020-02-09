@@ -30,8 +30,14 @@ func (b *SetBuilder) Count() int {
 
 // Add adds el to the Set under construction.
 func (b *SetBuilder) Add(v interface{}) {
-	b.root = b.root.With(v, useRHS, 0, tree.NewHasher(v, 0), &b.redundantAdds, b.getCloner(), &b.prepared)
+	b.root = b.root.With(v, tree.UseRHS, 0, tree.NewHasher(v, 0), &b.redundantAdds, b.getCloner(), &b.prepared)
 	b.attemptedAdds++
+}
+
+// AddAll adds elts to the Set under construction.
+func (b *SetBuilder) AddSet(elts Set) {
+	b.root = b.root.Union(elts.root, tree.UseRHS, 0, &b.redundantAdds, b.getCloner())
+	b.attemptedAdds += elts.Count()
 }
 
 // Remove removes el to the Set under construction.

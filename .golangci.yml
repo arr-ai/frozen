@@ -34,7 +34,7 @@ linters:
   - dogsled
   - dupl
   - errcheck
-  - funlen
+  # - funlen
   # - gochecknoglobals
   - gochecknoinits
   - gocognit

@@ -248,7 +248,6 @@ func (s Set) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
 	c.Wait()
 
 	values := make([]interface{}, 0, len(pointers))
-	// In case there are no elements above the parallelisation waterline.
 	if *pointers[0] != nil {
 		values = append(values, reduce(*pointers[0]...))
 	}
@@ -280,7 +279,7 @@ func (s Set) Intersection(t Set) Set {
 	countAsync := c.Counter()
 	count := 0
 	var root *tree.Node
-	s.root.Intersection(t.root, useLHS, 0, &count, c, &root)
+	s.root.Intersection(t.root, tree.UseLHS, 0, &count, c, &root)
 	count += countAsync()
 	return Set{root: root, count: count}
 }
@@ -290,7 +289,7 @@ func (s Set) Union(t Set) Set {
 	c := tree.NewCloner(false, s.Count()+t.Count())
 	matchesAsync := c.Counter()
 	matches := 0
-	root := s.root.Union(t.root, useRHS, 0, &matches, c)
+	root := s.root.Union(t.root, tree.UseRHS, 0, &matches, c)
 	matches += matchesAsync()
 	return Set{root: root, count: s.Count() + t.Count() - matches}
 }

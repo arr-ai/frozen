@@ -1,12 +1,14 @@
 package tree
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
 	"unsafe"
 
 	"github.com/arr-ai/frozen/internal/fmtutil"
+	"github.com/arr-ai/frozen/slave/proto/slave"
 	"github.com/arr-ai/frozen/types"
 )
 
@@ -346,7 +348,37 @@ func (n *Node) Intersection(o *Node, r *Resolver, depth int, count *int, c *Clon
 	}
 }
 
-func (n *Node) Union(o *Node, r *Resolver, depth int, matches *int, c *Cloner) *Node {
+func (n *Node) remoteUnion(o *Node, r *Resolver, depth int, matches *int, c *Cloner) (*Node, bool) {
+	if len(c.clients) > 0 {
+		a, err := ToSlaveTree(n)
+		if err != nil {
+			panic(err)
+		}
+		b, err := ToSlaveTree(o)
+		if err != nil {
+			panic(err)
+		}
+		req := &slave.UnionRequest{
+			A:        a,
+			B:        b,
+			Resolver: r.Name(),
+			Depth:    int32(depth),
+		}
+		resp, err := c.clients[0].Union(context.TODO(), req)
+		if err != nil {
+			panic(err)
+		}
+		union, err := FromSlaveTree(resp.Union)
+		if err != nil {
+			panic(err)
+		}
+		*matches = int(resp.Matches)
+		return union, true
+	}
+	return nil, false
+}
+
+func (n *Node) Union(o *Node, r *Resolver, depth int, matches *int, c *Cloner) *Node { //nolint:gocognit
 	switch {
 	case n == nil:
 		return o
@@ -372,7 +404,43 @@ func (n *Node) Union(o *Node, r *Resolver, depth int, matches *int, c *Cloner) *
 				i := mask.Index()
 				c.run(func() {
 					matches := 0
-					result.setChildAsync(i, n.children[i].Union(o.children[i], r, depth+1, &matches, c), &m)
+					union, ok := n.children[i].remoteUnion(o.children[i], r, depth+1, &matches, c)
+					if !ok {
+						union = n.children[i].Union(o.children[i], r, depth+1, &matches, c)
+					} else {
+						elts := map[interface{}]struct{}{}
+						for i := union.Iterator(0); i.Next(); {
+							elts[i.Value()] = struct{}{}
+						}
+						matches2 := 0
+						union2 := n.children[i].Union(o.children[i], r, depth+1, &matches2, c)
+						elts2 := map[interface{}]struct{}{}
+						for i := union2.Iterator(0); i.Next(); {
+							elts2[i.Value()] = struct{}{}
+						}
+						if len(elts) != len(elts2) {
+							panic(fmt.Errorf("remote union wrong size: %d = %d", len(elts), len(elts2)))
+						}
+						remoteOnly := []interface{}{}
+						for e := range elts {
+							if _, has := elts2[e]; !has {
+								remoteOnly = append(remoteOnly, e)
+							}
+						}
+						localOnly := []interface{}{}
+						for e := range elts2 {
+							if _, has := elts[e]; !has {
+								localOnly = append(localOnly, e)
+							}
+						}
+						if len(remoteOnly) > 0 || len(localOnly) > 0 {
+							panic(fmt.Errorf(
+								"missing elements:\n\033[1;32mremote: %v\n\033[1;31mlocal: %v\033[0m",
+								remoteOnly, localOnly,
+							))
+						}
+					}
+					result.setChildAsync(i, union, &m)
 					c.update(matches)
 				})
 			}

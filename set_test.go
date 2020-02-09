@@ -454,6 +454,12 @@ func TestSetUnion(t *testing.T) {
 	)
 }
 
+func TestSetUnionLarge(t *testing.T) {
+	t.Parallel()
+
+	assertSetEqual(t, Iota(900<<10), Iota(450<<10).Union(Iota2(450<<10, 900<<10)))
+}
+
 func TestSetDifference(t *testing.T) {
 	t.Parallel()
 

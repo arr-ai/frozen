@@ -17,6 +17,9 @@ const (
 type Hasher uintptr
 
 func NewHasher(key interface{}, depth int) Hasher {
+	if depth < 0 {
+		panic("invalid depth")
+	}
 	return Hasher(hash.Interface(key, 0)) << (depth * nodeBits)
 }
 

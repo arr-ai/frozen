@@ -3,6 +3,8 @@ package frozen
 import (
 	"testing"
 
+	"github.com/arr-ai/frozen/internal/tree"
+	"github.com/arr-ai/frozen/resolvers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -361,26 +363,24 @@ func TestMapRange(t *testing.T) {
 	assert.Equal(t, map[int]int{1: 2, 3: 4, 4: 5, 6: 7}, output)
 }
 
+var testMapMergeSameValueTypeResolver = resolvers.NewKeyValueResolver("TestMapMergeSameValueType",
+	func(key, a, b interface{}) interface{} {
+		return key.(int) + a.(int) + b.(int)
+	})
+
 func TestMapMergeSameValueType(t *testing.T) {
 	t.Parallel()
 
 	m := NewMap(KV(1, 1), KV(2, 2), KV(3, 3))
 	n := NewMap(KV(1, 2), KV(2, 3), KV(4, 4))
-	resolve := func(key, a, b interface{}) interface{} {
-		return key.(int) + a.(int) + b.(int)
-	}
 	expected := NewMap(KV(1, 4), KV(2, 7), KV(3, 3), KV(4, 4))
-	result := m.Merge(n, resolve)
+	result := m.Merge(n, testMapMergeSameValueTypeResolver)
 	t.Log(result.String())
 	assert.True(t, expected.Equal(result))
 }
 
-func TestMapMergeDifferentValueType(t *testing.T) {
-	t.Parallel()
-
-	m := NewMap(KV(1, 1), KV(2, 2), KV(3, 5))
-	n := NewMap(KV(1, "A"), KV(2, 'K'), KV(3, byte(1)), KV(4, 4))
-	resolve := func(key, a, b interface{}) interface{} {
+var testMapMergeDifferentValueTypeResolver = resolvers.NewKeyValueResolver("TestMapMergeDifferentValueType",
+	func(key, a, b interface{}) interface{} {
 		switch v := b.(type) {
 		case string:
 			return v
@@ -391,10 +391,16 @@ func TestMapMergeDifferentValueType(t *testing.T) {
 		default:
 			return a
 		}
-	}
+	})
+
+func TestMapMergeDifferentValueType(t *testing.T) {
+	t.Parallel()
+
+	m := NewMap(KV(1, 1), KV(2, 2), KV(3, 5))
+	n := NewMap(KV(1, "A"), KV(2, 'K'), KV(3, byte(1)), KV(4, 4))
 	expected := NewMap(KV(1, "A"), KV(2, "K"), KV(3, 5), KV(4, 4))
 
-	assert.True(t, expected.Equal(m.Merge(n, resolve)))
+	assert.True(t, expected.Equal(m.Merge(n, testMapMergeDifferentValueTypeResolver)))
 }
 
 func TestMapMergeEmptyMap(t *testing.T) {
@@ -403,8 +409,8 @@ func TestMapMergeEmptyMap(t *testing.T) {
 	empty := NewMap()
 	nonEmpty := NewMap(KV("doesn't", "matter"), KV(1, 2), KV(2, 3))
 
-	assert.True(t, nonEmpty.Equal(empty.Merge(nonEmpty, func(key, a, b interface{}) interface{} { return a })))
-	assert.True(t, nonEmpty.Equal(nonEmpty.Merge(empty, func(key, a, b interface{}) interface{} { return a })))
+	assert.True(t, nonEmpty.Equal(empty.Merge(nonEmpty, tree.UseLHS)))
+	assert.True(t, nonEmpty.Equal(nonEmpty.Merge(empty, tree.UseLHS)))
 }
 
 var prepopMapInt = memoizePrepop(func(n int) interface{} {
@@ -491,13 +497,13 @@ func BenchmarkInsertFrozenMap1M(b *testing.B) {
 	benchmarkInsertFrozenMap(b, 1<<20)
 }
 
+var benchmarkMergeFrozenMapResolver = resolvers.NewKeyValueResolver("benchmarkMergeFrozenMap",
+	func(_, a, b interface{}) interface{} { return a.(int) + b.(int) })
+
 func benchmarkMergeFrozenMap(b *testing.B, limit int) {
-	plus := func(_, a, b interface{}) interface{} { return a.(int) + b.(int) }
-	mapToTest := NewMapFromKeys(Iota(limit), func(key interface{}) interface{} {
-		return key
-	})
+	mapToTest := NewMapFromKeys(Iota(limit), func(key interface{}) interface{} { return key })
 	for i := 0; i < b.N; i++ {
-		mapToTest.Merge(mapToTest, plus)
+		mapToTest.Merge(mapToTest, benchmarkMergeFrozenMapResolver)
 	}
 }
 

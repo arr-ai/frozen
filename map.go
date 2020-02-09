@@ -68,7 +68,7 @@ func (m Map) With(key, val interface{}) Map {
 	kv := KV(key, val)
 	matches := 0
 	var prepared *tree.Node
-	root := m.root.With(kv, useRHS, 0, tree.NewHasher(kv, 0), &matches, tree.Copier, &prepared)
+	root := m.root.With(kv, tree.UseRHS, 0, tree.NewHasher(kv, 0), &matches, tree.Copier, &prepared)
 	return Map{root: root, count: m.Count() + 1 - matches}
 }
 
@@ -182,17 +182,9 @@ func (m Map) Reduce(f func(acc, key, val interface{}) interface{}, acc interface
 	return acc
 }
 
-func keyValueResolver(resolve func(key, a, b interface{}) interface{}) *tree.Resolver {
-	return tree.NewResolver(func(a, b interface{}) interface{} {
-		i := a.(KeyValue)
-		j := b.(KeyValue)
-		return KV(i.Key, resolve(i.Key, i.Value, j.Value))
-	})
-}
-
 // Intersection returns a map from the intersection of the keys of the input
 // maps. The resolve function determines the value stored in the output.
-func (m Map) Intersection(n Map, resolve func(key, a, b interface{}) interface{}) Map {
+func (m Map) Intersection(n Map, resolver *tree.Resolver) Map {
 	if m.Count() > n.Count() {
 		m, n = n, m
 	}
@@ -200,29 +192,29 @@ func (m Map) Intersection(n Map, resolve func(key, a, b interface{}) interface{}
 	countAsync := c.Counter()
 	count := 0
 	var root *tree.Node
-	m.root.Intersection(n.root, keyValueResolver(resolve), 0, &count, c, &root)
+	m.root.Intersection(n.root, resolver, 0, &count, c, &root)
 	count += countAsync()
 	return Map{root: root, count: count}
 }
 
 // Merge returns a map from the merging between two maps, should there be a key
 // overlap, the resolve function determines the value stored in the output.
-func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
+func (m Map) Merge(n Map, resolver *tree.Resolver) Map {
 	if m.IsEmpty() {
 		return n
 	}
 	matches := 0
-	root := m.root.Union(n.root, keyValueResolver(resolve), 0, &matches, tree.Copier)
+	root := m.root.Union(n.root, resolver, 0, &matches, tree.Copier)
 	return Map{root: root, count: m.Count() + n.Count() - matches}
 }
 
 // Update returns a Map with key-value pairs from n added or replacing existing
 // keys.
 func (m Map) Update(n Map) Map {
-	f := useRHS
+	f := tree.UseRHS
 	if m.Count() >= n.Count() {
 		m, n = n, m
-		f = useLHS
+		f = tree.UseLHS
 	}
 	matches := 0
 	root := m.root.Union(n.root, f, 0, &matches, tree.Copier)

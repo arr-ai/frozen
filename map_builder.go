@@ -24,7 +24,7 @@ func (b *MapBuilder) Count() int {
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder) Put(key, value interface{}) {
 	kv := KV(key, value)
-	b.root = b.root.With(kv, useRHS, 0, tree.NewHasher(kv, 0), &b.redundantPuts, tree.Mutator, &b.prepared)
+	b.root = b.root.With(kv, tree.UseRHS, 0, tree.NewHasher(kv, 0), &b.redundantPuts, tree.Mutator, &b.prepared)
 	b.attemptedAdds++
 }
 

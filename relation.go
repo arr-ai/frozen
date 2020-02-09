@@ -1,5 +1,7 @@
 package frozen
 
+import "github.com/arr-ai/frozen/resolvers"
+
 // Join returns the n-ary join of a Set of Sets.
 func Join(relations Set) Set {
 	if i := relations.Range(); i.Next() {
@@ -35,6 +37,11 @@ func (s Set) Project(attrs Set) Set {
 	})
 }
 
+var cartesianProduct = resolvers.NewKeyValueResolver("cartesianProduct",
+	func(key, a, b interface{}) interface{} {
+		return a.(Set).CartesianProduct(b.(Set))
+	})
+
 // Join returns all {x, y, z} such that s has {x, y} and t has {y, z}.
 // x, y and z represent sets of keys:
 //   x: keys unique to maps in s
@@ -56,22 +63,18 @@ func (s Set) Join(t Set) Set {
 	}
 	sGroup := s.GroupBy(projectCommon)
 	tGroup := t.GroupBy(projectCommon)
-	commonKeys := sGroup.Keys().Intersection(tGroup.Keys())
-
-	var sb SetBuilder
-	for i := commonKeys.Range(); i.Next(); {
-		key := i.Value()
-		a, has := sGroup.Get(key)
-		if !has {
-			panic("wat?")
+	joined := sGroup.Intersection(tGroup, cartesianProduct)
+	unioned := joined.Values().Reduce(func(elts ...interface{}) interface{} {
+		var b SetBuilder
+		for _, elt := range elts {
+			b.AddSet(elt.(Set))
 		}
-		b, has := tGroup.Get(key)
-		if !has {
-			panic("wat?")
-		}
-		buildCartesianProduct(&sb, Map{}, a.(Set), b.(Set))
+		return b.Finish()
+	})
+	if unioned == nil {
+		return Set{}
 	}
-	return sb.Finish()
+	return unioned.(Set)
 }
 
 func (s Set) CartesianProduct(t Set) Set {

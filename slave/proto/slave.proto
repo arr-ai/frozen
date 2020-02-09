@@ -1,31 +1,68 @@
 syntax = "proto3";
 
 service Slave {
+    // Sets internal seeds to ensure hash consistency.
+    rpc SetSeed(SetSeedRequest) returns (SetSeedResponse) {}
+
     // Union a set of maps.
-    rpc Union(UnionRequest) returns (Tree) {}
+    rpc Union(UnionRequest) returns (UnionResponse) {}
 }
+
+message SetSeedRequest {
+    bytes a = 1;
+    repeated uint64 h = 2;
+}
+
+message SetSeedResponse {}
 
 message UnionRequest {
     Tree a = 1;
     Tree b = 2;
-    Op op = 3;
+    string resolver = 3;
+    int32 depth = 4;
+}
 
-    enum Op {
-        OP_UNSPECIFIED = 0;
-        OP_CARTESIAN_PRODUCT = 1;
-    }
+message UnionResponse {
+    Tree union = 1;
+    int64 matches = 2;
 }
 
 message Value {
     oneof choice {
         int64 i = 1;
-        double f = 2;
+        uint64 u = 2;
+        double d = 3;
         KV kv = 4;
+        bool b = 5;
+        string s = 6;
+        bytes data = 7;
+        int32 i8 = 8;
+        int32 i16 = 9;
+        int32 i32 = 10;
+        int64 i64 = 11;
+        uint32 u8 = 12;
+        uint32 u16 = 13;
+        uint32 u32 = 14;
+        uint64 u64 = 15;
+        uint64 uptr = 16;
+        float f = 17;
+        Complex64 c64 = 18;
+        Complex128 c128 = 19;
     }
 
     message KV {
         Value key = 1;
         Value value = 2 ;
+    }
+
+    message Complex64 {
+        float re = 1;
+        float im = 2;
+    }
+
+    message Complex128 {
+        double re = 1;
+        double im = 2;
     }
 }
 

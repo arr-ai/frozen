@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/arr-ai/frozen/slave/proto/slave"
 )
 
 type Cloner struct {
@@ -14,6 +16,7 @@ type Cloner struct {
 	wg            sync.WaitGroup
 	mutate        bool
 	update        func(interface{})
+	clients       []slave.SlaveClient
 }
 
 var (
@@ -39,6 +42,8 @@ func NewCloner(mutate bool, capacity int) *Cloner {
 		// Give parallel workers O(32k) elements each to process. If
 		// parallelDepth < 0, it won't parallelise.
 		parallelDepth: (bits.Len64(uint64(capacity)) - maxConcurrency) / 3,
+
+		clients: slaveClients(),
 	}
 }
 
