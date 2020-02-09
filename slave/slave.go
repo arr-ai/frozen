@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 
@@ -15,13 +16,16 @@ type slaveServer struct {
 }
 
 func (s *slaveServer) Union(_ context.Context, req *slave.UnionRequest) (*slave.Tree, error) {
-	panic("unfinished")
-	// a :=
-	// result = result.Merge(i.Value().(frozen.Map), func(_, a, b interface{}) interface{} {
-	// 		return a
-	// 	})
-	// }
-	// return nil, fmt.Errorf("unfinished")
+	// a := fromTree(req.A)
+	// b := fromTree(req.B)
+	switch req.Op {
+	case slave.UnionRequest_OP_UNSPECIFIED:
+		return nil, fmt.Errorf("unspecified operation")
+	case slave.UnionRequest_OP_CARTESIAN_PRODUCT:
+		panic("unfinished")
+	default:
+		panic(fmt.Errorf("unknown op: %d", req.Op))
+	}
 }
 
 func main() {
@@ -34,6 +38,6 @@ func main() {
 	}
 	grpcServer := grpc.NewServer()
 	slave.RegisterSlaveServer(grpcServer, &slaveServer{})
-	// determine whether to use TLS
+	// TODO: TLS
 	panic(grpcServer.Serve(skt))
 }

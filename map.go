@@ -8,34 +8,6 @@ import (
 	"github.com/arr-ai/hash"
 )
 
-// KeyValue represents a key-value pair for insertion into a Map.
-type KeyValue struct {
-	Key, Value interface{}
-}
-
-// KV creates a KeyValue.
-func KV(key, val interface{}) KeyValue {
-	return KeyValue{Key: key, Value: val}
-}
-
-// Hash computes a hash for a KeyValue.
-func (kv KeyValue) Hash(seed uintptr) uintptr {
-	return hash.Interface(kv.Key, seed)
-}
-
-// Equal returns true iff i is a KeyValue whose key equals this KeyValue's key.
-func (kv KeyValue) Equal(i interface{}) bool {
-	if kv2, ok := i.(KeyValue); ok {
-		return types.Equal(kv.Key, kv2.Key)
-	}
-	return false
-}
-
-// String returns a string representation of a KeyValue.
-func (kv KeyValue) String() string {
-	return fmt.Sprintf("%#v:%#v", kv.Key, kv.Value)
-}
-
 // Map maps keys to values. The zero value is the empty Map.
 type Map struct {
 	root  *tree.Node
@@ -210,20 +182,37 @@ func (m Map) Reduce(f func(acc, key, val interface{}) interface{}, acc interface
 	return acc
 }
 
-// Merge returns a map from the merging between two maps, should there be a key overlap,
-// the value that corresponds to key will be replaced by the value resulted from the
-// provided resolve function.
+func keyValueResolver(resolve func(key, a, b interface{}) interface{}) *tree.Resolver {
+	return tree.NewResolver(func(a, b interface{}) interface{} {
+		i := a.(KeyValue)
+		j := b.(KeyValue)
+		return KV(i.Key, resolve(i.Key, i.Value, j.Value))
+	})
+}
+
+// Intersection returns a map from the intersection of the keys of the input
+// maps. The resolve function determines the value stored in the output.
+func (m Map) Intersection(n Map, resolve func(key, a, b interface{}) interface{}) Map {
+	if m.Count() > n.Count() {
+		m, n = n, m
+	}
+	c := tree.NewCloner(false, m.Count())
+	countAsync := c.Counter()
+	count := 0
+	var root *tree.Node
+	m.root.Intersection(n.root, keyValueResolver(resolve), 0, &count, c, &root)
+	count += countAsync()
+	return Map{root: root, count: count}
+}
+
+// Merge returns a map from the merging between two maps, should there be a key
+// overlap, the resolve function determines the value stored in the output.
 func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
 	if m.IsEmpty() {
 		return n
 	}
 	matches := 0
-	extractAndResolve := func(a, b interface{}) interface{} {
-		i := a.(KeyValue)
-		j := b.(KeyValue)
-		return KV(i.Key, resolve(i.Key, i.Value, j.Value))
-	}
-	root := m.root.Union(n.root, extractAndResolve, 0, &matches, tree.Copier)
+	root := m.root.Union(n.root, keyValueResolver(resolve), 0, &matches, tree.Copier)
 	return Map{root: root, count: m.Count() + n.Count() - matches}
 }
 

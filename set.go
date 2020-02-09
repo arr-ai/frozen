@@ -276,11 +276,11 @@ func (s Set) Intersection(t Set) Set {
 	if s.Count() > t.Count() {
 		s, t = t, s
 	}
-	c := tree.NewCloner(false, (s.Count()+t.Count())/2)
+	c := tree.NewCloner(false, s.Count())
 	countAsync := c.Counter()
 	count := 0
 	var root *tree.Node
-	s.root.Intersection(t.root, 0, &count, c, &root)
+	s.root.Intersection(t.root, useLHS, 0, &count, c, &root)
 	count += countAsync()
 	return Set{root: root, count: count}
 }

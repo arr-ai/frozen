@@ -19,7 +19,7 @@ message UnionRequest {
 message Value {
     oneof choice {
         int64 i = 1;
-        float f = 2;
+        double f = 2;
         KV kv = 4;
     }
 
@@ -31,12 +31,16 @@ message Value {
 
 message Tree {
     oneof choice {
-        Node node = 1;
-        Leaf leaf = 2;
+        Empty empty = 1;
+        Node node = 2;
+        Leaf leaf = 3;
     }
 
+    message Empty {}
+
     message Node {
-        repeated Tree children = 1;
+        uint32 mask = 1;
+        repeated Tree children = 2;
     }
 
     message Leaf {

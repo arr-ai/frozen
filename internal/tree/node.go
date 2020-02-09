@@ -18,11 +18,11 @@ type Node struct {
 	children [NodeCount]*Node
 }
 
-func (n *Node) isLeaf() bool {
+func (n *Node) IsLeaf() bool {
 	return n.mask == 0
 }
 
-func (n *Node) leaf() *Leaf {
+func (n *Node) Leaf() *Leaf {
 	return (*Leaf)(unsafe.Pointer(n))
 }
 
@@ -31,7 +31,7 @@ func (n *Node) canonical() *Node {
 		return nil
 	}
 	if n.mask.Count() == 1 {
-		if child := n.children[n.mask.Index()]; child.isLeaf() {
+		if child := n.children[n.mask.Index()]; child.IsLeaf() {
 			return child
 		}
 	}
@@ -55,12 +55,16 @@ func (n *Node) setChildAsync(i int, child *Node, m sync.Locker) {
 	n.setChild(i, child)
 }
 
-func (n *Node) setChildren(mask types.MaskIterator, children *[NodeCount]*Node) {
+func (n *Node) SetChildren(mask types.MaskIterator, children *[NodeCount]*Node) {
 	n.mask |= mask
 	for ; mask != 0; mask = mask.Next() {
 		i := mask.Index()
 		n.children[i] = children[i]
 	}
+}
+
+func (n *Node) GetChildren() (types.MaskIterator, [NodeCount]*Node) {
+	return n.mask, n.children
 }
 
 func (n *Node) clearChildren(mask types.MaskIterator) {
@@ -125,8 +129,8 @@ func (n *Node) Equal(o *Node, eq func(a, b interface{}) bool, depth int, c *Clon
 		return true
 	case n == nil || o == nil || n.mask != o.mask:
 		return false
-	case n.isLeaf():
-		return n.leaf().equal(o.leaf(), eq)
+	case n.IsLeaf():
+		return n.Leaf().equal(o.Leaf(), eq)
 	default:
 		if depth == c.parallelDepth {
 			c.run(func() {
@@ -155,8 +159,8 @@ func (n *Node) getImpl(v interface{}, h Hasher) interface{} {
 	switch {
 	case n == nil:
 		return nil
-	case n.isLeaf():
-		if elem, _ := n.leaf().get(v, types.Equal); elem != nil {
+	case n.IsLeaf():
+		if elem, _ := n.Leaf().get(v, types.Equal); elem != nil {
 			return elem
 		}
 		return nil
@@ -172,17 +176,17 @@ func (n *Node) IsSubsetOf(o *Node, depth int, c *Cloner) bool {
 		return true
 	case o == nil:
 		return false
-	case n.isLeaf() && o.isLeaf():
-		return n.leaf().isSubsetOf(o.leaf(), types.Equal)
-	case n.isLeaf():
-		for i := n.leaf().iterator(); i.Next(); {
+	case n.IsLeaf() && o.IsLeaf():
+		return n.Leaf().isSubsetOf(o.Leaf(), types.Equal)
+	case n.IsLeaf():
+		for i := n.Leaf().iterator(); i.Next(); {
 			v := i.Value()
 			if o.getImpl(v, NewHasher(v, depth)) == nil {
 				return false
 			}
 		}
 		return true
-	case o.isLeaf():
+	case o.IsLeaf():
 		return false
 	default:
 		if depth == c.parallelDepth {
@@ -209,8 +213,8 @@ func (n *Node) Where(pred func(elem interface{}) bool, depth int, matches *int, 
 	switch {
 	case n == nil:
 		*result = n
-	case n.isLeaf():
-		*result = n.leaf().where(pred, matches)
+	case n.IsLeaf():
+		*result = n.Leaf().where(pred, matches)
 	default:
 		*result = Copier.node(n, &prepared)
 		n.opCanonical(n, depth, matches, c, result, func(a, _ *Node, matches *int, result **Node) {
@@ -231,8 +235,8 @@ func NewForEacher(f func(elem interface{}), spawn func() *ForEacher) *ForEacher 
 func (n *Node) ForEach(f *ForEacher, depth int, c *Cloner) {
 	switch {
 	case n == nil:
-	case n.isLeaf():
-		n.leaf().foreach(f.f)
+	case n.IsLeaf():
+		n.Leaf().foreach(f.f)
 	default:
 		if depth == c.parallelDepth {
 			for mask := n.mask; mask != 0; mask = mask.Next() {
@@ -299,8 +303,8 @@ func (n *Node) ForBatches(f *ForBatcher, depth int, c *Cloner) {
 func (n *Node) forbatchesImpl(f *ForBatcher, depth int, c *Cloner, fb *forbatch) {
 	switch {
 	case n == nil:
-	case n.isLeaf():
-		for i := n.leaf().iterator(); i.Next(); {
+	case n.IsLeaf():
+		for i := n.Leaf().iterator(); i.Next(); {
 			fb.add(i.Value())
 		}
 	default:
@@ -326,82 +330,73 @@ func (n *Node) forbatchesImpl(f *ForBatcher, depth int, c *Cloner, fb *forbatch)
 	}
 }
 
-func (n *Node) Intersection(o *Node, depth int, count *int, c *Cloner, result **Node) {
+func (n *Node) Intersection(o *Node, r *Resolver, depth int, count *int, c *Cloner, result **Node) {
 	switch {
 	case n == nil || o == nil:
 		*result = nil
-	case n.isLeaf():
-		*result = n.leaf().intersection(o, depth, count)
-	case o.isLeaf():
-		*result = o.leaf().intersection(n, depth, count)
+	case n.IsLeaf():
+		*result = n.Leaf().intersection(o, r, depth, count)
+	case o.IsLeaf():
+		*result = o.Leaf().intersection(n, r, depth, count)
 	default:
 		*result = &Node{}
 		n.opCanonical(o, depth, count, c, result, func(a, b *Node, count *int, result **Node) {
-			a.Intersection(b, depth+1, count, c, result)
+			a.Intersection(b, r, depth+1, count, c, result)
 		})
 	}
 }
 
-func (n *Node) Union(o *Node, f func(a, b interface{}) interface{}, depth int, matches *int, c *Cloner) *Node {
+func (n *Node) Union(o *Node, r *Resolver, depth int, matches *int, c *Cloner) *Node {
 	switch {
 	case n == nil:
 		return o
 	case o == nil:
 		return n
-	case n.isLeaf():
-		g := f // Copy to avoid infinite recursion
-		n, o, f = o, n, func(a, b interface{}) interface{} { return g(b, a) }
+	case n.IsLeaf():
+		n, o, r = o, n, r.Flip()
 		fallthrough
-	case o.isLeaf():
+	case o.IsLeaf():
 		var prepared *Node
-		for i := o.leaf().iterator(); i.Next(); {
+		for i := o.Leaf().iterator(); i.Next(); {
 			v := *i.elem()
-			n = n.With(v, f, depth, NewHasher(v, depth), matches, c, &prepared)
+			n = n.With(v, r, depth, NewHasher(v, depth), matches, c, &prepared)
 		}
 		return n
 	default:
 		var prepared *Node
 		result := c.node(n, &prepared)
-		result.setChildren(o.mask&^n.mask, &o.children)
+		result.SetChildren(o.mask&^n.mask, &o.children)
 		if depth == c.parallelDepth {
 			var m sync.Mutex
 			for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
 				c.run(func() {
 					matches := 0
-					result.setChildAsync(i, n.children[i].Union(o.children[i], f, depth+1, &matches, c), &m)
+					result.setChildAsync(i, n.children[i].Union(o.children[i], r, depth+1, &matches, c), &m)
 					c.update(matches)
 				})
 			}
 		} else {
 			for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
-				result.setChild(i, n.children[i].Union(o.children[i], f, depth+1, matches, c))
+				result.setChild(i, n.children[i].Union(o.children[i], r, depth+1, matches, c))
 			}
 		}
 		return result
 	}
 }
 
-func (n *Node) With(
-	v interface{},
-	f func(a, b interface{}) interface{},
-	depth int,
-	h Hasher,
-	matches *int,
-	c *Cloner,
-	prepared **Node,
-) *Node {
+func (n *Node) With(v interface{}, r *Resolver, depth int, h Hasher, matches *int, c *Cloner, prepared **Node) *Node {
 	switch {
 	case n == nil:
-		return newLeaf(v).node()
-	case n.isLeaf():
-		return n.leaf().with(v, f, depth, h, matches, c)
+		return NewLeaf(v).Node()
+	case n.IsLeaf():
+		return n.Leaf().with(v, r, depth, h, matches, c)
 	default:
 		offset := h.Hash()
 		var childPrepared *Node
-		child := n.children[offset].With(v, f, depth+1, h.Next(), matches, c, &childPrepared)
-		if child.isLeaf() && (n.mask|types.MaskIterator(1)<<offset).Count() == 1 {
+		child := n.children[offset].With(v, r, depth+1, h.Next(), matches, c, &childPrepared)
+		if child.IsLeaf() && (n.mask|types.MaskIterator(1)<<offset).Count() == 1 {
 			return child
 		}
 		return c.node(n, prepared).setChild(offset, child)
@@ -416,15 +411,15 @@ func (n *Node) Difference(o *Node, depth int, matches *int, c *Cloner, result **
 	case n == nil || o == nil:
 		*result = n
 		return
-	case o.isLeaf():
-		for i := o.leaf().iterator(); i.Next(); {
+	case o.IsLeaf():
+		for i := o.Leaf().iterator(); i.Next(); {
 			v := *i.elem()
 			n = n.Without(v, depth, NewHasher(v, depth), matches, c, &prepared)
 		}
 		*result = n
 		return
-	case n.isLeaf():
-		*result = n.leaf().difference(o, depth, matches)
+	case n.IsLeaf():
+		*result = n.Leaf().difference(o, depth, matches)
 		return
 	default:
 		// TODO: use c?
@@ -440,8 +435,8 @@ func (n *Node) Without(v interface{}, depth int, h Hasher, matches *int, c *Clon
 	switch {
 	case n == nil:
 		return n
-	case n.isLeaf():
-		return n.leaf().without(v, matches, c)
+	case n.IsLeaf():
+		return n.Leaf().without(v, matches, c)
 	default:
 		offset := h.Hash()
 		var childPrepared *Node
@@ -460,13 +455,13 @@ func (n *Node) String() string {
 	if n == nil {
 		return "∅"
 	}
-	if n.isLeaf() {
-		return n.leaf().String()
+	if n.IsLeaf() {
+		return n.Leaf().String()
 	}
 	var sb strings.Builder
 	deep := false
 	for mask := n.mask; mask != 0; mask = mask.Next() {
-		if !n.children[mask.Index()].isLeaf() {
+		if !n.children[mask.Index()].IsLeaf() {
 			deep = true
 			break
 		}
@@ -494,7 +489,7 @@ func (n *Node) Iterator(count int) types.Iterator {
 	if n == nil {
 		return exhaustedIterator{}
 	}
-	if n.isLeaf() {
+	if n.IsLeaf() {
 		return newNodeIter([]*Node{n}, count)
 	}
 	return newNodeIter(n.children[:], count)

@@ -24,7 +24,7 @@ type Leaf struct { //nolint:maligned
 	elems     [leafElems]interface{}
 }
 
-func newLeaf(elems ...interface{}) *Leaf {
+func NewLeaf(elems ...interface{}) *Leaf {
 	l := &Leaf{lastIndex: int16(len(elems) - 1)}
 	copy(l.elems[:], elems)
 	if len(elems) > leafElems {
@@ -33,7 +33,7 @@ func newLeaf(elems ...interface{}) *Leaf {
 	return l
 }
 
-func (l *Leaf) node() *Node {
+func (l *Leaf) Node() *Node {
 	return (*Node)(unsafe.Pointer(l))
 }
 
@@ -51,6 +51,10 @@ func (l *Leaf) last() *interface{} { //nolint:gocritic
 func (l *Leaf) extras() extraLeafElems {
 	extras, _ := (*l.last()).(extraLeafElems)
 	return extras
+}
+
+func (l *Leaf) Range() types.Iterator {
+	return newLeafIterator(l)
 }
 
 func (l *Leaf) elem(i int) *interface{} { //nolint:gocritic
@@ -139,7 +143,7 @@ func (l *Leaf) where(pred func(elem interface{}) bool, matches *int) *Node {
 	if result.lastIndex < 0 {
 		return nil
 	}
-	return result.node()
+	return result.Node()
 }
 
 func (l *Leaf) foreach(f func(elem interface{})) {
@@ -148,38 +152,31 @@ func (l *Leaf) foreach(f func(elem interface{})) {
 	}
 }
 
-func (l *Leaf) intersection(n *Node, depth int, count *int) *Node {
+func (l *Leaf) intersection(n *Node, r *Resolver, depth int, count *int) *Node {
 	result := Leaf{lastIndex: -1}
 	for i := l.iterator(); i.Next(); {
 		v := *i.elem()
 		h := NewHasher(v, depth)
-		if n.getImpl(v, h) != nil {
+		if w := n.getImpl(v, h); w != nil {
 			*count++
-			result.push(v, Mutator)
+			result.push(r.Resolve(v, w), Mutator)
 		}
 	}
 	if result.lastIndex < 0 {
 		return nil
 	}
-	return result.node()
+	return result.Node()
 }
 
-func (l *Leaf) with(
-	v interface{},
-	f func(a, b interface{}) interface{},
-	depth int,
-	h Hasher,
-	matches *int,
-	c *Cloner,
-) *Node {
+func (l *Leaf) with(v interface{}, r *Resolver, depth int, h Hasher, matches *int, c *Cloner) *Node {
 	if elem, i := l.get(v, types.Equal); elem != nil {
 		*matches++
-		res := f(elem, v)
-		return c.leaf(l).set(i, res).node()
+		res := r.Resolve(elem, v)
+		return c.leaf(l).set(i, res).Node()
 	}
 	h0 := NewHasher(l.elems[0], depth)
 	if h == h0 {
-		return l.push(v, c).node()
+		return l.push(v, c).Node()
 	}
 	result := &Node{}
 	last := result
@@ -193,8 +190,8 @@ func (l *Leaf) with(
 		noffset, offset = h0.Hash(), h.Hash()
 	}
 	last.mask = 1<<noffset | 1<<offset
-	last.children[noffset] = l.node()
-	last.children[offset] = newLeaf(v).node()
+	last.children[noffset] = l.Node()
+	last.children[offset] = NewLeaf(v).Node()
 	return result
 }
 
@@ -212,15 +209,15 @@ func (l *Leaf) difference(n *Node, depth int, matches *int) *Node {
 	if result.lastIndex < 0 {
 		return nil
 	}
-	return result.node()
+	return result.Node()
 }
 
 func (l *Leaf) without(v interface{}, matches *int, c *Cloner) *Node {
 	if elem, i := l.get(v, types.Equal); elem != nil {
 		*matches++
-		return l.remove(i, c).node()
+		return l.remove(i, c).Node()
 	}
-	return l.node()
+	return l.Node()
 }
 
 func (l *Leaf) isSubsetOf(m *Leaf, eq func(a, b interface{}) bool) bool {

@@ -28,8 +28,8 @@ func (i *nodeIter) Next() bool {
 			*nodes = (*nodes)[1:]
 			switch {
 			case b == nil:
-			case b.isLeaf():
-				i.li = b.leaf().iterator()
+			case b.IsLeaf():
+				i.li = b.Leaf().iterator()
 				return i.li.Next()
 			default:
 				i.stk = append(i.stk, b.children[:])

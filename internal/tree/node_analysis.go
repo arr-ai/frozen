@@ -66,9 +66,9 @@ func (n *Node) profileImpl(a *NodeAnalysis, depth int) {
 	switch {
 	case n == nil:
 		return
-	case n.isLeaf():
-		a.leaf(n.leaf(), depth)
-		for i := n.leaf().iterator(); i.Next(); {
+	case n.IsLeaf():
+		a.leaf(n.Leaf(), depth)
+		for i := n.Leaf().iterator(); i.Next(); {
 			a.element(i.Value())
 		}
 	default:
