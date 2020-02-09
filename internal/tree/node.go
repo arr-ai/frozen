@@ -1,7 +1,6 @@
 package tree
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -343,39 +342,13 @@ func (n *Node) Intersection(o *Node, r *Resolver, depth int, count *int, c *Clon
 	default:
 		*result = &Node{}
 		n.opCanonical(o, depth, count, c, result, func(a, b *Node, count *int, result **Node) {
-			a.Intersection(b, r, depth+1, count, c, result)
+			if intersection, ok := a.remote(b, slave.Work_OP_INTERSECTION, r, depth+1, count, c); ok {
+				*result = intersection
+			} else {
+				a.Intersection(b, r, depth+1, count, c, result)
+			}
 		})
 	}
-}
-
-func (n *Node) remoteUnion(o *Node, r *Resolver, depth int, matches *int, c *Cloner) (*Node, bool) {
-	if len(c.clients) > 0 {
-		a, err := ToSlaveTree(n)
-		if err != nil {
-			panic(err)
-		}
-		b, err := ToSlaveTree(o)
-		if err != nil {
-			panic(err)
-		}
-		req := &slave.UnionRequest{
-			A:        a,
-			B:        b,
-			Resolver: r.Name(),
-			Depth:    int32(depth),
-		}
-		resp, err := c.clients[0].Union(context.TODO(), req)
-		if err != nil {
-			panic(err)
-		}
-		union, err := FromSlaveTree(resp.Union)
-		if err != nil {
-			panic(err)
-		}
-		*matches = int(resp.Matches)
-		return union, true
-	}
-	return nil, false
 }
 
 func (n *Node) Union(o *Node, r *Resolver, depth int, matches *int, c *Cloner) *Node { //nolint:gocognit
@@ -404,7 +377,7 @@ func (n *Node) Union(o *Node, r *Resolver, depth int, matches *int, c *Cloner) *
 				i := mask.Index()
 				c.run(func() {
 					matches := 0
-					union, ok := n.children[i].remoteUnion(o.children[i], r, depth+1, &matches, c)
+					union, ok := n.children[i].remote(o.children[i], slave.Work_OP_UNION, r, depth+1, &matches, c)
 					if !ok {
 						union = n.children[i].Union(o.children[i], r, depth+1, &matches, c)
 					} else {
@@ -569,4 +542,35 @@ func (n *Node) Elements(count int) []interface{} {
 		elems = append(elems, i.Value())
 	}
 	return elems
+}
+
+func (n *Node) remote(o *Node, op slave.Work_Op, r *Resolver, depth int, matches *int, c *Cloner) (*Node, bool) {
+	if len(c.clients) > 0 {
+		a, err := ToSlaveTree(n)
+		if err != nil {
+			panic(err)
+		}
+		b, err := ToSlaveTree(o)
+		if err != nil {
+			panic(err)
+		}
+		req := &slave.Work{
+			Op:       op,
+			A:        a,
+			B:        b,
+			Resolver: r.Name(),
+			Depth:    int32(depth),
+		}
+		resp, err := c.clients[0].Compute(c.ctx, req)
+		if err != nil {
+			panic(err)
+		}
+		result, err := FromSlaveTree(resp.Result)
+		if err != nil {
+			panic(err)
+		}
+		*matches = int(resp.Matches)
+		return result, true
+	}
+	return nil, false
 }

@@ -1,6 +1,7 @@
 package tree
 
 import (
+	"context"
 	"math/bits"
 	"os"
 	"strconv"
@@ -17,6 +18,7 @@ type Cloner struct {
 	mutate        bool
 	update        func(interface{})
 	clients       []slave.SlaveClient
+	ctx           context.Context
 }
 
 var (
@@ -44,6 +46,7 @@ func NewCloner(mutate bool, capacity int) *Cloner {
 		parallelDepth: (bits.Len64(uint64(capacity)) - maxConcurrency) / 3,
 
 		clients: slaveClients(),
+		ctx:     context.TODO(),
 	}
 }
 

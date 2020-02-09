@@ -4,8 +4,8 @@ service Slave {
     // Sets internal seeds to ensure hash consistency.
     rpc SetSeed(SetSeedRequest) returns (SetSeedResponse) {}
 
-    // Union a set of maps.
-    rpc Union(UnionRequest) returns (UnionResponse) {}
+    // Compute the intersection of two trees.
+    rpc Compute(Work) returns (Result) {}
 }
 
 message SetSeedRequest {
@@ -15,15 +15,22 @@ message SetSeedRequest {
 
 message SetSeedResponse {}
 
-message UnionRequest {
-    Tree a = 1;
-    Tree b = 2;
-    string resolver = 3;
-    int32 depth = 4;
+message Work {
+    Op op = 1;
+    Tree a = 2;
+    Tree b = 3;
+    string resolver = 4;
+    int32 depth = 5;
+
+    enum Op {
+        OP_UNSPECIFIED = 0;
+        OP_INTERSECTION = 1;
+        OP_UNION = 2;
+    }
 }
 
-message UnionResponse {
-    Tree union = 1;
+message Result {
+    Tree result = 1;
     int64 matches = 2;
 }
 

@@ -64,7 +64,7 @@ func (s *slaveServer) SetSeed(_ context.Context, req *slave.SetSeedRequest) (*sl
 	return &slave.SetSeedResponse{}, nil
 }
 
-func (s *slaveServer) Union(_ context.Context, req *slave.UnionRequest) (*slave.UnionResponse, error) {
+func (s *slaveServer) Compute(_ context.Context, req *slave.Work) (*slave.Result, error) {
 	workers <- 1
 	defer func() { workers <- -1 }()
 
@@ -80,13 +80,23 @@ func (s *slaveServer) Union(_ context.Context, req *slave.UnionRequest) (*slave.
 		return nil, err
 	}
 
+	depth := int(req.Depth)
+
 	matches := 0
-	union, err := tree.ToSlaveTree(a.Union(b, resolver, int(req.Depth), &matches, tree.Mutator))
+	var node *tree.Node
+	switch req.Op {
+	case slave.Work_OP_INTERSECTION:
+		a.Intersection(b, resolver, depth, &matches, tree.Mutator, &node)
+	case slave.Work_OP_UNION:
+		node = a.Union(b, resolver, depth, &matches, tree.Mutator)
+	}
+	result, err := tree.ToSlaveTree(node)
+
 	if err != nil {
 		return nil, err
 	}
-	return &slave.UnionResponse{
-		Union:   union,
+	return &slave.Result{
+		Result:  result,
 		Matches: int64(matches),
 	}, nil
 }
