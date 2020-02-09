@@ -76,6 +76,13 @@ func (n *Node) clearChildren(mask types.MaskIterator) {
 	}
 }
 
+func (n *Node) hash(depth int) Hasher {
+	if i := n.Iterator(0); i.Next() {
+		return NewHasher(i.Value(), 0) >> (hashBits - 3*depth)
+	}
+	return 0
+}
+
 func (n *Node) opCanonical(
 	o *Node,
 	depth int,
@@ -561,7 +568,8 @@ func (n *Node) remote(o *Node, op slave.Work_Op, r *Resolver, depth int, matches
 			Resolver: r.Name(),
 			Depth:    int32(depth),
 		}
-		resp, err := c.clients[0].Compute(c.ctx, req)
+		i := int(uintptr(n.hash(depth)) % uintptr(len(c.clients)))
+		resp, err := c.clients[i].Compute(c.ctx, req)
 		if err != nil {
 			panic(err)
 		}
