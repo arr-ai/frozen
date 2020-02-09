@@ -66,7 +66,7 @@ func expandRanges(glob string, addr func(string)) {
 			panic(err)
 		}
 		for i := a; i <= b; i++ {
-			expandRanges(fmt.Sprintf("%s%d%s", glob[:m[0]], i, glob[m[1]:]), addr)
+			expandRanges(fmt.Sprintf("%s%0*d%s", glob[:m[0]], m[3]-m[2], i, glob[m[1]:]), addr)
 		}
 	} else {
 		addr(glob)
