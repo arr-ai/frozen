@@ -42,10 +42,10 @@ func TestNewSetFromMask64(t *testing.T) {
 
 	assertSetEqual(t, Set{}, NewSetFromMask64(0))
 	for i := 0; i < 64; i++ {
-		assertSetEqual(t, NewSet(i), NewSetFromMask64(uint64(1)<<i), "%v", i)
+		assertSetEqual(t, NewSet(i), NewSetFromMask64(uint64(1)<<uint(i)), "%v", i)
 	}
 	for i := 0; i < 64; i++ {
-		assertSetEqual(t, Iota(i), NewSetFromMask64(uint64(1)<<i-1), "%v", i)
+		assertSetEqual(t, Iota(i), NewSetFromMask64(uint64(1)<<uint(i)-1), "%v", i)
 	}
 }
 

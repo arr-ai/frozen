@@ -163,5 +163,5 @@ func assertSetOps(t *testing.T, golden frozen.Set, s Set) { //nolint:funlen
 		assertEqualSet(t, Frozen(golden.SymmetricDifference(u)), s.SymmetricDifference(Frozen(u)), "i=%v u=%v", i, u)
 	}
 
-	assert.Equal(t, 1<<golden.Count(), s.Powerset().Count())
+	assert.Equal(t, 1<<uint(golden.Count()), s.Powerset().Count())
 }

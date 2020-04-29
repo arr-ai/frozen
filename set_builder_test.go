@@ -112,8 +112,8 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 
 		requireMatch := func(format string, args ...interface{}) {
 			for j := 0; j < 35; j++ {
-				if !assert.Equalf(t, s&(uint64(1)<<j) != 0, b.Has(j), format+" j=%v", append(args, j)...) {
-					log.Print(s&(uint64(1)<<j) != 0, b.Has(j), BitIterator(s), b.root)
+				if !assert.Equalf(t, s&(uint64(1)<<uint(j)) != 0, b.Has(j), format+" j=%v", append(args, j)...) {
+					log.Print(s&(uint64(1)<<uint(j)) != 0, b.Has(j), BitIterator(s), b.root)
 					b.Has(j)
 					r.replay()
 					t.FailNow()
@@ -123,12 +123,12 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 
 		add := func(i int) {
 			b.Add(i)
-			s |= uint64(1) << i
+			s |= uint64(1) << uint(i)
 		}
 
 		remove := func(i int) {
 			b.Remove(i)
-			s &^= uint64(1) << i
+			s &^= uint64(1) << uint(i)
 		}
 
 		requireMatch("")

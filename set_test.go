@@ -364,32 +364,32 @@ func TestSetReduce(t *testing.T) {
 	assert.Equal(t, 35, NewSet(5, 7).Reduce2(product))
 	assert.Equal(t, 55, Iota2(1, 11).Reduce2(sum))
 	assert.Equal(t, 720, Iota2(2, 7).Reduce2(product))
-	assert.Equal(t, (1_000_000-1)*1_000_000/2, Iota(1_000_000).Reduce2(sum))
-	log.Printf("%#v", Iota(1_000_000).root.profile(false))
+	assert.Equal(t, (1*1000*1000-1)*1*1000*1000/2, Iota(1*1000*1000).Reduce2(sum))
+	log.Printf("%#v", Iota(1*1000*1000).root.profile(false))
 }
 
 func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set) Set) {
 	m := map[uint64]struct{}{
-		0b000000000000000: {},
-		0b000000000000001: {},
-		0b000000000000010: {},
-		0b000001000010000: {},
-		0b111111111111111: {},
-		0b010101010101010: {},
-		0b100100100100100: {},
-		0b000100010001000: {},
-		0b100001000010000: {},
+		0x0000: {}, // 000000000000000
+		0x0001: {}, // 000000000000001
+		0x0002: {}, // 000000000000010
+		0x0210: {}, // 000001000010000
+		0x7fff: {}, // 111111111111111
+		0x2aaa: {}, // 010101010101010
+		0x4924: {}, // 100100100100100
+		0x0888: {}, // 000100010001000
+		0x4210: {}, // 100001000010000
 	}
 	for i := 0; i < 100; i++ {
 		m[uint64(i)] = struct{}{}
 	}
-	for i := 100; i < 10_000; i += 100 {
+	for i := 100; i < 10*1000; i += 100 {
 		m[uint64(i)] = struct{}{}
 	}
-	for i := 10_000; i < 1_000_000; i += 10_000 {
+	for i := 10 * 1000; i < 1*1000*1000; i += 10 * 1000 {
 		m[uint64(i)] = struct{}{}
 	}
-	for i := 1_000_000; i < 100_000_000; i += 1_000_000 {
+	for i := 1 * 1000 * 1000; i < 100*1000*1000; i += 1 * 1000 * 1000 {
 		m[uint64(i)] = struct{}{}
 	}
 	sets := make([]uint64, 0, len(m))
@@ -435,8 +435,8 @@ func TestSetIntersectionLarge(t *testing.T) {
 	t.Parallel()
 
 	for i := 0; i <= 13; i++ {
-		a := Iota2(1<<i, 9<<i)
-		b := Iota(9 << i).Intersection(Iota2(1<<i, 10<<i))
+		a := Iota2(1<<uint(i), 9<<uint(i))
+		b := Iota(9 << uint(i)).Intersection(Iota2(1<<uint(i), 10<<uint(i)))
 		if !assertSetEqual(t, a, b, "%d", i) {
 			assert.ElementsMatch(t, a.Elements(), b.Elements())
 			t.FailNow()
@@ -522,7 +522,7 @@ func TestSetRange(t *testing.T) {
 
 	mask := uint64(0)
 	for i := Iota(64).Range(); i.Next(); {
-		mask |= uint64(1) << i.Value().(int)
+		mask |= uint64(1) << uint(i.Value().(int))
 	}
 	assert.Equal(t, ^uint64(0), mask)
 }

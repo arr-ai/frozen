@@ -39,7 +39,7 @@ func (n *node) canonical() *node {
 }
 
 func (n *node) setChild(i int, child *node) *node {
-	mask := MaskIterator(1) << i
+	mask := MaskIterator(1) << uint(i)
 	if child != nil {
 		n.mask |= mask
 	} else {
@@ -384,7 +384,7 @@ func (n *node) with(v interface{}, f func(a, b interface{}) interface{}, depth i
 		offset := h.hash()
 		var childPrepared *node
 		child := n.children[offset].with(v, f, depth+1, h.next(), matches, c, &childPrepared)
-		if child.isLeaf() && (n.mask|MaskIterator(1)<<offset).Count() == 1 {
+		if child.isLeaf() && (n.mask|MaskIterator(1)<<uint(offset)).Count() == 1 {
 			return child
 		}
 		return c.node(n, prepared).setChild(offset, child)

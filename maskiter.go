@@ -21,15 +21,15 @@ func (b MaskIterator) Count() int {
 }
 
 func (b MaskIterator) Has(i int) bool {
-	return b&(MaskIterator(1)<<i) != 0
+	return b&(MaskIterator(1)<<uint(i)) != 0
 }
 
 func (b MaskIterator) With(i int) MaskIterator {
-	return b | MaskIterator(1)<<i
+	return b | MaskIterator(1)<<uint(i)
 }
 
 func (b MaskIterator) Without(i int) MaskIterator {
-	return b &^ MaskIterator(1) << i
+	return b &^ MaskIterator(1) << uint(i)
 }
 
 func (b MaskIterator) String() string {

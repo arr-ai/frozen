@@ -35,7 +35,7 @@ var brailleBytes = func() [0x100]rune {
 	for i := 0; i < 0x100; i++ {
 		r := rune(0x2800)
 		for _, m := range mappings {
-			r |= rune(i) >> m[0] & 1 << m[1]
+			r |= rune(i) >> uint(m[0]) & 1 << uint(m[1])
 		}
 		bytes[i] = r
 	}

@@ -24,7 +24,7 @@ type cellBlock [blockCells]cellMask
 var emptyBlock cellBlock
 
 func locateBlock(i int) (blockIndex, cellIndex int, bitMask cellMask) {
-	return i / blockBits, i % blockBits / cellBits, cellMask(1) << (i % cellBits)
+	return i / blockBits, i % blockBits / cellBits, cellMask(1) << uint(i%cellBits)
 }
 
 // NewIntSet returns an IntSet with the values provided.

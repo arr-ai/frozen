@@ -27,7 +27,7 @@ func (s *powerSet) FastIsEmpty() (empty, ok bool) {
 
 func (s *powerSet) Count() int {
 	if count := s.set.Count(); count < int(8*unsafe.Sizeof(0)) {
-		return 1 << count
+		return 1 << uint(count)
 	}
 	panic("Count(): too many elements")
 }
@@ -35,7 +35,7 @@ func (s *powerSet) Count() int {
 func (s *powerSet) FastCount() (count int, ok bool) {
 	if count, ok := s.set.FastCount(); ok {
 		if count < int(8*unsafe.Sizeof(0)) {
-			return 1 << count, true
+			return 1 << uint(count), true
 		}
 		panic("Count(): too many elements")
 	}
@@ -45,7 +45,7 @@ func (s *powerSet) FastCount() (count int, ok bool) {
 func (s *powerSet) FastCountUpTo(limit int) (count int, ok bool) {
 	if count, ok := s.set.FastCount(); ok {
 		if count < int(8*unsafe.Sizeof(0)) {
-			n := 1 << count
+			n := 1 << uint(count)
 			if n < limit {
 				return n, true
 			}
