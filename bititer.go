@@ -21,15 +21,15 @@ func (b BitIterator) Count() int {
 }
 
 func (b BitIterator) Has(i int) bool {
-	return b&(BitIterator(1)<<i) != 0
+	return b&(BitIterator(1)<<uint(i)) != 0
 }
 
 func (b BitIterator) With(i int) BitIterator {
-	return b | BitIterator(1)<<i
+	return b | BitIterator(1)<<uint(i)
 }
 
 func (b BitIterator) Without(i int) BitIterator {
-	return b &^ BitIterator(1) << i
+	return b &^ BitIterator(1) << uint(i)
 }
 
 func (b BitIterator) String() string {

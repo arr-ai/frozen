@@ -29,7 +29,7 @@ func TestJoinSimple(t *testing.T) {
 // 0bZZYYXX = (x:XX, y:YY, z:ZZ).
 // When XX, YY or ZZ are zero, they are considered to be not in the map.
 // Relations are numbers with multiple sequences of the above pattern.
-//   - 0b001001_001110 = {(x:1, y:2), (x:2, y:3)}
+//   - 0b001001001110 = {(x:1, y:2), (x:2, y:3)}
 //   - 0b101000_110100 = {(y:1, z:3), (y:2, z:2)}
 type bitRelation uint64
 
@@ -39,10 +39,11 @@ func expandBinaryToTernaryBitRelation(a, offset uint64) bitRelation {
 	result := uint64(0)
 	for ; a != 0; a >>= 4 {
 		// If XX or YY is zero, discard the whole relation.
-		if a&0b0011 == 0 || a&0b1100 == 0 || a&0b1111 < result&0b1111 {
+		//   0011        1100          1111        1111
+		if a&3 == 0 || a&0xc == 0 || a&15 < result&15 {
 			return 0
 		}
-		result = result<<6 | a&0b1111
+		result = result<<6 | a&15 /*1111*/
 	}
 	return bitRelation(result << offset)
 }
@@ -60,12 +61,12 @@ func (a bitRelation) toRelation() Set {
 	h := header[lo:hi]
 	rows := make([][]interface{}, 0, (bits.Len(uint(a))+5)/6)
 	for ; a != 0; a >>= 6 {
-		if a&0b001100 == 0 {
+		if a&12 == 0 { // 001100
 			panic(fmt.Sprintf("a=%b", a))
 		}
 		row := make([]interface{}, 0, hi-lo)
 		for i := 2 * lo; i < 2*hi; i += 2 {
-			row = append(row, a>>i&3)
+			row = append(row, a>>uint(i)&3)
 		}
 		rows = append(rows, row)
 	}
@@ -76,8 +77,9 @@ func (a bitRelation) join(b bitRelation) bitRelation {
 	result := bitRelation(0)
 	for i := a; i != 0; i >>= 6 {
 		for j := b; j != 0; j >>= 6 {
-			if i&0b001100 == j&0b001100 {
-				result = result<<6 | (i|j)&0b111111
+			//   001100  001100
+			if i&12 == j&12 {
+				result = result<<6 | (i|j)&0x3f // 111111
 			}
 		}
 	}
@@ -89,21 +91,22 @@ func TestJoinExhaustive(t *testing.T) {
 	t.Parallel()
 
 	outerTotal := 0
-	for i0 := uint64(1); i0 < 0b1_0000_0000; i0++ {
+	for i0 := uint64(1); i0 < 0x100; /*1_0000_0000*/ i0++ {
 		i0 := i0
-		if i0&0b0011 == 0 || i0&0b1100 == 0 || i0&0b0011_0000 == 0 || i0&0b1100_0000 == 0 || i0>>4 < i0&0b1111 {
+		//    0011         1100           0011_0000       1100_0000               1111
+		if i0&3 == 0 || i0&0xc == 0 || i0&0x30 == 0 || i0&0xc0 == 0 || i0>>4 < i0&0xf {
 			continue
 		}
-		t.Run(fmt.Sprintf("0b%04b_%04b", i0>>4, i0&0b1111), func(t *testing.T) {
+		t.Run(fmt.Sprintf("0b%04b_%04b", i0>>4, i0&0xf), func(t *testing.T) {
 			t.Parallel()
 
 			innerTotal := 0
-			for i := i0; i < 0b1_0000_0000_0000; i += 0b1_0000_0000 {
+			for i := i0; i < 0x1000; i += 0x100 {
 				a := expandBinaryToTernaryBitRelation(i, 0)
 				if a == 0 {
 					continue
 				}
-				for j := uint64(1); j < 0b1_0000_0000_0000; j++ {
+				for j := uint64(1); j < 0x1000; j++ {
 					b := expandBinaryToTernaryBitRelation(j, 2)
 					if b == 0 {
 						continue

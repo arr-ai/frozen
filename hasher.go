@@ -16,7 +16,7 @@ const (
 type hasher uintptr
 
 func newHasher(key interface{}, depth int) hasher {
-	return hasher(hash.Interface(key, 0)) << (depth * nodeBits)
+	return hasher(hash.Interface(key, 0)) << uint(depth*nodeBits)
 }
 
 func (h hasher) next() hasher {
@@ -24,7 +24,7 @@ func (h hasher) next() hasher {
 }
 
 func (h hasher) hash() int {
-	return int(h >> hashBitsOffset)
+	return int(h >> uint(hashBitsOffset))
 }
 
 func (h hasher) String() string {
@@ -33,7 +33,7 @@ func (h hasher) String() string {
 	switch nodeBits {
 	case 2:
 		// TODO(if we care): Output a base-4 number.
-		s = fmt.Sprintf("%0*x", hashBits/4, h>>dregs)
+		s = fmt.Sprintf("%0*x", hashBits/4, h>>uint(dregs))
 	case 3:
 		var sb strings.Builder
 		sb.WriteByte('#')
@@ -48,7 +48,7 @@ func (h hasher) String() string {
 		panic("not implemented")
 	}
 	if dregs != 0 {
-		s += fmt.Sprintf("%d", h<<(nodeBits-dregs)%nodeCount)
+		s += fmt.Sprintf("%d", h<<uint(nodeBits-dregs)%nodeCount)
 	}
 	return strings.TrimRight(s, "0")
 }
