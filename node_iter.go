@@ -1,8 +1,9 @@
 package frozen
 
-import "container/heap"
-
-import "math/bits"
+import (
+	"container/heap"
+	"math/bits"
+)
 
 // Less dictates the order of two elements.
 type Less func(a, b interface{}) bool

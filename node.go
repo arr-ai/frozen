@@ -374,7 +374,15 @@ func (n *node) union(o *node, f func(a, b interface{}) interface{}, depth int, m
 	}
 }
 
-func (n *node) with(v interface{}, f func(a, b interface{}) interface{}, depth int, h hasher, matches *int, c *cloner, prepared **node) *node {
+func (n *node) with(
+	v interface{},
+	f func(a, b interface{}) interface{},
+	depth int,
+	h hasher,
+	matches *int,
+	c *cloner,
+	prepared **node,
+) *node {
 	switch {
 	case n == nil:
 		return newLeaf(v).node()

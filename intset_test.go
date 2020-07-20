@@ -90,9 +90,9 @@ func TestIntSetIntersection(t *testing.T) {
 	t.Parallel()
 
 	arr, fullSet := generateIntArrayAndSet(maxIntArrLen)
-	firstQuartile := NewIntSet(arr[:int(len(arr)/4)]...)
-	secondToFifthDecile := NewIntSet(arr[int(len(arr)/5):int(len(arr)/2)]...)
-	thirdQuartile := NewIntSet(arr[int(len(arr)/2):int(3*len(arr)/4)]...)
+	firstQuartile := NewIntSet(arr[:len(arr)/4]...)
+	secondToFifthDecile := NewIntSet(arr[len(arr)/5 : len(arr)/2]...)
+	thirdQuartile := NewIntSet(arr[len(arr)/2 : 3*len(arr)/4]...)
 
 	intersect := fullSet.Intersection(firstQuartile)
 	assert.True(t, intersect.EqualSet(firstQuartile))
@@ -103,7 +103,7 @@ func TestIntSetIntersection(t *testing.T) {
 	assert.Equal(t, 0, intersect.count)
 
 	intersect = secondToFifthDecile.Intersection(firstQuartile)
-	distinctNums := len(getDistinctInts(arr[int(len(arr)/5):int(len(arr)/4)]))
+	distinctNums := len(getDistinctInts(arr[len(arr)/5 : len(arr)/4]))
 	for i := intersect.Range(); i.Next(); {
 		assert.True(t, secondToFifthDecile.Has(i.Value()) && firstQuartile.Has(i.Value()))
 	}
@@ -140,7 +140,7 @@ func TestIntSetIsSubsetOf(t *testing.T) {
 	assert.True(t, NewIntSet().IsSubsetOf(fullSet))
 	assert.True(t, fullSet.IsSubsetOf(fullSet))
 	assert.True(t, NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(fullSet))
-	assert.False(t, NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(NewIntSet(arr[int(len(arr)/3):]...)))
+	assert.False(t, NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(NewIntSet(arr[len(arr)/3:]...)))
 }
 
 func TestIntSetWhere(t *testing.T) {
