@@ -109,5 +109,5 @@ func (emptySetIterator) Next() bool {
 }
 
 func (emptySetIterator) Value() interface{} {
-	panic("empty set")
+	panic("emptySetIterator.Value(): empty set")
 }

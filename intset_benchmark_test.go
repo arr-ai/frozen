@@ -18,7 +18,7 @@ func benchmarkWithIntSet(b *testing.B, n int) {
 	multiplier := 2147483647 % n
 	withouts := make([]int, 0, b.N)
 	for i := 0; i < b.N; i++ {
-		withouts = append(withouts, i * multiplier)
+		withouts = append(withouts, i*multiplier)
 	}
 	set = set.Without(withouts...)
 	b.ResetTimer()
