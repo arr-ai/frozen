@@ -23,4 +23,6 @@ jobs:
       run: go build -v ./...
 
     - name: Test
-      run: TESTFLAGS=-cover make
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        TESTFLAGS=-cover make
