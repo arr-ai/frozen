@@ -162,7 +162,14 @@ func (l *leaf) intersection(n *node, depth int, count *int) *node {
 	return result.node()
 }
 
-func (l *leaf) with(v interface{}, f func(a, b interface{}) interface{}, depth int, h hasher, matches *int, c *cloner) *node {
+func (l *leaf) with(
+	v interface{},
+	f func(a, b interface{}) interface{},
+	depth int,
+	h hasher,
+	matches *int,
+	c *cloner,
+) *node {
 	if elem, i := l.get(v, Equal); elem != nil {
 		*matches++
 		res := f(elem, v)

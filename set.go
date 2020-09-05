@@ -76,7 +76,7 @@ func (s Set) Any() interface{} {
 	for i := s.Range(); i.Next(); {
 		return i.Value()
 	}
-	panic("empty set")
+	panic("Set.Any(): empty set")
 }
 
 // AnyN returns a set of N arbitrary elements from the Set.
@@ -104,7 +104,7 @@ func (s Set) First(less Less) interface{} {
 	for _, i := range s.OrderedFirstN(1, less) {
 		return i
 	}
-	panic("empty set")
+	panic("Set.First(): empty set")
 }
 
 // FirstN returns a set of the first n elements in a defined order.
