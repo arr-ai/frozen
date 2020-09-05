@@ -10,6 +10,8 @@ const (
 	leafElems = nodeCount / 2
 )
 
+var emptyLeaf = newLeaf()
+
 // Compile-time assert that node and leaf have the same size and alignment.
 const _ = -uint(unsafe.Sizeof(node{}) ^ unsafe.Sizeof(leaf{}))
 const _ = -uint(unsafe.Alignof(node{}) ^ unsafe.Alignof(leaf{}))
@@ -252,6 +254,6 @@ func (l *leaf) String() string {
 	return b.String()
 }
 
-func (l *leaf) iterator() *leafIterator {
+func (l *leaf) iterator() leafIterator {
 	return newLeafIterator(l)
 }

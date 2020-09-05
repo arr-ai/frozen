@@ -10,13 +10,21 @@ type Less func(a, b interface{}) bool
 
 type nodeIter struct {
 	stk [][]*node
-	li  Iterator
+	buf [8][]*node
+	li  leafIterator
 }
 
 func newNodeIter(base []*node, count int) *nodeIter {
+	var result nodeIter
 	depth := (bits.Len64(uint64(count)) + 5) / 2 // 1.5 (log₈(n) + 1)
-	stk := append(make([][]*node, 0, depth), base)
-	return &nodeIter{stk: stk, li: exhaustedIterator{}}
+	if depth <= len(result.buf) {
+		result.stk = result.buf[:][:1]
+	} else {
+		result.stk = make([][]*node, 1, depth)
+	}
+	result.stk[0] = base
+	result.li = newLeafIterator(emptyLeaf)
+	return &result
 }
 
 func (i *nodeIter) Next() bool {
