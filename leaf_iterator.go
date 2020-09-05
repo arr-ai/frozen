@@ -16,8 +16,8 @@ type leafIterator struct {
 	extras extraLeafElems
 }
 
-func newLeafIterator(l *leaf) *leafIterator {
-	return &leafIterator{
+func newLeafIterator(l *leaf) leafIterator {
+	return leafIterator{
 		l:     l,
 		index: -1,
 	}
