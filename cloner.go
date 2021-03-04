@@ -2,6 +2,7 @@ package frozen
 
 import (
 	"math/bits"
+	"os"
 	"sync"
 	"sync/atomic"
 )
@@ -16,15 +17,21 @@ type cloner struct {
 var (
 	theCopier  = &cloner{mutate: false, parallelDepth: -1}
 	theMutator = &cloner{mutate: true, parallelDepth: -1}
+	parallel   = os.Getenv("FROZEN_PARALLEL") != ""
 )
 
 func newCloner(mutate bool, capacity int) *cloner {
+	depth := -1
+	if parallel {
+		depth = (bits.Len64(uint64(capacity)) - 15) / 3
+	}
+
 	return &cloner{
 		mutate: mutate,
 
 		// Give parallel workers O(32k) elements each to process. If
 		// parallelDepth < 0, it won't parallelise.
-		parallelDepth: (bits.Len64(uint64(capacity)) - 15) / 3,
+		parallelDepth: depth,
 	}
 }
 

@@ -11,6 +11,14 @@ Map and Set both use a hashed array trie.
 - Map: Associates keys with values.
 - Set: Stores sets of values.
 
+## Configuration
+
+To enable parallelization, use the following command:
+
+```sh
+export FROZEN_PARALLEL=true
+```
+
 ## Performance
 
 The following benchmarks test the base node implementation against several other
