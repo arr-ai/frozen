@@ -50,5 +50,8 @@ func (b *MapBuilder) Finish() Map {
 	}
 	root := b.root
 	*b = MapBuilder{}
-	return Map{root: root, count: count}
+	m := Map{root: root, count: count}
+	// eagerly calculate the elements hash
+	_ = m.mapElementsHash()
+	return m
 }

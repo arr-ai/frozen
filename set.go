@@ -9,8 +9,9 @@ import (
 
 // Set holds a set of values. The zero value is the empty Set.
 type Set struct {
-	root  *node
-	count int
+	root         *node
+	count        int
+	elementsHash *uintptr
 }
 
 var _ Key = Set{}
@@ -138,10 +139,24 @@ func (s Set) OrderedRange(less Less) Iterator {
 // Hash computes a hash value for s.
 func (s Set) Hash(seed uintptr) uintptr {
 	h := hash.Uintptr(uintptr(10538386443025343807&uint64(^uintptr(0))), seed)
-	for i := s.Range(); i.Next(); {
-		h ^= hash.Interface(i.Value(), seed)
-	}
+	h ^= s.setElementsHash()
 	return h
+}
+
+func (s Set) setElementsHash() uintptr {
+	if s.root == nil {
+		return 0
+	}
+	if s.elementsHash == nil {
+		i := s.Range()
+		i.Next()
+		h := hash.Interface(i.Value(), 0)
+		for i.Next() {
+			h ^= hash.Interface(i.Value(), 0)
+		}
+		s.elementsHash = &h
+	}
+	return *s.elementsHash
 }
 
 // Equal implements Equatable.
@@ -289,6 +304,7 @@ func (s Set) Intersection(t Set) Set {
 	var root *node
 	s.root.intersection(t.root, 0, &count, c, &root)
 	count += countAsync()
+	// newHash :=
 	return Set{root: root, count: count}
 }
 
@@ -299,7 +315,8 @@ func (s Set) Union(t Set) Set {
 	matches := 0
 	root := s.root.union(t.root, useRHS, 0, &matches, c)
 	matches += matchesAsync()
-	return Set{root: root, count: s.Count() + t.Count() - matches}
+	newHash := s.setElementsHash() ^ t.setElementsHash()
+	return Set{root: root, count: s.Count() + t.Count() - matches, elementsHash: &newHash}
 }
 
 // Difference returns a Set with all elements that are s but not in t.

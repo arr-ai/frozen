@@ -50,5 +50,8 @@ func (b *SetBuilder) Finish() Set {
 	}
 	root := b.root
 	*b = SetBuilder{}
-	return Set{root: root, count: count}
+	s := Set{root: root, count: count}
+	// eagerly calculate the elements hash
+	_ = s.setElementsHash()
+	return s
 }
