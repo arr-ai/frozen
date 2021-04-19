@@ -75,6 +75,33 @@ func assertMapNotHas(t *testing.T, m Map, i interface{}) bool {
 	return ok1 && ok2
 }
 
+func assertStrMapEqual(t *testing.T, expected, actual StrMap, msgAndArgs ...interface{}) bool {
+	format := "\nexpected %v != \nactual   %v"
+	args := []interface{}{}
+	if len(msgAndArgs) > 0 {
+		format = msgAndArgs[0].(string) + format
+		args = append(append(args, format), msgAndArgs[1:]...)
+	} else {
+		args = append(args, format)
+	}
+	args = append(args, expected, actual)
+	return assert.True(t, expected.Equal(actual), args...)
+}
+
+func assertStrMapHas(t *testing.T, m StrMap, i string, expected interface{}) bool {
+	v, has := m.Get(i)
+	ok1 := assert.Equal(t, has, m.Has(i))
+	ok2 := assert.True(t, has, "i=%v", i) && assert.Equal(t, expected, v, "i=%v", i)
+	return ok1 && ok2
+}
+
+func assertStrMapNotHas(t *testing.T, m StrMap, i string) bool {
+	v, has := m.Get(i)
+	ok1 := assert.Equal(t, has, m.Has(i))
+	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
+	return ok1 && ok2
+}
+
 type mapOfSet map[string]Set
 
 func (m mapOfSet) String() string {
