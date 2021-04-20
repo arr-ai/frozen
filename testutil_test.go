@@ -28,7 +28,7 @@ func memoizePrepop(prepare func(n int) interface{}) func(n int) interface{} {
 }
 
 func assertSetEqual(t *testing.T, expected, actual Set, msgAndArgs ...interface{}) bool {
-	format := "\nexpected %v != \nactual   %v"
+	format := "\nexpected %v != \nactual   %v" // nolint:goconst
 	args := []interface{}{}
 	if len(msgAndArgs) > 0 {
 		format = msgAndArgs[0].(string) + format
@@ -69,6 +69,33 @@ func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool {
 }
 
 func assertMapNotHas(t *testing.T, m Map, i interface{}) bool {
+	v, has := m.Get(i)
+	ok1 := assert.Equal(t, has, m.Has(i))
+	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
+	return ok1 && ok2
+}
+
+func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs ...interface{}) bool { //nolint:dupl
+	format := "\nexpected %v != \nactual   %v"
+	args := []interface{}{}
+	if len(msgAndArgs) > 0 {
+		format = msgAndArgs[0].(string) + format
+		args = append(append(args, format), msgAndArgs[1:]...)
+	} else {
+		args = append(args, format)
+	}
+	args = append(args, expected, actual)
+	return assert.True(t, expected.Equal(actual), args...)
+}
+
+func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{}) bool { //nolint:dupl
+	v, has := m.Get(i)
+	ok1 := assert.Equal(t, has, m.Has(i))
+	ok2 := assert.True(t, has, "i=%v", i) && assert.Equal(t, expected, v, "i=%v", i)
+	return ok1 && ok2
+}
+
+func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool { //nolint:dupl
 	v, has := m.Get(i)
 	ok1 := assert.Equal(t, has, m.Has(i))
 	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
