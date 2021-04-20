@@ -10,31 +10,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStrMapBuilderEmpty(t *testing.T) {
+func TestStringMapBuilderEmpty(t *testing.T) {
 	t.Parallel()
 
-	var b StrMapBuilder
-	assertStrMapEqual(t, StrMap{}, b.Finish())
+	var b StringMapBuilder
+	assertStringMapEqual(t, StringMap{}, b.Finish())
 }
 
-func TestStrMapBuilder(t *testing.T) {
+func TestStringMapBuilder(t *testing.T) {
 	t.Parallel()
 
-	var b StrMapBuilder
+	var b StringMapBuilder
 	for i := 0; i < 10; i++ {
 		b.Put(fmt.Sprintf("%d", i), i*i)
 	}
 	m := b.Finish()
 	assert.Equal(t, 10, m.Count())
 	for i := 0; i < 10; i++ {
-		assertStrMapHas(t, m, fmt.Sprintf("%d", i), i*i)
+		assertStringMapHas(t, m, fmt.Sprintf("%d", i), i*i)
 	}
 }
 
-func TestStrMapBuilderRemove(t *testing.T) {
+func TestStringMapBuilderRemove(t *testing.T) {
 	t.Parallel()
 
-	var b StrMapBuilder
+	var b StringMapBuilder
 	for i := 0; i < 15; i++ {
 		b.Put(fmt.Sprintf("%d", i), i*i)
 	}
@@ -47,19 +47,19 @@ func TestStrMapBuilderRemove(t *testing.T) {
 	for i := 0; i < 15; i++ {
 		switch {
 		case i < 5:
-			assertStrMapHas(t, m, fmt.Sprintf("%d", i), i*i)
+			assertStringMapHas(t, m, fmt.Sprintf("%d", i), i*i)
 		case i < 10:
-			assertStrMapNotHas(t, m, fmt.Sprintf("%d", i))
+			assertStringMapNotHas(t, m, fmt.Sprintf("%d", i))
 		default:
-			assertStrMapHas(t, m, fmt.Sprintf("%d", i), i*i)
+			assertStringMapHas(t, m, fmt.Sprintf("%d", i), i*i)
 		}
 	}
 }
 
-func TestStrMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
+func TestStringMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 	t.Parallel()
 
-	var b StrMapBuilder
+	var b StringMapBuilder
 	s := make([]interface{}, 35)
 	requireMatch := func(format string, args ...interface{}) {
 		for j, u := range s {
@@ -117,21 +117,21 @@ func TestStrMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funle
 	for i := 0; i < 35; i++ {
 		switch {
 		case i < 5:
-			assertStrMapHas(t, m, fmt.Sprintf("%d", i), i*i)
+			assertStringMapHas(t, m, fmt.Sprintf("%d", i), i*i)
 		case i < 15:
-			assertStrMapHas(t, m, fmt.Sprintf("%d", i), i*i*i)
+			assertStringMapHas(t, m, fmt.Sprintf("%d", i), i*i*i)
 		case i < 30:
-			assertStrMapNotHas(t, m, fmt.Sprintf("%d", i))
+			assertStringMapNotHas(t, m, fmt.Sprintf("%d", i))
 		default:
-			assertStrMapHas(t, m, fmt.Sprintf("%d", i), i*i)
+			assertStringMapHas(t, m, fmt.Sprintf("%d", i), i*i)
 		}
 	}
 }
 
-func TestStrMapMarshalJSON(t *testing.T) {
+func TestStringMapMarshalJSON(t *testing.T) {
 	t.Parallel()
 
-	j, err := json.Marshal(NewStrMap(StrKV("a", 2), StrKV("b", 4), StrKV("c", 2)))
+	j, err := json.Marshal(NewStringMap(StringKV("a", 2), StringKV("b", 4), StringKV("c", 2)))
 	if assert.NoError(t, err) {
 		var s map[string]float64
 		require.NoError(t, json.Unmarshal(j, &s))
