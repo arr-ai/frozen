@@ -545,6 +545,53 @@ func TestSetOrderedRange(t *testing.T) {
 	assert.Equal(t, []int{9, 8, 7, 6, 5, 4, 3, 2, 1, 0}, output)
 }
 
+func TestSetWhere_Big(t *testing.T) {
+	s := largeIntSet()
+	s2 := s.Where(func(e interface{}) bool { return true })
+	assertSetEqual(t, s, s2)
+
+	s = hugeIntSet()
+	s2 = s.Where(func(e interface{}) bool { return true })
+	assertSetEqual(t, s, s2)
+}
+
+func TestSetDifference_Big(t *testing.T) {
+	s := largeIntSet()
+	s2 := s.Difference(s)
+	assertSetEqual(t, NewSet(), s2)
+
+	s = hugeIntSet()
+	s2 = s.Difference(s)
+	assertSetEqual(t, NewSet(), s2)
+}
+
+func TestSetUnion_Big(t *testing.T) {
+	s := largeIntSet()
+	s2 := s.Union(s)
+	assertSetEqual(t, s, s2)
+
+	s = hugeIntSet()
+	s2 = s.Union(s)
+	assertSetEqual(t, s, s2)
+}
+
+func largeIntSet() Set {
+	// Size 10^4 yields parallelDepth = 0. Parallelism ensues.
+	return intSet(10000)
+}
+func hugeIntSet() Set {
+	// 10^6 yields parallelDepth = 1. Even more parallelism ensues.
+	return intSet(1000000)
+}
+
+func intSet(size int) Set {
+	sb := NewSetBuilder(size)
+	for i := 0; i < size; i++ {
+		sb.Add(i)
+	}
+	return sb.Finish()
+}
+
 var prepopSetInt = memoizePrepop(func(n int) interface{} {
 	m := make(map[int]struct{}, n)
 	for i := 0; i < n; i++ {

@@ -25,4 +25,4 @@ jobs:
     - name: Test
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
-        TESTFLAGS=-cover make
+        TESTFLAGS=-race -cover make
