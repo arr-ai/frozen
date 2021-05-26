@@ -88,6 +88,7 @@ func (n *node) opCanonical(
 			for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
 				wg.Add(1)
+				*result = promiseNode
 				c.run(func() {
 					defer wg.Done()
 					count := 0
@@ -100,7 +101,6 @@ func (n *node) opCanonical(
 			wg.Wait()
 			*result = (*result).canonical()
 		}()
-		*result = promiseNode
 	} else {
 		promised := false
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
