@@ -37,8 +37,9 @@ func (kv KeyValue) String() string {
 
 // Map maps keys to values. The zero value is the empty Map.
 type Map struct {
-	root  *node
-	count int
+	root         *node
+	count        int
+	elementsHash *uintptr
 }
 
 var _ Key = Map{}
@@ -96,7 +97,8 @@ func (m Map) With(key, val interface{}) Map {
 	matches := 0
 	var prepared *node
 	root := m.root.with(kv, useRHS, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
-	return Map{root: root, count: m.Count() + 1 - matches}
+	newHash := m.mapElementsHash() ^ hash.Interface(kv.Key, 0)
+	return Map{root: root, count: m.Count() + 1 - matches, elementsHash: &newHash}
 }
 
 // Without returns a new Map with all keys retained from m except the elements
@@ -106,11 +108,13 @@ func (m Map) Without(keys Set) Map {
 	root := m.root
 	matches := 0
 	var prepared *node
+	newHash := m.mapElementsHash()
 	for k := keys.Range(); k.Next(); {
 		kv := KV(k.Value(), nil)
 		root = root.without(kv, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
+		newHash ^= hash.Interface(k.Value(), 0)
 	}
-	return Map{root: root, count: m.Count() - matches}
+	return Map{root: root, count: m.Count() - matches, elementsHash: &newHash}
 }
 
 // Has returns true iff the key exists in the map.
@@ -236,16 +240,31 @@ func (m Map) Update(n Map) Map {
 	}
 	matches := 0
 	root := m.root.union(n.root, f, 0, &matches, theCopier)
-	return Map{root: root, count: m.Count() + n.Count() - matches}
+	newHash := m.mapElementsHash() ^ n.mapElementsHash()
+	return Map{root: root, count: m.Count() + n.Count() - matches, elementsHash: &newHash}
 }
 
 // Hash computes a hash val for s.
 func (m Map) Hash(seed uintptr) uintptr {
 	h := hash.Uintptr(uintptr(3167960924819262823&uint64(^uintptr(0))), seed)
-	for i := m.Range(); i.Next(); {
-		h ^= hash.Interface(i.Value(), hash.Interface(i.Key(), seed))
-	}
+	h ^= m.mapElementsHash()
 	return h
+}
+
+func (m Map) mapElementsHash() uintptr {
+	if m.root == nil {
+		return 0
+	}
+	if m.elementsHash == nil {
+		i := m.Range()
+		i.Next()
+		h := hash.Interface(i.Value(), hash.Interface(i.Key(), 0))
+		for i.Next() {
+			h ^= hash.Interface(i.Value(), hash.Interface(i.Key(), 0))
+		}
+		m.elementsHash = &h
+	}
+	return *m.elementsHash
 }
 
 // Equal returns true iff i is a Map with all the same key-value pairs as this
