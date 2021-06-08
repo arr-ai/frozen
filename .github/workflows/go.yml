@@ -17,7 +17,9 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Install golangci-lint
-      run: go get github.com/golangci/golangci-lint/cmd/golangci-lint
+      run: |
+        go get github.com/golangci/golangci-lint/cmd/golangci-lint
+        golangci-lint version
 
     - name: Build
       run: go build -v ./...
@@ -25,4 +27,4 @@ jobs:
     - name: Test
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
-        TESTFLAGS=-race -cover make
+        TESTFLAGS='-race -cover' make

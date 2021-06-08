@@ -8,13 +8,13 @@ import (
 	"github.com/arr-ai/hash"
 )
 
-// KeyValue represents a key-value pair for insertion into a StringMap.
+// StringKeyValue represents a key-value pair for insertion into a StringMap.
 type StringKeyValue struct {
 	Key   string
 	Value interface{}
 }
 
-// KV creates a StrKeyValue.
+// StringKV creates a StrKeyValue.
 func StringKV(key string, val interface{}) StringKeyValue {
 	return StringKeyValue{Key: key, Value: val}
 }
@@ -37,7 +37,7 @@ func (kv StringKeyValue) String() string {
 	return fmt.Sprintf("%#v:%#v", kv.Key, kv.Value)
 }
 
-// MapBuilder provides a more efficient way to build Maps incrementally.
+// StringMapBuilder provides a more efficient way to build Maps incrementally.
 type StringMapBuilder struct {
 	root          *node
 	prepared      *node
