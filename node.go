@@ -73,7 +73,7 @@ func (n *node) calcMask() {
 	n.mask = mask
 }
 
-func (n *node) opCanonical2(
+func (n *node) opCanonical(
 	o *node,
 	result *node,
 	depth int,
@@ -211,7 +211,7 @@ func (n *node) where(pred func(elem interface{}) bool, depth int, matches *int, 
 		return n.leaf().where(pred, matches)
 	default:
 		var prepared *node
-		return n.opCanonical2(n, c.node(n, &prepared), depth, matches, c, func(a, _ *node, matches *int) *node {
+		return n.opCanonical(n, c.node(n, &prepared), depth, matches, c, func(a, _ *node, matches *int) *node {
 			return a.where(pred, depth+1, matches, c)
 		})
 	}
@@ -333,7 +333,7 @@ func (n *node) intersection(o *node, depth int, count *int, c *cloner) *node {
 	case o.isLeaf():
 		return o.leaf().intersection(n, depth, count)
 	default:
-		return n.opCanonical2(o, &node{}, depth, count, c, func(a, b *node, count *int) *node {
+		return n.opCanonical(o, &node{}, depth, count, c, func(a, b *node, count *int) *node {
 			return a.intersection(b, depth+1, count, c)
 		})
 	}
@@ -425,7 +425,7 @@ func (n *node) difference(o *node, depth int, matches *int, c *cloner) *node {
 		return n.leaf().difference(o, depth, matches)
 	default:
 		result := theCopier.node(n, &prepared)
-		return n.opCanonical2(o, result, depth, matches, c, func(a, b *node, matches *int) *node {
+		return n.opCanonical(o, result, depth, matches, c, func(a, b *node, matches *int) *node {
 			return a.difference(b, depth+1, matches, c)
 		})
 	}
