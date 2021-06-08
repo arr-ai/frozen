@@ -5,15 +5,11 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
-	"sync/atomic"
 )
 
 type cloner struct {
 	parallelDepth int
-	wg            sync.WaitGroup
 	mutate        bool
-	update        func(interface{})
 }
 
 var (
@@ -72,56 +68,4 @@ func (c *cloner) extras(l *leaf, capacityIncrease int) extraLeafElems {
 	x := l.extras()
 	x = append(make([]interface{}, 0, len(x)+capacityIncrease), x...)
 	return x
-}
-
-func (c *cloner) run(f func()) {
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
-		f()
-	}()
-}
-
-func (c *cloner) wait() {
-	c.wg.Wait()
-}
-
-func (c *cloner) chain(update func(interface{})) {
-	if next := c.update; next != nil {
-		c.update = func(arg interface{}) {
-			update(arg)
-			next(arg)
-		}
-	} else {
-		c.update = update
-	}
-}
-
-func (c *cloner) counter() (func() int, *int) {
-	n := uintptr(0)
-	c.chain(func(arg interface{}) {
-		if i, ok := arg.(int); ok {
-			atomic.AddUintptr(&n, uintptr(i))
-		}
-	})
-	matches := 0
-	return func() int {
-		c.wait()
-		return matches + int(n)
-	}, &matches
-}
-
-func (c *cloner) noneFalse() func() bool {
-	someFalse := uintptr(0)
-	c.chain(func(arg interface{}) {
-		if b, ok := arg.(bool); ok {
-			if !b {
-				atomic.StoreUintptr(&someFalse, 1)
-			}
-		}
-	})
-	return func() bool {
-		c.wait()
-		return someFalse == 0
-	}
 }

@@ -300,13 +300,11 @@ func (m StringMap) Hash(seed uintptr) uintptr {
 func (m StringMap) Equal(i interface{}) bool {
 	if n, ok := i.(StringMap); ok {
 		c := newCloner(false, m.Count())
-		equalAsync := c.noneFalse()
-		equal := m.root.equal(n.root, func(a, b interface{}) bool {
+		return m.root.equal(n.root, func(a, b interface{}) bool {
 			kva := a.(StringKeyValue)
 			kvb := b.(StringKeyValue)
 			return Equal(kva.Key, kvb.Key) && Equal(kva.Value, kvb.Value)
 		}, 0, c)
-		return equal && equalAsync()
 	}
 	return false
 }

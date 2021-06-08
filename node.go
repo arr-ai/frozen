@@ -115,19 +115,25 @@ func (n *node) equal(o *node, eq func(a, b interface{}) bool, depth int, c *clon
 	case n.isLeaf():
 		return n.leaf().equal(o.leaf(), eq)
 	default:
-		if depth == c.parallelDepth {
-			c.run(func() {
-				for mask := n.mask; mask != 0; mask = mask.Next() {
-					i := mask.Index()
-					c.update(n.children[i].equal(o.children[i], eq, depth, c))
-				}
-			})
-		} else {
+		if depth <= c.parallelDepth {
+			results := make(chan bool, nodeCount)
 			for mask := n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
-				if !n.children[i].equal(o.children[i], eq, depth, c) {
+				go func() {
+					results <- n.children[i].equal(o.children[i], eq, depth+1, c)
+				}()
+			}
+			for mask := n.mask; mask != 0; mask = mask.Next() {
+				if !<-results {
 					return false
 				}
+			}
+			return true
+		}
+		for mask := n.mask; mask != 0; mask = mask.Next() {
+			i := mask.Index()
+			if !n.children[i].equal(o.children[i], eq, depth+1, c) {
+				return false
 			}
 		}
 		return true
@@ -172,13 +178,19 @@ func (n *node) isSubsetOf(o *node, depth int, c *cloner) bool {
 	case o.isLeaf():
 		return false
 	default:
-		if depth == c.parallelDepth {
-			c.run(func() {
-				for mask := n.mask; mask != 0; mask = mask.Next() {
-					i := mask.Index()
-					c.update(n.children[i].isSubsetOf(o.children[i], depth+1, c))
+		if depth <= c.parallelDepth {
+			results := make(chan bool, nodeCount)
+			for mask := n.mask; mask != 0; mask = mask.Next() {
+				i := mask.Index()
+				go func() {
+					results <- n.children[i].isSubsetOf(o.children[i], depth+1, c)
+				}()
+			}
+			for mask := n.mask; mask != 0; mask = mask.Next() {
+				if !<-results {
+					return false
 				}
-			})
+			}
 			return true
 		}
 		for mask := n.mask; mask != 0; mask = mask.Next() {
@@ -216,14 +228,18 @@ func (n *node) foreach(f *foreacher, depth int, c *cloner) {
 	case n.isLeaf():
 		n.leaf().foreach(f.f)
 	default:
-		if depth == c.parallelDepth {
+		if depth <= c.parallelDepth {
+			// var wg sync.WaitGroup
 			for mask := n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
 				g := f.spawn()
-				c.run(func() {
-					n.children[i].foreach(g, depth+1, c)
-				})
+				// wg.Add(1)
+				// go func() {
+				// 	defer wg.Done()
+				n.children[i].foreach(g, depth+1, c)
+				// }()
 			}
+			// wg.Wait()
 		} else {
 			for mask := n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
@@ -282,19 +298,23 @@ func (n *node) forbatchesImpl(f *forbatcher, depth int, c *cloner, fb *forbatch)
 			fb.add(i.Value())
 		}
 	default:
-		if depth == c.parallelDepth {
+		if depth <= c.parallelDepth {
+			var wg sync.WaitGroup
 			for mask := n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
 				g := f.spawn()
-				c.run(func() {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
 					b := newForbatch(true, g.f)
 					defer b.flush()
 					// TODO: 1<<15 is based on heuristics in newCloner. Confirm.
 					for i := n.children[i].iterator(1 << 15); i.Next(); {
 						b.add(i.Value())
 					}
-				})
+				}()
 			}
+			wg.Wait()
 		} else {
 			for mask := n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
@@ -339,15 +359,21 @@ func (n *node) union(o *node, f func(a, b interface{}) interface{}, depth int, m
 	default:
 		result := c.node(n, &prepared)
 		result.setChildren(o.mask&^n.mask, &o.children)
-		if depth == c.parallelDepth {
+		if depth <= c.parallelDepth {
 			var m sync.Mutex
+			var wg sync.WaitGroup
+			var mm [nodeCount]int
 			for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
-				c.run(func() {
-					matches := 0
-					result.setChildAsync(i, n.children[i].union(o.children[i], transform, depth+1, &matches, c), &m)
-					c.update(matches)
-				})
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					result.setChildAsync(i, n.children[i].union(o.children[i], transform, depth+1, &mm[i], c), &m)
+				}()
+			}
+			wg.Wait()
+			for _, m := range mm {
+				*matches += m
 			}
 		} else {
 			for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {

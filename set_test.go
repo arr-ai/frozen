@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSetEmpty(t *testing.T) {
@@ -232,6 +233,21 @@ func TestSetEqual(t *testing.T) {
 	}
 }
 
+func TestSetEqualLarge(t *testing.T) {
+	n := 100_000
+	a := intSet(0, n)
+	b := intSet(0, n)
+	c := intSet(n, n).Map(func(e interface{}) interface{} { return e.(int) - n })
+
+	require.Equal(t, n, c.Count())
+	for i := 0; i < n; i++ {
+		require.True(t, c.Has(i), i)
+	}
+
+	assertSetEqual(t, a, b)
+	assertSetEqual(t, a, c)
+}
+
 func TestSetFirst(t *testing.T) {
 	t.Parallel()
 
@@ -374,7 +390,7 @@ func TestSetMap(t *testing.T) {
 func TestSetMapLarge(t *testing.T) {
 	t.Parallel()
 
-	s := intSet(0, 1_000_000)
+	s := hugeIntSet
 	assertSetEqual(t, NewSet(42), s.Map(func(e interface{}) interface{} { return 42 }))
 	assertSetEqual(t, Iota3(0, 2_000_000, 2), s.Map(func(e interface{}) interface{} { return 2 * e.(int) }))
 	assertSetEqual(t, Iota(100_000), s.Map(func(e interface{}) interface{} { return e.(int) / 10 }))
@@ -642,6 +658,10 @@ func TestSetUnion_Big(t *testing.T) {
 	s := largeIntSet
 	s2 := s.Union(s)
 	assertSetEqual(t, s, s2)
+
+	s = intSet(0, 100_000)
+	s2 = intSet(50_000, 100_000)
+	assertSetEqual(t, intSet(0, 150_000), s.Union(s2))
 
 	s = hugeIntSet
 	s2 = s.Union(s)

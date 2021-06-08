@@ -3,6 +3,7 @@ package frozen
 import (
 	"fmt"
 	"math/bits"
+	"sync"
 
 	"github.com/arr-ai/hash"
 )
@@ -158,17 +159,13 @@ func (s Set) EqualSet(t Set) bool {
 		return s.root == nil && t.root == nil
 	}
 	c := newCloner(false, s.Count())
-	equalAsync := c.noneFalse()
-	equal := s.root.equal(t.root, Equal, 0, c)
-	return equal && equalAsync()
+	return s.root.equal(t.root, Equal, 0, c)
 }
 
 // IsSubsetOf returns true iff no element in s is not in t.
 func (s Set) IsSubsetOf(t Set) bool {
 	c := newCloner(false, s.Count())
-	isSubsetAsync := c.noneFalse()
-	c.update(s.root.isSubsetOf(t.root, 0, c))
-	return isSubsetAsync()
+	return s.root.isSubsetOf(t.root, 0, c)
 }
 
 // Has returns the value associated with key and true iff the key was found.
@@ -198,17 +195,20 @@ func (s Set) where(pred func(elem interface{}) bool, depth *int) Set {
 	if depth != nil {
 		c.parallelDepth = *depth // Parallel Where is buggy.
 	}
-	matchesAsync, matches := c.counter()
-	root := s.root.where(pred, 0, matches, c)
+	matches := 0
+	root := s.root.where(pred, 0, &matches, c)
 	// root = root.postop(c.parallelDepth)
-	return Set{root: root, count: matchesAsync()}
+	return Set{root: root, count: matches}
 }
 
 // Map returns a Set with all the results of applying f to all elements in s.
 func (s Set) Map(f func(elem interface{}) interface{}) Set {
+	var m sync.Mutex
 	sbs := []*SetBuilder{}
 	var spawn func() *foreacher
 	spawn = func() *foreacher {
+		m.Lock()
+		defer m.Unlock()
 		var sb SetBuilder
 		sbs = append(sbs, &sb)
 		return &foreacher{
@@ -218,7 +218,6 @@ func (s Set) Map(f func(elem interface{}) interface{}) Set {
 	}
 	c := newCloner(false, s.Count())
 	s.root.foreach(spawn(), 0, c)
-	c.wait()
 
 	sets := make([]Set, 0, len(sbs))
 	for _, sb := range sbs {
@@ -259,7 +258,6 @@ func (s Set) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
 	}
 	c := newCloner(false, s.Count())
 	s.root.forbatches(spawn(), 0, c)
-	c.wait()
 
 	values := make([]interface{}, 0, len(pointers))
 	// In case there are no elements above the parallelisation waterline.
@@ -298,18 +296,18 @@ func (s Set) intersection(t Set, depth *int) Set {
 	if depth != nil {
 		c.parallelDepth = *depth
 	}
-	countAsync, count := c.counter()
-	root := s.root.intersection(t.root, 0, count, c)
+	count := 0
+	root := s.root.intersection(t.root, 0, &count, c)
 	// root = root.postop(c.parallelDepth)
-	return Set{root: root, count: countAsync()}
+	return Set{root: root, count: count}
 }
 
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
 	c := newCloner(false, s.Count()+t.Count())
-	matchesAsync, matches := c.counter()
-	root := s.root.union(t.root, useRHS, 0, matches, c)
-	return Set{root: root, count: s.Count() + t.Count() - matchesAsync()}
+	matches := 0
+	root := s.root.union(t.root, useRHS, 0, &matches, c)
+	return Set{root: root, count: s.Count() + t.Count() - matches}
 }
 
 // Difference returns a Set with all elements that are s but not in t.
