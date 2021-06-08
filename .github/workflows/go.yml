@@ -19,6 +19,7 @@ jobs:
     - name: Install golangci-lint
       run: |
         go get github.com/golangci/golangci-lint/cmd/golangci-lint
+        export PATH=$PATH:$(go env GOPATH)/bin
         golangci-lint version
 
     - name: Build
