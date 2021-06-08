@@ -28,4 +28,22 @@ jobs:
     - name: Test
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
-        TESTFLAGS='-race -cover' make
+        TESTFLAGS='-cover' make
+
+  # Much slower, so don't require for PR merge.
+  races:
+    name: Check for Races
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.15
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.15
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+
+    - name: Test
+      run: TESTFLAGS='-race -cover' make test
