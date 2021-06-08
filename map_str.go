@@ -8,13 +8,13 @@ import (
 	"github.com/arr-ai/hash"
 )
 
-// KeyValue represents a key-value pair for insertion into a StringMap.
+// StringKeyValue represents a key-value pair for insertion into a StringMap.
 type StringKeyValue struct {
 	Key   string
 	Value interface{}
 }
 
-// KV creates a StrKeyValue.
+// StringKV creates a StrKeyValue.
 func StringKV(key string, val interface{}) StringKeyValue {
 	return StringKeyValue{Key: key, Value: val}
 }
@@ -37,7 +37,7 @@ func (kv StringKeyValue) String() string {
 	return fmt.Sprintf("%#v:%#v", kv.Key, kv.Value)
 }
 
-// MapBuilder provides a more efficient way to build Maps incrementally.
+// StringMapBuilder provides a more efficient way to build Maps incrementally.
 type StringMapBuilder struct {
 	root          *node
 	prepared      *node
@@ -300,13 +300,11 @@ func (m StringMap) Hash(seed uintptr) uintptr {
 func (m StringMap) Equal(i interface{}) bool {
 	if n, ok := i.(StringMap); ok {
 		c := newCloner(false, m.Count())
-		equalAsync := c.noneFalse()
-		equal := m.root.equal(n.root, func(a, b interface{}) bool {
+		return m.root.equal(n.root, func(a, b interface{}) bool {
 			kva := a.(StringKeyValue)
 			kvb := b.(StringKeyValue)
 			return Equal(kva.Key, kvb.Key) && Equal(kva.Value, kvb.Value)
 		}, 0, c)
-		return equal && equalAsync()
 	}
 	return false
 }

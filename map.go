@@ -253,13 +253,11 @@ func (m Map) Hash(seed uintptr) uintptr {
 func (m Map) Equal(i interface{}) bool {
 	if n, ok := i.(Map); ok {
 		c := newCloner(false, m.Count())
-		equalAsync := c.noneFalse()
-		equal := m.root.equal(n.root, func(a, b interface{}) bool {
+		return m.root.equal(n.root, func(a, b interface{}) bool {
 			kva := a.(KeyValue)
 			kvb := b.(KeyValue)
 			return Equal(kva.Key, kvb.Key) && Equal(kva.Value, kvb.Value)
 		}, 0, c)
-		return equal && equalAsync()
 	}
 	return false
 }

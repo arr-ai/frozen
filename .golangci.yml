@@ -33,6 +33,7 @@ linters:
   - depguard
   - dogsled
   - dupl
+  - exportloopref
   - errcheck
   - funlen
   # - gochecknoglobals
@@ -44,18 +45,15 @@ linters:
   - gocyclo
   - gofmt
   - goimports
-  - golint
   - gosec
   - gosimple
   - govet
   - ineffassign
-  - interfacer
   - lll
-  - maligned
   - misspell
   - nakedret
+  - revive
   - prealloc
-  - scopelint
   - staticcheck
   - structcheck
   - stylecheck
