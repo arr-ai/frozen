@@ -97,17 +97,18 @@ func (c *cloner) chain(update func(interface{})) {
 	}
 }
 
-func (c *cloner) counter() func() int {
+func (c *cloner) counter() (func() int, *int) {
 	n := uintptr(0)
 	c.chain(func(arg interface{}) {
 		if i, ok := arg.(int); ok {
 			atomic.AddUintptr(&n, uintptr(i))
 		}
 	})
+	matches := 0
 	return func() int {
 		c.wait()
-		return int(n)
-	}
+		return matches + int(n)
+	}, &matches
 }
 
 func (c *cloner) noneFalse() func() bool {

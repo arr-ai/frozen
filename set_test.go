@@ -546,43 +546,55 @@ func TestSetOrderedRange(t *testing.T) {
 }
 
 func TestSetWhere_Big(t *testing.T) {
-	s := largeIntSet()
+	s := largeIntSet
 	s2 := s.Where(func(e interface{}) bool { return true })
 	assertSetEqual(t, s, s2)
 
-	s = hugeIntSet()
+	s = hugeIntSet
 	s2 = s.Where(func(e interface{}) bool { return true })
+	assertSetEqual(t, s, s2)
+
+	s = largeIntSet
+	s2 = s.Where(func(e interface{}) bool { return false })
+	assertSetEqual(t, NewSet(), s2)
+
+	s = hugeIntSet
+	s2 = s.Where(func(e interface{}) bool { return false })
+	assertSetEqual(t, NewSet(), s2)
+}
+
+func TestSetIntersection_Big(t *testing.T) {
+	s := largeIntSet
+	s2 := s.Intersection(s)
+	assertSetEqual(t, s, s2)
+
+	s = hugeIntSet
+	s2 = s.Intersection(s)
 	assertSetEqual(t, s, s2)
 }
 
 func TestSetDifference_Big(t *testing.T) {
-	s := largeIntSet()
+	s := largeIntSet
 	s2 := s.Difference(s)
 	assertSetEqual(t, NewSet(), s2)
 
-	s = hugeIntSet()
+	s = hugeIntSet
 	s2 = s.Difference(s)
 	assertSetEqual(t, NewSet(), s2)
 }
 
 func TestSetUnion_Big(t *testing.T) {
-	s := largeIntSet()
+	s := largeIntSet
 	s2 := s.Union(s)
 	assertSetEqual(t, s, s2)
 
-	s = hugeIntSet()
+	s = hugeIntSet
 	s2 = s.Union(s)
 	assertSetEqual(t, s, s2)
 }
 
-func largeIntSet() Set {
-	// Size 10^4 yields parallelDepth = 0. Parallelism ensues.
-	return intSet(10000)
-}
-func hugeIntSet() Set {
-	// 10^6 yields parallelDepth = 1. Even more parallelism ensues.
-	return intSet(1000000)
-}
+var largeIntSet = intSet(10000)
+var hugeIntSet = intSet(1000000)
 
 func intSet(size int) Set {
 	sb := NewSetBuilder(size)

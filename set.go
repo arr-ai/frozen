@@ -189,12 +189,11 @@ func (s Set) Without(values ...interface{}) Set {
 // Where returns a Set with all elements that are in s and satisfy pred.
 func (s Set) Where(pred func(elem interface{}) bool) Set {
 	c := newCloner(false, s.Count())
-	matches := 0
-	matchesAsync := c.counter()
+	c.parallelDepth = -1 // Parallel Where is buggy.
+	matchesAsync, matches := c.counter()
 	var root *node
-	s.root.where(pred, 0, &matches, c, &root)
-	matches += matchesAsync()
-	return Set{root: root, count: matches}
+	s.root.where(pred, 0, matches, c, &root)
+	return Set{root: root, count: matchesAsync()}
 }
 
 // Map returns a Set with all the results of applying f to all elements in s.
@@ -284,33 +283,29 @@ func (s Set) Intersection(t Set) Set {
 		s, t = t, s
 	}
 	c := newCloner(false, (s.Count()+t.Count())/2)
-	countAsync := c.counter()
-	count := 0
+	c.parallelDepth = -1 // Parallel Intersection is buggy.
+	countAsync, count := c.counter()
 	var root *node
-	s.root.intersection(t.root, 0, &count, c, &root)
-	count += countAsync()
-	return Set{root: root, count: count}
+	s.root.intersection(t.root, 0, count, c, &root)
+	return Set{root: root, count: countAsync()}
 }
 
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
 	c := newCloner(false, s.Count()+t.Count())
-	matchesAsync := c.counter()
-	matches := 0
-	root := s.root.union(t.root, useRHS, 0, &matches, c)
-	matches += matchesAsync()
-	return Set{root: root, count: s.Count() + t.Count() - matches}
+	matchesAsync, matches := c.counter()
+	root := s.root.union(t.root, useRHS, 0, matches, c)
+	return Set{root: root, count: s.Count() + t.Count() - matchesAsync()}
 }
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set) Difference(t Set) Set {
 	c := newCloner(false, s.Count())
-	matchesAsync := c.counter()
-	matches := 0
+	c.parallelDepth = -1 // Parallel Difference is buggy.
+	matchesAsync, matches := c.counter()
 	var root *node
-	s.root.difference(t.root, 0, &matches, c, &root)
-	matches += matchesAsync()
-	return Set{root: root, count: s.Count() - matches}
+	s.root.difference(t.root, 0, matches, c, &root)
+	return Set{root: root, count: s.Count() - matchesAsync()}
 }
 
 // SymmetricDifference returns a Set with all elements that are s or t, but not
