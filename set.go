@@ -188,11 +188,19 @@ func (s Set) Without(values ...interface{}) Set {
 
 // Where returns a Set with all elements that are in s and satisfy pred.
 func (s Set) Where(pred func(elem interface{}) bool) Set {
+	depth := -1
+	return s.where(pred, &depth)
+}
+
+// Where returns a Set with all elements that are in s and satisfy pred.
+func (s Set) where(pred func(elem interface{}) bool, depth *int) Set {
 	c := newCloner(false, s.Count())
-	c.parallelDepth = -1 // Parallel Where is buggy.
+	if depth != nil {
+		c.parallelDepth = *depth // Parallel Where is buggy.
+	}
 	matchesAsync, matches := c.counter()
-	var root *node
-	s.root.where(pred, 0, matches, c, &root)
+	root := s.root.where(pred, 0, matches, c)
+	// root = root.postop(c.parallelDepth)
 	return Set{root: root, count: matchesAsync()}
 }
 
@@ -279,14 +287,20 @@ func (s Set) Reduce2(reduce func(a, b interface{}) interface{}) interface{} {
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set) Intersection(t Set) Set {
+	return s.intersection(t, nil)
+}
+
+func (s Set) intersection(t Set, depth *int) Set {
 	if s.Count() > t.Count() {
 		s, t = t, s
 	}
 	c := newCloner(false, (s.Count()+t.Count())/2)
-	c.parallelDepth = -1 // Parallel Intersection is buggy.
+	if depth != nil {
+		c.parallelDepth = *depth
+	}
 	countAsync, count := c.counter()
-	var root *node
-	s.root.intersection(t.root, 0, count, c, &root)
+	root := s.root.intersection(t.root, 0, count, c)
+	// root = root.postop(c.parallelDepth)
 	return Set{root: root, count: countAsync()}
 }
 
@@ -300,12 +314,18 @@ func (s Set) Union(t Set) Set {
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set) Difference(t Set) Set {
+	return s.difference(t, nil)
+}
+
+// Difference returns a Set with all elements that are s but not in t.
+func (s Set) difference(t Set, depth *int) Set {
 	c := newCloner(false, s.Count())
-	c.parallelDepth = -1 // Parallel Difference is buggy.
-	matchesAsync, matches := c.counter()
-	var root *node
-	s.root.difference(t.root, 0, matches, c, &root)
-	return Set{root: root, count: s.Count() - matchesAsync()}
+	if depth != nil {
+		c.parallelDepth = *depth
+	}
+	matches := 0
+	root := s.root.difference(t.root, 0, &matches, c)
+	return Set{root: root, count: s.Count() - matches}
 }
 
 // SymmetricDifference returns a Set with all elements that are s or t, but not

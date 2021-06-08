@@ -3,7 +3,7 @@
 all: lint test
 
 test:
-	go test $(TESTFLAGS) ./...
+	go test -coverprofile cover.prof $(TESTFLAGS) ./...
 
 lint:
 	golangci-lint run
