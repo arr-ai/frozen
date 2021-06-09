@@ -55,7 +55,7 @@ func TestIntSetHas(t *testing.T) {
 	for _, i := range arr {
 		assert.True(t, set.Has(i))
 	}
-	assert.False(t, set.Has(arr[len(arr)-1]-1))
+	assert.False(t, set.Has(-1))
 }
 
 func TestIntSetWith(t *testing.T) {
@@ -65,13 +65,17 @@ func TestIntSetWith(t *testing.T) {
 	set := NewIntSet(arr[:len(arr)/2]...)
 
 	for _, i := range arr[len(arr)/2:] {
-		assert.False(t, set.Has(i))
+		if !assert.False(t, set.Has(i), i) {
+			break
+		}
 	}
 
 	set = set.With(arr[len(arr)/2:]...)
 
 	for _, i := range arr[len(arr)/2:] {
-		assert.True(t, set.Has(i))
+		if !assert.True(t, set.Has(i), i) {
+			break
+		}
 	}
 	assert.Equal(t, len(getDistinctInts(arr)), set.Count())
 }
@@ -85,10 +89,14 @@ func TestIntSetWithout(t *testing.T) {
 	expectedCount := len(getDistinctInts(arr)) - len(getDistinctInts(left))
 	assert.Equal(t, expectedCount, set.Count())
 	for _, i := range left {
-		assert.False(t, set.Has(i))
+		if !assert.False(t, set.Has(i), i) {
+			break
+		}
 	}
 	for _, i := range right {
-		assert.True(t, set.Has(i))
+		if !assert.True(t, set.Has(i), i) {
+			break
+		}
 	}
 }
 
@@ -123,18 +131,24 @@ func TestIntSetUnion(t *testing.T) {
 	set := NewIntSet(arr[:len(arr)/2]...)
 	distinct := getDistinctInts(arr)
 	for _, i := range arr[len(arr)/2:] {
-		assert.False(t, set.Has(i))
+		if !assert.False(t, set.Has(i), i) {
+			break
+		}
 	}
 
 	union := set.Union(fullSet)
 	for _, i := range distinct {
-		assert.True(t, union.Has(i))
+		if !assert.True(t, union.Has(i), i) {
+			break
+		}
 	}
 	assert.Equal(t, len(distinct), union.Count())
 
 	union = fullSet.Union(set)
 	for _, i := range distinct {
-		assert.True(t, union.Has(i))
+		if !assert.True(t, union.Has(i), i) {
+			break
+		}
 	}
 	assert.Equal(t, len(distinct), union.Count())
 }
@@ -202,7 +216,16 @@ func generateIntArrayAndSet(maxLen int) ([]int, IntSet) {
 		arr = append(arr, int(curr))
 		curr *= multiplier
 	}
-	return arr, NewIntSet(arr...)
+
+	seen := make(map[int]bool, len(arr))
+	out := arr[:0]
+	for _, e := range arr {
+		if !seen[e] {
+			out = append(out, e)
+			seen[e] = true
+		}
+	}
+	return out, NewIntSet(out...)
 }
 
 func getDistinctInts(x []int) []int {

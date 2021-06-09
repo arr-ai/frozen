@@ -91,6 +91,10 @@ func (a bitRelation) join(b bitRelation) bitRelation {
 func TestJoinExhaustive(t *testing.T) {
 	t.Parallel()
 
+	if testing.Short() {
+		return
+	}
+
 	outerTotal := 0
 	for i0 := uint64(1); i0 < 0x100; /*1_0000_0000*/ i0++ {
 		i0 := i0
