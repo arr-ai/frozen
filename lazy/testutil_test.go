@@ -1,11 +1,13 @@
 //nolint:unused,deadcode,unparam
-package lazy
+package lazy_test
 
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/arr-ai/frozen"
+	. "github.com/arr-ai/frozen/lazy"
 )
 
 func extraArgs(msgAndArgs []interface{}, msg string, args ...interface{}) []interface{} {
@@ -16,56 +18,78 @@ func extraArgs(msgAndArgs []interface{}, msg string, args ...interface{}) []inte
 }
 
 func assertFastIsEmpty(t *testing.T, a Set) bool {
+	t.Helper()
+
 	empty, ok := a.FastIsEmpty()
 	return assert.True(t, ok) && assert.True(t, empty)
 }
 
 func assertFastNotIsEmpty(t *testing.T, a Set) bool {
+	t.Helper()
+
 	empty, ok := a.FastIsEmpty()
 	return assert.True(t, ok) && assert.False(t, empty)
 }
 
 func assertEqualSet(t *testing.T, expected, s Set, msgAndArgs ...interface{}) bool {
+	t.Helper()
+
 	return assert.True(t, expected.EqualSet(s),
 		extraArgs(msgAndArgs, "\nexpected=%v\nactual  =%v", expected.Freeze(), s.Freeze())...)
 }
 
 func assertNotEqualSet(t *testing.T, expected, s Set, msgAndArgs ...interface{}) bool {
+	t.Helper()
+
 	return assert.False(t, expected.EqualSet(s),
 		extraArgs(msgAndArgs, "\nunexpected=%v\nactual    =%v", expected.Freeze(), s.Freeze())...)
 }
 
 func assertFastCountEqual(t *testing.T, expected int, a Set) bool {
+	t.Helper()
+
 	count, ok := a.FastCount()
 	return assert.True(t, ok) && assert.Equal(t, expected, count)
 }
 
 func assertFastCountNotEqual(t *testing.T, expected int, a Set) bool {
+	t.Helper()
+
 	count, ok := a.FastCount()
 	return assert.True(t, ok) && assert.NotEqual(t, expected, count)
 }
 
 func assertFastCountUpToEqual(t *testing.T, expected int, a Set, limit int) bool {
+	t.Helper()
+
 	count, ok := a.FastCountUpTo(limit)
 	return assert.True(t, ok) && assert.Equal(t, expected, count)
 }
 
 func assertFastCountUpToNotEqual(t *testing.T, expected int, a Set, limit int) bool {
+	t.Helper()
+
 	count, ok := a.FastCountUpTo(limit)
 	return assert.True(t, ok) && assert.NotEqual(t, expected, count)
 }
 
 func assertFastHas(t *testing.T, a Set, el interface{}) bool {
+	t.Helper()
+
 	equal, ok := a.FastHas(el)
 	return assert.True(t, ok) && assert.True(t, equal)
 }
 
 func assertFastNotHas(t *testing.T, a Set, el interface{}) bool {
+	t.Helper()
+
 	equal, ok := a.FastHas(el)
 	return assert.True(t, ok) && assert.False(t, equal)
 }
 
 func assertRangeEmits(t *testing.T, expected frozen.Set, a Set) bool {
+	t.Helper()
+
 	var b frozen.SetBuilder
 	for i := a.Range(); i.Next(); {
 		v := i.Value()
@@ -88,6 +112,8 @@ func extractInt(i interface{}) int {
 }
 
 func assertSetOps(t *testing.T, golden frozen.Set, s Set) { //nolint:funlen
+	t.Helper()
+
 	count := golden.Count()
 	fgolden := Frozen(golden)
 

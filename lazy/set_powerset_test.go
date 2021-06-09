@@ -1,9 +1,10 @@
-package lazy
+package lazy_test
 
 import (
 	"testing"
 
 	"github.com/arr-ai/frozen"
+	. "github.com/arr-ai/frozen/lazy"
 )
 
 func TestSetPowerset(t *testing.T) {

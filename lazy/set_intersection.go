@@ -7,10 +7,10 @@ type intersectionSet struct {
 
 func intersection(a, b Set) Set {
 	if isEmpty, ok := a.FastIsEmpty(); ok && isEmpty {
-		return emptySet{}
+		return EmptySet{}
 	}
 	if isEmpty, ok := b.FastIsEmpty(); ok && isEmpty {
-		return emptySet{}
+		return EmptySet{}
 	}
 	s := &intersectionSet{a: a, b: b}
 	s.baseSet.set = s

@@ -1,9 +1,11 @@
-package frozen
+package frozen_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/arr-ai/frozen"
 )
 
 func TestMapBuilderEmpty(t *testing.T) {
@@ -52,7 +54,7 @@ func TestMapBuilderRemove(t *testing.T) {
 	}
 }
 
-func TestMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
+func TestMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop
 	t.Parallel()
 
 	var b MapBuilder
@@ -61,19 +63,9 @@ func TestMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 		for j, u := range s {
 			v, has := b.Get(j)
 			if u == nil {
-				if !assert.Falsef(t, has, format+" j=%v v=%v", append(args, j, v)...) {
-					t.Log(b.root)
-					t.FailNow()
-				}
+				assert.Falsef(t, has, format+" j=%v v=%v", append(args, j, v)...)
 			} else {
-				if !assert.Truef(t, has, format+" j=%v", append(args, j)...) {
-					t.Log(b.root)
-					t.FailNow()
-				}
-				if !assert.Equal(t, u, v, "h(u)=%v h(v)=%v", newHasher(u, 0), newHasher(v, 0)) {
-					t.Log(b.root)
-					t.FailNow()
-				}
+				assert.Truef(t, has, format+" j=%v", append(args, j)...)
 			}
 		}
 	}
@@ -88,26 +80,21 @@ func TestMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:funlen
 	}
 
 	for i := 0; i < 35; i++ {
-		t.Log(b.root)
 		put(i, i*i)
 		requireMatch("i=%v", i)
 	}
 	for i := 10; i < 25; i++ {
-		t.Log(b.root)
 		remove(i)
 		requireMatch("i=%v", i)
 	}
 	for i := 5; i < 15; i++ {
-		t.Log(b.root)
 		put(i, i*i*i)
 		requireMatch("i=%v", i)
 	}
 	for i := 20; i < 30; i++ {
-		t.Log(b.root)
 		remove(i)
 		requireMatch("i=%v", i)
 	}
-	t.Log(b.root)
 	m := b.Finish()
 
 	for i := 0; i < 35; i++ {

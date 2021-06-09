@@ -6,15 +6,15 @@ import (
 	"unsafe"
 )
 
+// Compile-time assert that node and leaf have the same size and alignment.
 const (
 	leafElems = nodeCount / 2
+
+	_ = -uint(unsafe.Sizeof(node{}) ^ unsafe.Sizeof(leaf{}))
+	_ = -uint(unsafe.Alignof(node{}) ^ unsafe.Alignof(leaf{}))
 )
 
 var emptyLeaf = newLeaf()
-
-// Compile-time assert that node and leaf have the same size and alignment.
-const _ = -uint(unsafe.Sizeof(node{}) ^ unsafe.Sizeof(leaf{}))
-const _ = -uint(unsafe.Alignof(node{}) ^ unsafe.Alignof(leaf{}))
 
 type extraLeafElems []interface{}
 
@@ -35,13 +35,6 @@ func newLeaf(elems ...interface{}) *leaf {
 
 func (l *leaf) node() *node {
 	return (*node)(unsafe.Pointer(l))
-}
-
-func (l *leaf) count() int {
-	if l.lastIndex > leafElems {
-		return int(l.lastIndex)
-	}
-	return int(l.lastIndex) + 1
 }
 
 func (l *leaf) last() *interface{} { //nolint:gocritic

@@ -1,11 +1,12 @@
-package frozen
+package frozen_test
 
 import (
-	"log"
-	"runtime/debug"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	. "github.com/arr-ai/frozen"
 )
 
 func TestSetEmpty(t *testing.T) {
@@ -44,6 +45,8 @@ func compareElements(a, b []interface{}) (aOnly, bOnly []interface{}) {
 
 // faster that assert.ElementsMatch.
 func assertSameElements(t *testing.T, a, b []interface{}) bool {
+	t.Helper()
+
 	aOnly, bOnly := compareElements(a, b)
 	aOK := assert.Empty(t, aOnly)
 	bOK := assert.Empty(t, bOnly)
@@ -51,6 +54,8 @@ func assertSameElements(t *testing.T, a, b []interface{}) bool {
 }
 
 func requireSameElements(t *testing.T, a, b []interface{}) {
+	t.Helper()
+
 	if !assertSameElements(t, a, b) {
 		t.FailNow()
 	}
@@ -67,7 +72,7 @@ func fromStringArr(a []string) []interface{} {
 func TestNewSet(t *testing.T) {
 	t.Parallel()
 
-	const N = 1000
+	const N = 1_000
 	arr := make([]interface{}, 0, N)
 	for i := 0; i < N; i++ {
 		arr = append(arr, i)
@@ -97,7 +102,7 @@ func TestSetWith(t *testing.T) {
 
 	var s Set
 	arr := []interface{}{}
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 1_000; i++ {
 		assertSetEqual(t, NewSet(arr...), s, "i=%v", i)
 		assert.Equal(t, i, s.Count(), "i=%v", i)
 		assert.False(t, s.Has(i), "i=%v", i)
@@ -113,34 +118,15 @@ func TestSetWithout(t *testing.T) {
 
 	var s Set
 	arr := []interface{}{}
-	const N = 1000
+	const N = 1_000
 	for i := 0; i < N; i++ {
 		s = s.With(i)
 		arr = append(arr, i)
 	}
-	oldS := s
-	oldArr := arr
 	for i := 0; i < N; i++ {
 		u := NewSet(arr...)
 		requireSameElements(t, arr, u.Elements())
-		if !assertSetEqual(t, u, s, "i=%v", i) {
-			log.Printf("i=%v", i)
-			// log.Printf("%v\n", mapOfSets{"s": s, "u": u})
-			log.Printf("++--\n%v", nodesDiff(oldS.root, s.root))
-			log.Printf("++--\n%v", nodesDiff(u.root, s.root))
-			for {
-				oldU := NewSet(oldArr...)
-				u := NewSet(arr...)
-				if !assertSetEqual(t, oldU, oldS, "i=%v", i) {
-					// log.Printf("%v", mapOfSets{"oldS": oldS, "oldU": oldU})
-					log.Printf("++--\n%v", nodesDiff(oldU.root, oldS.root))
-					log.Printf("old one broken too!")
-				}
-				u.EqualSet(s)
-			}
-		}
-		oldS = s
-		oldArr = arr
+		assertSetEqual(t, u, s, "i=%v", i)
 		assert.False(t, s.IsEmpty(), "i=%v", i)
 		assert.True(t, s.Has(i), "i=%v", i)
 		s = s.Without(i)
@@ -232,6 +218,23 @@ func TestSetEqual(t *testing.T) {
 	}
 }
 
+func TestSetEqualLarge(t *testing.T) {
+	t.Parallel()
+
+	n := 100_000
+	a := intSet(0, n)
+	b := intSet(0, n)
+	c := intSet(n, n).Map(func(e interface{}) interface{} { return e.(int) - n })
+
+	require.Equal(t, n, c.Count())
+	for i := 0; i < n; i++ {
+		require.True(t, c.Has(i), i)
+	}
+
+	assertSetEqual(t, a, b)
+	assertSetEqual(t, a, c)
+}
+
 func TestSetFirst(t *testing.T) {
 	t.Parallel()
 
@@ -282,29 +285,28 @@ func TestSetOrderedFirstN(t *testing.T) {
 
 func TestSetIsSubsetOf(t *testing.T) {
 	t.Parallel()
+
 	const N = 10
 	for i := BitIterator(0); i < N; i++ {
 		a := NewSetFromMask64(uint64(i))
 		for j := BitIterator(0); j < N; j++ {
 			b := NewSetFromMask64(uint64(j))
-			if !assert.Equal(t, i&^j == 0, a.IsSubsetOf(b), "i=%b j=%b\na=%v\nb=%v", i, j, a.root, b.root) {
-				if a.Count()+b.Count() < 12 {
-					log.Printf("%v\n\t(%v&^%v(%v) == %v) == %v != %v",
-						mapOfSet{"a": a, "b": b},
-						i, j, i&^j, BitIterator(0), i&^j == 0, a.IsSubsetOf(b),
-					)
-					func() {
-						// defer logrus.SetLevel(logrus.GetLevel())
-						// logrus.SetLevel(logrus.TraceLevel)
-						debug.ReadBuildInfo()
-						a.IsSubsetOf(b)
-					}()
-				}
-
-				a.IsSubsetOf(b)
-			}
+			assert.Equal(t, i&^j == 0, a.IsSubsetOf(b))
 		}
 	}
+}
+
+func TestSetIsSubsetOfLarge(t *testing.T) {
+	t.Parallel()
+
+	a := intSet(0, 100_000)
+	b := intSet(0, 100_001)
+	c := intSet(1, 100_000)
+	assert.True(t, a.IsSubsetOf(a))
+	assert.True(t, a.IsSubsetOf(b))
+	assert.False(t, b.IsSubsetOf(a))
+	assert.False(t, a.IsSubsetOf(c))
+	assert.False(t, c.IsSubsetOf(a))
 }
 
 func TestSetString(t *testing.T) {
@@ -314,6 +316,13 @@ func TestSetString(t *testing.T) {
 	assert.Equal(t, "{1}", NewSet(1).String())
 	assert.Contains(t, []string{"{1, 2}", "{2, 1}"}, NewSet(1, 2).String())
 	assert.Contains(t, []string{"{1, 2}", "{2, 1}"}, NewSet(2, 1).String())
+}
+
+func TestSetWhereEmpty(t *testing.T) {
+	t.Parallel()
+
+	assertSetEqual(t, NewSet(), NewSet().Where(func(interface{}) bool { return false }))
+	assertSetEqual(t, NewSet(), NewSet().Where(func(interface{}) bool { return true }))
 }
 
 func TestSetWhere(t *testing.T) {
@@ -351,6 +360,15 @@ func TestSetMap(t *testing.T) {
 	assert.Equal(t, 3, NewSet(1, 2, 3, 6).Map(div2).Count())
 }
 
+func TestSetMapLarge(t *testing.T) {
+	t.Parallel()
+
+	s := hugeIntSet
+	assertSetEqual(t, NewSet(42), s.Map(func(e interface{}) interface{} { return 42 }))
+	assertSetEqual(t, Iota3(0, 2_000_000, 2), s.Map(func(e interface{}) interface{} { return 2 * e.(int) }))
+	assertSetEqual(t, Iota(100_000), s.Map(func(e interface{}) interface{} { return e.(int) / 10 }))
+}
+
 func TestSetReduce(t *testing.T) {
 	t.Parallel()
 
@@ -364,11 +382,12 @@ func TestSetReduce(t *testing.T) {
 	assert.Equal(t, 35, NewSet(5, 7).Reduce2(product))
 	assert.Equal(t, 55, Iota2(1, 11).Reduce2(sum))
 	assert.Equal(t, 720, Iota2(2, 7).Reduce2(product))
-	assert.Equal(t, (1*1000*1000-1)*1*1000*1000/2, Iota(1*1000*1000).Reduce2(sum))
-	log.Printf("%#v", Iota(1*1000*1000).root.profile(false))
+	assert.Equal(t, (1_000_000-1)*1_000_000/2, Iota(1_000_000).Reduce2(sum))
 }
 
 func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set) Set) {
+	t.Helper()
+
 	m := map[uint64]struct{}{
 		0x0000: {}, // 000000000000000
 		0x0001: {}, // 000000000000001
@@ -383,13 +402,13 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 	for i := 0; i < 100; i++ {
 		m[uint64(i)] = struct{}{}
 	}
-	for i := 100; i < 10*1000; i += 100 {
+	for i := 100; i < 10_000; i += 100 {
 		m[uint64(i)] = struct{}{}
 	}
-	for i := 10 * 1000; i < 1*1000*1000; i += 10 * 1000 {
+	for i := 1_000; i < 1_000_000; i += 10_000 {
 		m[uint64(i)] = struct{}{}
 	}
-	for i := 1 * 1000 * 1000; i < 100*1000*1000; i += 1 * 1000 * 1000 {
+	for i := 1_000_000; i < 100_000_000; i += 1_000_000 {
 		m[uint64(i)] = struct{}{}
 	}
 	sets := make([]uint64, 0, len(m))
@@ -403,21 +422,7 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 			sy := NewSetFromMask64(y)
 			sxy := NewSetFromMask64(bitop(x, y))
 			sxsy := setop(sx, sy)
-			if !assertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
-				log.Printf("%v\n%v",
-					sxy.Equal(sxsy),
-					mapOfSet{"1. sx": sx, "2. sy": sy, "3. sxy": sxy, "4. sxsy": sxsy},
-				)
-				// if sx.Count()+sy.Count() < 12 {
-				// for {
-				func() {
-					// defer logrus.SetLevel(logrus.GetLevel())
-					// logrus.SetLevel(logrus.TraceLevel)
-					setop(sx, sy)
-				}()
-				// }
-				// }
-			}
+			assertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy)
 		}
 	}
 }
@@ -545,6 +550,75 @@ func TestSetOrderedRange(t *testing.T) {
 	assert.Equal(t, []int{9, 8, 7, 6, 5, 4, 3, 2, 1, 0}, output)
 }
 
+func TestSetWhere_Big(t *testing.T) {
+	t.Parallel()
+
+	s := largeIntSet
+	s2 := s.Where(func(e interface{}) bool { return true })
+	assertSetEqual(t, s, s2)
+
+	s = hugeIntSet
+	s2 = s.Where(func(e interface{}) bool { return true })
+	assertSetEqual(t, s, s2)
+
+	s = largeIntSet
+	s2 = s.Where(func(e interface{}) bool { return false })
+	assertSetEqual(t, NewSet(), s2)
+}
+
+func TestSetIntersection_Big(t *testing.T) {
+	t.Parallel()
+
+	s := largeIntSet
+	s2 := s.Intersection(s)
+	assertSetEqual(t, s, s2)
+
+	s = hugeIntSet
+	s2 = s.Intersection(s)
+	assertSetEqual(t, s, s2)
+}
+
+func TestSetDifference_Big(t *testing.T) {
+	t.Parallel()
+
+	s := largeIntSet
+	s2 := s.Difference(s)
+	assertSetEqual(t, NewSet(), s2)
+
+	s = hugeIntSet
+	s2 = s.Difference(s)
+	assertSetEqual(t, NewSet(), s2)
+}
+
+func TestSetUnion_Big(t *testing.T) {
+	t.Parallel()
+
+	s := largeIntSet
+	s2 := s.Union(s)
+	assertSetEqual(t, s, s2)
+
+	s = intSet(0, 100_000)
+	s2 = intSet(50_000, 100_000)
+	assertSetEqual(t, intSet(0, 150_000), s.Union(s2))
+
+	s = hugeIntSet
+	s2 = s.Union(s)
+	assertSetEqual(t, s, s2)
+}
+
+var (
+	largeIntSet = intSet(0, 10_000)
+	hugeIntSet  = intSet(0, 1_000_000)
+)
+
+func intSet(offset, size int) Set {
+	sb := NewSetBuilder(size)
+	for i := offset; i < offset+size; i++ {
+		sb.Add(i)
+	}
+	return sb.Finish()
+}
+
 var prepopSetInt = memoizePrepop(func(n int) interface{} {
 	m := make(map[int]struct{}, n)
 	for i := 0; i < n; i++ {
@@ -554,6 +628,8 @@ var prepopSetInt = memoizePrepop(func(n int) interface{} {
 })
 
 func benchmarkInsertSetInt(b *testing.B, n int) {
+	b.Helper()
+
 	m := prepopSetInt(n).(map[int]struct{})
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
@@ -582,6 +658,8 @@ var prepopSetInterface = memoizePrepop(func(n int) interface{} {
 })
 
 func benchmarkInsertSetInterface(b *testing.B, n int) {
+	b.Helper()
+
 	m := prepopSetInterface(n).(map[interface{}]struct{})
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
@@ -610,6 +688,8 @@ var prepopFrozenSet = memoizePrepop(func(n int) interface{} {
 })
 
 func benchmarkInsertFrozenSet(b *testing.B, n int) {
+	b.Helper()
+
 	s := prepopFrozenSet(n).(Set)
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {

@@ -1,15 +1,13 @@
 //nolint:unparam
-package frozen
+package frozen_test
 
 import (
-	"fmt"
-	"sort"
-	"strings"
 	"sync"
 	"testing"
 
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/arr-ai/frozen"
 )
 
 func memoizePrepop(prepare func(n int) interface{}) func(n int) interface{} {
@@ -28,7 +26,9 @@ func memoizePrepop(prepare func(n int) interface{}) func(n int) interface{} {
 }
 
 func assertSetEqual(t *testing.T, expected, actual Set, msgAndArgs ...interface{}) bool {
-	format := "\nexpected %v != \nactual   %v" // nolint:goconst
+	t.Helper()
+
+	format := "\nexpected %v != \nactual   %v" //nolint:goconst
 	args := []interface{}{}
 	if len(msgAndArgs) > 0 {
 		format = msgAndArgs[0].(string) + format
@@ -41,14 +41,20 @@ func assertSetEqual(t *testing.T, expected, actual Set, msgAndArgs ...interface{
 }
 
 func assertSetHas(t *testing.T, s Set, i interface{}) bool {
+	t.Helper()
+
 	return assert.True(t, s.Has(i), "i=%v", i)
 }
 
 func assertSetNotHas(t *testing.T, s Set, i interface{}) bool {
+	t.Helper()
+
 	return assert.False(t, s.Has(i), "i=%v", i)
 }
 
 func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{}) bool {
+	t.Helper()
+
 	format := "\nexpected %v != \nactual   %v"
 	args := []interface{}{}
 	if len(msgAndArgs) > 0 {
@@ -62,6 +68,8 @@ func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{
 }
 
 func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool {
+	t.Helper()
+
 	v, has := m.Get(i)
 	ok1 := assert.Equal(t, has, m.Has(i))
 	ok2 := assert.True(t, has, "i=%v", i) && assert.Equal(t, expected, v, "i=%v", i)
@@ -69,13 +77,17 @@ func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool {
 }
 
 func assertMapNotHas(t *testing.T, m Map, i interface{}) bool {
+	t.Helper()
+
 	v, has := m.Get(i)
 	ok1 := assert.Equal(t, has, m.Has(i))
 	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
 	return ok1 && ok2
 }
 
-func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs ...interface{}) bool { //nolint:dupl
+func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs ...interface{}) bool {
+	t.Helper()
+
 	format := "\nexpected %v != \nactual   %v"
 	args := []interface{}{}
 	if len(msgAndArgs) > 0 {
@@ -88,14 +100,18 @@ func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs .
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{}) bool { //nolint:dupl
+func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{}) bool {
+	t.Helper()
+
 	v, has := m.Get(i)
 	ok1 := assert.Equal(t, has, m.Has(i))
 	ok2 := assert.True(t, has, "i=%v", i) && assert.Equal(t, expected, v, "i=%v", i)
 	return ok1 && ok2
 }
 
-func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool { //nolint:dupl
+func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool {
+	t.Helper()
+
 	v, has := m.Get(i)
 	ok1 := assert.Equal(t, has, m.Has(i))
 	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
@@ -103,35 +119,6 @@ func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool { //nolint:
 }
 
 type mapOfSet map[string]Set
-
-func (m mapOfSet) String() string {
-	var sb strings.Builder
-	keys := []string{}
-	width := 0
-	for key := range m {
-		keys = append(keys, key)
-		if width < len(key) {
-			width = len(key)
-		}
-	}
-	sort.Strings(keys)
-	n := 0
-	for _, key := range keys {
-		if n > 0 {
-			fmt.Fprintln(&sb, "")
-		}
-		s := m[key]
-		fmt.Fprintf(&sb, "%*s = %v:%v %v", width, key, s.Count(), s, s.root)
-		n++
-	}
-	return sb.String()
-}
-
-func nodesDiff(a, b *node) string {
-	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(a.String(), b.String(), true)
-	return dmp.DiffPrettyText(diffs)
-}
 
 func generateSortedIntArray(start, end, step int) []interface{} {
 	if step == 0 {
@@ -143,13 +130,13 @@ func generateSortedIntArray(start, end, step int) []interface{} {
 	if (step > 0 && start > end) || (step < 0 && start < end) {
 		panic("array will never reach end value")
 	}
-	len := (start - end) / step
-	if len < 0 {
-		len *= -1
+	n := (start - end) / step
+	if n < 0 {
+		n *= -1
 	}
-	result := make([]interface{}, len)
+	result := make([]interface{}, n)
 	currentVal := start
-	for i := 0; i < len; i++ {
+	for i := 0; i < n; i++ {
 		result[i] = currentVal + step*i
 	}
 	return result

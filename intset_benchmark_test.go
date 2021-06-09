@@ -1,10 +1,14 @@
-package frozen
+package frozen_test
 
 import (
 	"testing"
+
+	. "github.com/arr-ai/frozen"
 )
 
 func benchmarkNewIntSet(b *testing.B, n int) {
+	b.Helper()
+
 	arr, _ := generateIntArrayAndSet(n)
 	b.ResetTimer()
 
@@ -14,6 +18,8 @@ func benchmarkNewIntSet(b *testing.B, n int) {
 }
 
 func benchmarkWithIntSet(b *testing.B, n int) {
+	b.Helper()
+
 	_, set := generateIntArrayAndSet(n)
 	multiplier := 2147483647 % n
 	withouts := make([]int, 0, b.N)

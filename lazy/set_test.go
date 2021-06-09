@@ -1,4 +1,4 @@
-package lazy
+package lazy_test
 
 import (
 	"runtime"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/arr-ai/frozen"
+	. "github.com/arr-ai/frozen/lazy"
 )
 
 type eagerLazyPair struct {
@@ -30,7 +31,7 @@ func (s eagerLazySlice) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func TestSet(t *testing.T) { //nolint:funlen
+func TestSet(t *testing.T) { //nolint:funlen,cyclop
 	t.Parallel()
 
 	type work struct {

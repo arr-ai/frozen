@@ -137,6 +137,9 @@ func (s IntSet) IsSubsetOf(t IntSet) bool {
 // Has returns true if value exists in the IntSet and false otherwise.
 func (s IntSet) Has(val int) bool {
 	block, _, cellIndex, bitMask := s.locate(val)
+	if cellIndex < 0 {
+		return false
+	}
 	return block[cellIndex]&bitMask != 0
 }
 
@@ -160,7 +163,7 @@ func (s IntSet) Without(is ...int) IntSet {
 		block, blockIndex, cellIndex, bitMask := s.locate(i)
 		if block[cellIndex]&bitMask != 0 {
 			block[cellIndex] &^= bitMask
-			//TODO: optimize this so it doesn't do With many times
+			// TODO: optimize this so it doesn't do With many times
 			s.data = s.data.With(blockIndex, block)
 			if block == emptyBlock {
 				indexToRemove.Add(blockIndex)
@@ -174,7 +177,7 @@ func (s IntSet) Without(is ...int) IntSet {
 
 // Where returns an IntSet whose values fulfill the provided condition.
 func (s IntSet) Where(pred func(elem int) bool) IntSet {
-	//TODO: find a way that works more on block level or maybe make IntSetBuilder?
+	// TODO: find a way that works more on block level or maybe make IntSetBuilder?
 	arr := make([]int, 0, s.count)
 	for i := s.Range(); i.Next(); {
 		if pred(i.Value()) {
