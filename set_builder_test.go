@@ -33,7 +33,10 @@ func TestSetBuilderIncremental(t *testing.T) {
 	t.Parallel()
 
 	replayable(true, func(r replayer) {
-		const N = 1000
+		N := 1_000
+		if testing.Short() {
+			N /= 10
+		}
 		arr := make([]interface{}, 0, N)
 		for i := 0; i < N; i++ {
 			arr = append(arr, i)

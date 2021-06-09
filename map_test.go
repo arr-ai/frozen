@@ -132,7 +132,7 @@ func TestMapRedundantWithWithout(t *testing.T) {
 func TestNewMapFromGoMap(t *testing.T) {
 	t.Parallel()
 
-	N := 1000000
+	N := hugeCollectionSize()
 	m := make(map[interface{}]interface{}, N)
 	for i := 0; i < N; i++ {
 		m[i] = i * i
@@ -374,7 +374,6 @@ func TestMapMergeSameValueType(t *testing.T) {
 	}
 	expected := NewMap(KV(1, 4), KV(2, 7), KV(3, 3), KV(4, 4))
 	result := m.Merge(n, resolve)
-	t.Log(result.String())
 	assert.True(t, expected.Equal(result))
 }
 

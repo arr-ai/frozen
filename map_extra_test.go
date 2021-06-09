@@ -22,7 +22,6 @@ func TestMapMarshalJSON(t *testing.T) {
 
 	j, err = json.Marshal(NewMap(KV(1, 2), KV(3, 4), KV(4, 2)))
 	if assert.NoError(t, err) {
-		t.Log(string(j))
 		var s [][]int
 		require.NoError(t, json.Unmarshal(j, &s))
 		assert.ElementsMatch(t, [][]int{{1, 2}, {3, 4}, {4, 2}}, s)

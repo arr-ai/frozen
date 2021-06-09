@@ -21,6 +21,16 @@ const (
 
 type cellBlock [blockCells]cellMask
 
+func (b *cellBlock) isSubsetOf(c cellBlock) bool {
+	for i, x := range b {
+		y := c[i]
+		if x&^y != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 var emptyBlock cellBlock
 
 func locateBlock(i int) (blockIndex, cellIndex int, bitMask cellMask) {
@@ -126,8 +136,9 @@ func (s IntSet) EqualSet(t IntSet) bool {
 
 // IsSubsetOf returns true if s is a subset of t and false otherwise.
 func (s IntSet) IsSubsetOf(t IntSet) bool {
-	for sBlock := s.data.Range(); sBlock.Next(); {
-		if tBlock, exists := t.data.Get(sBlock.Key()); !exists || tBlock != sBlock.Value() {
+	for r := s.data.Range(); r.Next(); {
+		sBlock := r.Value().(cellBlock)
+		if tBlock, has := t.data.Get(r.Key()); !has || !sBlock.isSubsetOf(tBlock.(cellBlock)) {
 			return false
 		}
 	}
