@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/arr-ai/hash"
-	"github.com/pkg/errors"
 )
 
 // StringKeyValue represents a key-value pair for insertion into a StringMap.
@@ -339,7 +338,7 @@ func (m StringMap) MarshalJSON() ([]byte, error) {
 		proxy[i.Key()] = i.Value()
 	}
 	data, err := json.Marshal(proxy)
-	return data, errors.Wrap(err, "StringMap.MarshalJSON : json.Marshal")
+	return data, errorsWrap(err, 0)
 }
 
 // StringMapIterator provides for iterating over a StringMap.
