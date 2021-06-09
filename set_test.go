@@ -9,6 +9,14 @@ import (
 	. "github.com/arr-ai/frozen"
 )
 
+func largeIntSet() Set {
+	return intSet(0, 10_000)
+}
+
+func hugeIntSet() Set {
+	return intSet(0, hugeCollectionSize())
+}
+
 func TestSetEmpty(t *testing.T) {
 	t.Parallel()
 
@@ -363,9 +371,9 @@ func TestSetMap(t *testing.T) {
 func TestSetMapLarge(t *testing.T) {
 	t.Parallel()
 
-	s := hugeIntSet
+	s := hugeIntSet()
 	assertSetEqual(t, NewSet(42), s.Map(func(e interface{}) interface{} { return 42 }))
-	assertSetEqual(t, Iota3(0, 2_000_000, 2), s.Map(func(e interface{}) interface{} { return 2 * e.(int) }))
+	assertSetEqual(t, Iota3(0, 2*s.Count(), 2), s.Map(func(e interface{}) interface{} { return 2 * e.(int) }))
 	assertSetEqual(t, Iota(100_000), s.Map(func(e interface{}) interface{} { return e.(int) / 10 }))
 }
 
@@ -382,7 +390,8 @@ func TestSetReduce(t *testing.T) {
 	assert.Equal(t, 35, NewSet(5, 7).Reduce2(product))
 	assert.Equal(t, 55, Iota2(1, 11).Reduce2(sum))
 	assert.Equal(t, 720, Iota2(2, 7).Reduce2(product))
-	assert.Equal(t, (1_000_000-1)*1_000_000/2, Iota(1_000_000).Reduce2(sum))
+	n := hugeCollectionSize()
+	assert.Equal(t, (n-1)*n/2, Iota(n).Reduce2(sum))
 }
 
 func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set) Set) {
@@ -402,13 +411,19 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 	for i := 0; i < 100; i++ {
 		m[uint64(i)] = struct{}{}
 	}
-	for i := 100; i < 10_000; i += 100 {
+
+	f := 10
+	if testing.Short() {
+		f = 1
+	}
+
+	for i := 100; i < f*1_000; i += 100 {
 		m[uint64(i)] = struct{}{}
 	}
-	for i := 1_000; i < 1_000_000; i += 10_000 {
+	for i := 1_000; i < f*100_000; i += 10_000 {
 		m[uint64(i)] = struct{}{}
 	}
-	for i := 1_000_000; i < 100_000_000; i += 1_000_000 {
+	for i := 1_000_000; i < f*10_000_000; i += 1_000_000 {
 		m[uint64(i)] = struct{}{}
 	}
 	sets := make([]uint64, 0, len(m))
@@ -498,7 +513,11 @@ func TestSetPowersetLarge(t *testing.T) {
 
 	expected := NewSet()
 	var b SetBuilder
-	for i := BitIterator(0); i <= 1<<15; i++ {
+	bits := 15
+	if testing.Short() {
+		bits -= 3
+	}
+	for i := BitIterator(0); i <= 1<<bits; i++ {
 		if i.Count() == 1 {
 			expected = expected.Union(b.Finish())
 			assertSetEqual(t, expected, NewSetFromMask64(uint64(i-1)).Powerset(), "i=%v", i)
@@ -553,15 +572,15 @@ func TestSetOrderedRange(t *testing.T) {
 func TestSetWhere_Big(t *testing.T) {
 	t.Parallel()
 
-	s := largeIntSet
+	s := largeIntSet()
 	s2 := s.Where(func(e interface{}) bool { return true })
 	assertSetEqual(t, s, s2)
 
-	s = hugeIntSet
+	s = hugeIntSet()
 	s2 = s.Where(func(e interface{}) bool { return true })
 	assertSetEqual(t, s, s2)
 
-	s = largeIntSet
+	s = largeIntSet()
 	s2 = s.Where(func(e interface{}) bool { return false })
 	assertSetEqual(t, NewSet(), s2)
 }
@@ -569,23 +588,25 @@ func TestSetWhere_Big(t *testing.T) {
 func TestSetIntersection_Big(t *testing.T) {
 	t.Parallel()
 
-	s := largeIntSet
+	s := largeIntSet()
 	s2 := s.Intersection(s)
 	assertSetEqual(t, s, s2)
 
-	s = hugeIntSet
-	s2 = s.Intersection(s)
-	assertSetEqual(t, s, s2)
+	if !testing.Short() {
+		s = hugeIntSet()
+		s2 = s.Intersection(s)
+		assertSetEqual(t, s, s2)
+	}
 }
 
 func TestSetDifference_Big(t *testing.T) {
 	t.Parallel()
 
-	s := largeIntSet
+	s := largeIntSet()
 	s2 := s.Difference(s)
 	assertSetEqual(t, NewSet(), s2)
 
-	s = hugeIntSet
+	s = hugeIntSet()
 	s2 = s.Difference(s)
 	assertSetEqual(t, NewSet(), s2)
 }
@@ -593,7 +614,7 @@ func TestSetDifference_Big(t *testing.T) {
 func TestSetUnion_Big(t *testing.T) {
 	t.Parallel()
 
-	s := largeIntSet
+	s := largeIntSet()
 	s2 := s.Union(s)
 	assertSetEqual(t, s, s2)
 
@@ -601,15 +622,10 @@ func TestSetUnion_Big(t *testing.T) {
 	s2 = intSet(50_000, 100_000)
 	assertSetEqual(t, intSet(0, 150_000), s.Union(s2))
 
-	s = hugeIntSet
+	s = hugeIntSet()
 	s2 = s.Union(s)
 	assertSetEqual(t, s, s2)
 }
-
-var (
-	largeIntSet = intSet(0, 10_000)
-	hugeIntSet  = intSet(0, 1_000_000)
-)
 
 func intSet(offset, size int) Set {
 	sb := NewSetBuilder(size)

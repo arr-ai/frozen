@@ -103,7 +103,6 @@ func TestJoinExhaustive(t *testing.T) {
 		})
 		outerTotal++
 	}
-	t.Logf("%d subtests created", outerTotal)
 }
 
 func testJoinExhaustiveCase(t *testing.T, i0 uint64) {
