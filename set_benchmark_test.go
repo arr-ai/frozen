@@ -1,78 +1,104 @@
-package frozen
+package frozen_test
 
 import (
 	"runtime"
 	"sync"
 	"testing"
+
+	. "github.com/arr-ai/frozen"
 )
 
-func benchmarkSequential(b *testing.B, name string, size int) { //nolint:gocognit,funlen
+func benchmarkSequential(b *testing.B, name string, size int) {
+	b.Helper()
+
 	b.Run(name, func(b *testing.B) {
-		b.Run("SetInt/Prealloc", func(b *testing.B) {
-			for n := 0; n < b.N; n++ {
-				m := make(map[int]struct{}, size)
-				for i := 0; i < size; i++ {
-					m[i] = struct{}{}
-				}
-			}
-		})
-
-		b.Run("SetInt", func(b *testing.B) {
-			for n := 0; n < b.N; n++ {
-				m := map[int]struct{}{}
-				for i := 0; i < size; i++ {
-					m[i] = struct{}{}
-				}
-			}
-		})
-
-		b.Run("SetInterface/Prealloc", func(b *testing.B) {
-			for n := 0; n < b.N; n++ {
-				m := make(map[interface{}]struct{}, size)
-				for i := 0; i < size; i++ {
-					m[i] = struct{}{}
-				}
-			}
-		})
-
-		b.Run("SetInterface", func(b *testing.B) {
-			for n := 0; n < b.N; n++ {
-				m := map[interface{}]struct{}{}
-				for i := 0; i < size; i++ {
-					m[i] = struct{}{}
-				}
-			}
-		})
-
-		b.Run("Frozen/SetBuilder/Add/Prealloc", func(b *testing.B) {
-			for n := 0; n < b.N; n++ {
-				sb := NewSetBuilder(size)
-				for i := 0; i < size; i++ {
-					sb.Add(i)
-				}
-				_ = sb.Finish()
-			}
-		})
-
-		b.Run("Frozen/SetBuilder/Add", func(b *testing.B) {
-			for n := 0; n < b.N; n++ {
-				var sb SetBuilder
-				for i := 0; i < size; i++ {
-					sb.Add(i)
-				}
-				_ = sb.Finish()
-			}
-		})
-
-		b.Run("Frozen/Set/With", func(b *testing.B) {
-			for n := 0; n < b.N; n++ {
-				var s Set
-				for i := 0; i < size; i++ {
-					s = s.With(i)
-				}
-			}
-		})
+		b.Run("SetInt/Prealloc", func(t *testing.B) { benchmarkSetIntPrealloc(t, size) })
+		b.Run("SetInt", func(t *testing.B) { benchmarkSetInt(t, size) })
+		b.Run("SetInterface/Prealloc", func(t *testing.B) { benchmarkSetInterfacePrealloc(t, size) })
+		b.Run("SetInterface", func(t *testing.B) { benchmarkSetInterface(t, size) })
+		b.Run("Frozen/SetBuilder/Add/Prealloc", func(t *testing.B) { benchmarkFrozenSetBuilderAddPrealloc(t, size) })
+		b.Run("Frozen/SetBuilder/Add", func(t *testing.B) { benchmarkFrozenSetBuilderAdd(t, size) })
+		b.Run("Frozen/Set/With", func(t *testing.B) { benchmarkFrozenSetWith(t, size) })
 	})
+}
+
+func benchmarkSetIntPrealloc(b *testing.B, size int) {
+	b.Helper()
+
+	for n := 0; n < b.N; n++ {
+		m := make(map[int]struct{}, size)
+		for i := 0; i < size; i++ {
+			m[i] = struct{}{}
+		}
+	}
+}
+
+func benchmarkSetInt(b *testing.B, size int) {
+	b.Helper()
+
+	for n := 0; n < b.N; n++ {
+		m := map[int]struct{}{}
+		for i := 0; i < size; i++ {
+			m[i] = struct{}{}
+		}
+	}
+}
+
+func benchmarkSetInterfacePrealloc(b *testing.B, size int) {
+	b.Helper()
+
+	for n := 0; n < b.N; n++ {
+		m := make(map[interface{}]struct{}, size)
+		for i := 0; i < size; i++ {
+			m[i] = struct{}{}
+		}
+	}
+}
+
+func benchmarkSetInterface(b *testing.B, size int) {
+	b.Helper()
+
+	for n := 0; n < b.N; n++ {
+		m := map[interface{}]struct{}{}
+		for i := 0; i < size; i++ {
+			m[i] = struct{}{}
+		}
+	}
+}
+
+func benchmarkFrozenSetBuilderAddPrealloc(b *testing.B, size int) {
+	b.Helper()
+
+	for n := 0; n < b.N; n++ {
+		sb := NewSetBuilder(size)
+		for i := 0; i < size; i++ {
+			sb.Add(i)
+		}
+		_ = sb.Finish()
+	}
+}
+
+func benchmarkFrozenSetBuilderAdd(b *testing.B, size int) {
+	b.Helper()
+
+	for n := 0; n < b.N; n++ {
+		var sb SetBuilder
+		for i := 0; i < size; i++ {
+			sb.Add(i)
+		}
+		_ = sb.Finish()
+	}
+}
+
+func benchmarkFrozenSetWith(b *testing.B, size int) {
+	b.Helper()
+
+	for n := 0; n < b.N; n++ {
+		var s Set
+		for i := 0; i < size; i++ {
+			s = s.With(i)
+		}
+	}
 }
 
 func BenchmarkSequential(b *testing.B) {

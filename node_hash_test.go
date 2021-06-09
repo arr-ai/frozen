@@ -1,10 +1,12 @@
-package frozen
+package frozen_test
 
 import (
 	"testing"
 
 	"github.com/arr-ai/hash"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/arr-ai/frozen"
 )
 
 type intWithBadHash int
@@ -16,6 +18,8 @@ func (i intWithBadHash) Hash(seed uintptr) uintptr {
 }
 
 func TestNodeBadHash(t *testing.T) {
+	t.Parallel()
+
 	const N = 10000
 	var b SetBuilder
 	for i := 0; i < N; i += 10 {
@@ -31,24 +35,11 @@ func TestNodeBadHash(t *testing.T) {
 }
 
 func TestNodeRemoveCollider(t *testing.T) {
+	t.Parallel()
+
 	var b SetBuilder
 	b.Add(intWithBadHash(100))
 	b.Add(intWithBadHash(200))
 	b.Remove(intWithBadHash(100))
-	assert.True(t, b.Has(intWithBadHash(200)))
-}
-
-func TestNodeAddNearlyCollider(t *testing.T) {
-	var b SetBuilder
-	h100 := newHasher(intWithBadHash(100), 0)
-	near100 := intWithBadHash(0)
-	for ; newHasher(near100, 0) == h100 || newHasher(near100, 0).hash() != h100.hash(); near100++ {
-	}
-	t.Logf("near100=%o", near100)
-
-	b.Add(intWithBadHash(100))
-	b.Add(intWithBadHash(200))
-	b.Add(near100)
-	assert.True(t, b.Has(intWithBadHash(100)))
 	assert.True(t, b.Has(intWithBadHash(200)))
 }

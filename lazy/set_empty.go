@@ -1,105 +1,106 @@
 package lazy
 
 import (
-	"github.com/arr-ai/frozen"
 	"github.com/arr-ai/hash"
+
+	"github.com/arr-ai/frozen"
 )
 
-type emptySet struct{}
+type EmptySet struct{}
 
-func (emptySet) IsEmpty() bool {
+func (EmptySet) IsEmpty() bool {
 	return true
 }
 
-func (emptySet) FastIsEmpty() (empty, ok bool) {
+func (EmptySet) FastIsEmpty() (empty, ok bool) {
 	return true, true
 }
 
-func (emptySet) Count() int {
+func (EmptySet) Count() int {
 	return 0
 }
 
-func (emptySet) FastCount() (count int, ok bool) {
+func (EmptySet) FastCount() (count int, ok bool) {
 	return 0, true
 }
 
-func (emptySet) CountUpTo(limit int) int {
+func (EmptySet) CountUpTo(limit int) int {
 	return 0
 }
 
-func (emptySet) FastCountUpTo(limit int) (count int, ok bool) {
+func (EmptySet) FastCountUpTo(limit int) (count int, ok bool) {
 	return 0, true
 }
 
-func (emptySet) Freeze() Set {
+func (EmptySet) Freeze() Set {
 	return Frozen(frozen.Set{})
 }
 
-func (emptySet) Equal(set interface{}) bool {
+func (EmptySet) Equal(set interface{}) bool {
 	if set, ok := set.(Set); ok {
 		return set.EqualSet(set)
 	}
 	return false
 }
 
-func (emptySet) EqualSet(set Set) bool {
+func (EmptySet) EqualSet(set Set) bool {
 	return set.IsEmpty()
 }
 
-func (emptySet) Hash(seed uintptr) uintptr {
+func (EmptySet) Hash(seed uintptr) uintptr {
 	return hash.Uintptr(hashSeed, seed)
 }
 
-func (emptySet) Has(el interface{}) bool {
+func (EmptySet) Has(el interface{}) bool {
 	return false
 }
 
-func (emptySet) FastHas(el interface{}) (has, ok bool) {
+func (EmptySet) FastHas(el interface{}) (has, ok bool) {
 	return false, true
 }
 
-func (emptySet) IsSubsetOf(set Set) bool {
+func (EmptySet) IsSubsetOf(set Set) bool {
 	return true
 }
 
-func (emptySet) Range() SetIterator {
+func (EmptySet) Range() SetIterator {
 	return emptySetIterator{}
 }
 
-func (emptySet) Where(pred Predicate) Set {
-	return emptySet{}
+func (EmptySet) Where(pred Predicate) Set {
+	return EmptySet{}
 }
 
-func (emptySet) With(els ...interface{}) Set {
+func (EmptySet) With(els ...interface{}) Set {
 	return Frozen(frozen.NewSet(els...))
 }
 
-func (emptySet) Without(els ...interface{}) Set {
-	return emptySet{}
+func (EmptySet) Without(els ...interface{}) Set {
+	return EmptySet{}
 }
 
-func (emptySet) Map(_ Mapper) Set {
-	return emptySet{}
+func (EmptySet) Map(_ Mapper) Set {
+	return EmptySet{}
 }
 
-func (emptySet) Union(s Set) Set {
+func (EmptySet) Union(s Set) Set {
 	return s
 }
 
-func (emptySet) Intersection(_ Set) Set {
-	return emptySet{}
+func (EmptySet) Intersection(_ Set) Set {
+	return EmptySet{}
 }
 
-func (emptySet) Difference(_ Set) Set {
-	return emptySet{}
+func (EmptySet) Difference(_ Set) Set {
+	return EmptySet{}
 }
 
-func (emptySet) SymmetricDifference(s Set) Set {
+func (EmptySet) SymmetricDifference(s Set) Set {
 	return s
 }
 
-func (emptySet) Powerset() Set {
-	return Frozen(frozen.NewSet(emptySet{}))
+func (EmptySet) Powerset() Set {
+	return Frozen(frozen.NewSet(EmptySet{}))
 }
 
 type emptySetIterator struct{}

@@ -13,8 +13,6 @@ linters-settings:
     threshold: 100
   lll:
     line-length: 120
-  goimports:
-    local-prefixes: github.com/golangci/golangci-lint
   gocritic:
     enabled-tags:
     - diagnostic
@@ -28,39 +26,79 @@ linters:
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   disable-all: true
   enable:
+  - asciicheck
   - bodyclose
+  - cyclop
   - deadcode
   - depguard
   - dogsled
   - dupl
-  - exportloopref
+  - durationcheck
   - errcheck
+  - errorlint
+  - exhaustive
+  # - exhaustivestruct
+  - exportloopref
+  - forbidigo
+  # - forcetypeassert
   - funlen
+  - gci
   # - gochecknoglobals
   - gochecknoinits
   - gocognit
-  # - godox
   - goconst
   # - gocritic
   - gocyclo
+  - godot
+  # - godox
+  - goerr113
   - gofmt
+  - gofumpt
+  - goheader
   - goimports
+  # - golint
+  # - gomnd
+  - gomoddirectives
+  - gomodguard
+  - goprintffuncname
   - gosec
   - gosimple
   - govet
+  - ifshort
+  - importas
   - ineffassign
+  # - interfacer
   - lll
+  - makezero
+  # - maligned
   - misspell
   - nakedret
-  - revive
+  - nestif
+  - nilerr
+  # - nlreturn
+  - noctx
+  - nolintlint
+  - paralleltest
   - prealloc
+  - predeclared
+  - promlinter
+  - revive
+  - rowserrcheck
+  # - scopelint
+  - sqlclosecheck
   - staticcheck
   - structcheck
   - stylecheck
-  - typecheck
+  - tagliatelle
+  - testpackage
+  - thelper
+  - tparallel
+  # - typecheck
   - unconvert
   - unparam
   - unused
   - varcheck
+  - wastedassign
   - whitespace
+  - wrapcheck
   # - wsl

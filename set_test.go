@@ -1,12 +1,12 @@
-package frozen
+package frozen_test
 
 import (
-	"log"
-	"runtime/debug"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/arr-ai/frozen"
 )
 
 func TestSetEmpty(t *testing.T) {
@@ -45,6 +45,8 @@ func compareElements(a, b []interface{}) (aOnly, bOnly []interface{}) {
 
 // faster that assert.ElementsMatch.
 func assertSameElements(t *testing.T, a, b []interface{}) bool {
+	t.Helper()
+
 	aOnly, bOnly := compareElements(a, b)
 	aOK := assert.Empty(t, aOnly)
 	bOK := assert.Empty(t, bOnly)
@@ -52,6 +54,8 @@ func assertSameElements(t *testing.T, a, b []interface{}) bool {
 }
 
 func requireSameElements(t *testing.T, a, b []interface{}) {
+	t.Helper()
+
 	if !assertSameElements(t, a, b) {
 		t.FailNow()
 	}
@@ -119,29 +123,10 @@ func TestSetWithout(t *testing.T) {
 		s = s.With(i)
 		arr = append(arr, i)
 	}
-	oldS := s
-	oldArr := arr
 	for i := 0; i < N; i++ {
 		u := NewSet(arr...)
 		requireSameElements(t, arr, u.Elements())
-		if !assertSetEqual(t, u, s, "i=%v", i) {
-			log.Printf("i=%v", i)
-			// log.Printf("%v\n", mapOfSets{"s": s, "u": u})
-			log.Printf("++--\n%v", nodesDiff(oldS.root, s.root))
-			log.Printf("++--\n%v", nodesDiff(u.root, s.root))
-			for {
-				oldU := NewSet(oldArr...)
-				u := NewSet(arr...)
-				if !assertSetEqual(t, oldU, oldS, "i=%v", i) {
-					// log.Printf("%v", mapOfSets{"oldS": oldS, "oldU": oldU})
-					log.Printf("++--\n%v", nodesDiff(oldU.root, oldS.root))
-					log.Printf("old one broken too!")
-				}
-				u.EqualSet(s)
-			}
-		}
-		oldS = s
-		oldArr = arr
+		assertSetEqual(t, u, s, "i=%v", i)
 		assert.False(t, s.IsEmpty(), "i=%v", i)
 		assert.True(t, s.Has(i), "i=%v", i)
 		s = s.Without(i)
@@ -234,6 +219,8 @@ func TestSetEqual(t *testing.T) {
 }
 
 func TestSetEqualLarge(t *testing.T) {
+	t.Parallel()
+
 	n := 100_000
 	a := intSet(0, n)
 	b := intSet(0, n)
@@ -298,27 +285,13 @@ func TestSetOrderedFirstN(t *testing.T) {
 
 func TestSetIsSubsetOf(t *testing.T) {
 	t.Parallel()
+
 	const N = 10
 	for i := BitIterator(0); i < N; i++ {
 		a := NewSetFromMask64(uint64(i))
 		for j := BitIterator(0); j < N; j++ {
 			b := NewSetFromMask64(uint64(j))
-			if !assert.Equal(t, i&^j == 0, a.IsSubsetOf(b), "i=%b j=%b\na=%v\nb=%v", i, j, a.root, b.root) {
-				if a.Count()+b.Count() < 12 {
-					log.Printf("%v\n\t(%v&^%v(%v) == %v) == %v != %v",
-						mapOfSet{"a": a, "b": b},
-						i, j, i&^j, BitIterator(0), i&^j == 0, a.IsSubsetOf(b),
-					)
-					func() {
-						// defer logrus.SetLevel(logrus.GetLevel())
-						// logrus.SetLevel(logrus.TraceLevel)
-						debug.ReadBuildInfo()
-						a.IsSubsetOf(b)
-					}()
-				}
-
-				a.IsSubsetOf(b)
-			}
+			assert.Equal(t, i&^j == 0, a.IsSubsetOf(b))
 		}
 	}
 }
@@ -410,10 +383,11 @@ func TestSetReduce(t *testing.T) {
 	assert.Equal(t, 55, Iota2(1, 11).Reduce2(sum))
 	assert.Equal(t, 720, Iota2(2, 7).Reduce2(product))
 	assert.Equal(t, (1_000_000-1)*1_000_000/2, Iota(1_000_000).Reduce2(sum))
-	log.Printf("%#v", Iota(1_000_000).root.profile(false))
 }
 
 func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set) Set) {
+	t.Helper()
+
 	m := map[uint64]struct{}{
 		0x0000: {}, // 000000000000000
 		0x0001: {}, // 000000000000001
@@ -448,22 +422,7 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 			sy := NewSetFromMask64(y)
 			sxy := NewSetFromMask64(bitop(x, y))
 			sxsy := setop(sx, sy)
-			if !assertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
-				log.Printf("%b * %b = %b %v\n%v",
-					x, y, bitop(x, y),
-					sxy.Equal(sxsy),
-					mapOfSet{"1. sx": sx, "2. sy": sy, "3. sxy": sxy, "4. sxsy": sxsy},
-				)
-				// if sx.Count()+sy.Count() < 12 {
-				// for {
-				func() {
-					// defer logrus.SetLevel(logrus.GetLevel())
-					// logrus.SetLevel(logrus.TraceLevel)
-					setop(sx, sy)
-				}()
-				// }
-				// }
-			}
+			assertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy)
 		}
 	}
 }
@@ -592,6 +551,8 @@ func TestSetOrderedRange(t *testing.T) {
 }
 
 func TestSetWhere_Big(t *testing.T) {
+	t.Parallel()
+
 	s := largeIntSet
 	s2 := s.Where(func(e interface{}) bool { return true })
 	assertSetEqual(t, s, s2)
@@ -605,14 +566,9 @@ func TestSetWhere_Big(t *testing.T) {
 	assertSetEqual(t, NewSet(), s2)
 }
 
-func TestSetWhere_Shallow(t *testing.T) {
-	s := intSet(0, 8)
-	depth := 1
-	s2 := s.where(func(e interface{}) bool { return false }, &depth)
-	assertSetEqual(t, NewSet(), s2)
-}
-
 func TestSetIntersection_Big(t *testing.T) {
+	t.Parallel()
+
 	s := largeIntSet
 	s2 := s.Intersection(s)
 	assertSetEqual(t, s, s2)
@@ -622,29 +578,9 @@ func TestSetIntersection_Big(t *testing.T) {
 	assertSetEqual(t, s, s2)
 }
 
-func TestSetIntersection_Shallow(t *testing.T) {
-	s := intSet(0, 8)
-	depth := 1
-
-	s2 := s.intersection(s, &depth)
-	assertSetEqual(t, s, s2)
-
-	s2 = s.intersection(intSet(10, 8), &depth)
-	assertSetEqual(t, NewSet(), s2)
-}
-
-func TestSetDifference_Shallow(t *testing.T) {
-	s := intSet(0, 8)
-	depth := 1
-
-	s2 := s.difference(s, &depth)
-	assertSetEqual(t, NewSet(), s2)
-
-	s2 = s.difference(NewSet(), &depth)
-	assertSetEqual(t, s, s2)
-}
-
 func TestSetDifference_Big(t *testing.T) {
+	t.Parallel()
+
 	s := largeIntSet
 	s2 := s.Difference(s)
 	assertSetEqual(t, NewSet(), s2)
@@ -655,6 +591,8 @@ func TestSetDifference_Big(t *testing.T) {
 }
 
 func TestSetUnion_Big(t *testing.T) {
+	t.Parallel()
+
 	s := largeIntSet
 	s2 := s.Union(s)
 	assertSetEqual(t, s, s2)
@@ -668,8 +606,10 @@ func TestSetUnion_Big(t *testing.T) {
 	assertSetEqual(t, s, s2)
 }
 
-var largeIntSet = intSet(0, 10_000)
-var hugeIntSet = intSet(0, 1_000_000)
+var (
+	largeIntSet = intSet(0, 10_000)
+	hugeIntSet  = intSet(0, 1_000_000)
+)
 
 func intSet(offset, size int) Set {
 	sb := NewSetBuilder(size)
@@ -688,6 +628,8 @@ var prepopSetInt = memoizePrepop(func(n int) interface{} {
 })
 
 func benchmarkInsertSetInt(b *testing.B, n int) {
+	b.Helper()
+
 	m := prepopSetInt(n).(map[int]struct{})
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
@@ -716,6 +658,8 @@ var prepopSetInterface = memoizePrepop(func(n int) interface{} {
 })
 
 func benchmarkInsertSetInterface(b *testing.B, n int) {
+	b.Helper()
+
 	m := prepopSetInterface(n).(map[interface{}]struct{})
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
@@ -744,6 +688,8 @@ var prepopFrozenSet = memoizePrepop(func(n int) interface{} {
 })
 
 func benchmarkInsertFrozenSet(b *testing.B, n int) {
+	b.Helper()
+
 	s := prepopFrozenSet(n).(Set)
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {

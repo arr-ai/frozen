@@ -9,8 +9,10 @@ import (
 
 const nodeCount = 1 << nodeBits
 
-var useRHS = func(_, b interface{}) interface{} { return b }
-var useLHS = func(a, _ interface{}) interface{} { return a }
+var (
+	useRHS = func(_, b interface{}) interface{} { return b }
+	useLHS = func(a, _ interface{}) interface{} { return a }
+)
 
 type node struct {
 	mask     MaskIterator
@@ -106,7 +108,7 @@ func (n *node) opCanonical(
 	return result.canonical()
 }
 
-func (n *node) equal(o *node, eq func(a, b interface{}) bool, depth int, c *cloner) bool {
+func (n *node) equal(o *node, eq func(a, b interface{}) bool, depth int, c *cloner) bool { //nolint:cyclop
 	switch {
 	case n == o:
 		return true
@@ -159,7 +161,7 @@ func (n *node) getImpl(v interface{}, h hasher) interface{} {
 	}
 }
 
-func (n *node) isSubsetOf(o *node, depth int, c *cloner) bool {
+func (n *node) isSubsetOf(o *node, depth int, c *cloner) bool { //nolint:cyclop
 	switch {
 	case n == nil:
 		return true
@@ -339,7 +341,13 @@ func (n *node) intersection(o *node, depth int, count *int, c *cloner) *node {
 	}
 }
 
-func (n *node) union(o *node, f func(a, b interface{}) interface{}, depth int, matches *int, c *cloner) *node {
+func (n *node) union( //nolint:cyclop
+	o *node,
+	f func(a, b interface{}) interface{},
+	depth int,
+	matches *int,
+	c *cloner,
+) *node {
 	var prepared *node
 	transform := f
 	switch {
@@ -493,12 +501,4 @@ func (n *node) iterator(count int) Iterator {
 		return newNodeIter([]*node{n}, count)
 	}
 	return newNodeIter(n.children[:], count)
-}
-
-func (n *node) elements(count int) []interface{} {
-	elems := []interface{}{}
-	for i := n.iterator(count); i.Next(); {
-		elems = append(elems, i.Value())
-	}
-	return elems
 }

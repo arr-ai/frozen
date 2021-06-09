@@ -1,15 +1,16 @@
-package lazy
+package lazy_test
 
 import (
 	"testing"
 
 	"github.com/arr-ai/frozen"
+	. "github.com/arr-ai/frozen/lazy"
 )
 
 func TestSetEmpty(t *testing.T) {
 	t.Parallel()
 
-	s := emptySet{}
+	s := EmptySet{}
 
 	assertSetOps(t, frozen.Set{}, s)
 

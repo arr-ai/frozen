@@ -1,4 +1,4 @@
-// nolint:dupl
+//nolint:dupl
 package frozen
 
 import (
@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/arr-ai/hash"
+	"github.com/pkg/errors"
 )
 
 // StringKeyValue represents a key-value pair for insertion into a StringMap.
@@ -337,7 +338,8 @@ func (m StringMap) MarshalJSON() ([]byte, error) {
 	for i := m.Range(); i.Next(); {
 		proxy[i.Key()] = i.Value()
 	}
-	return json.Marshal(proxy)
+	data, err := json.Marshal(proxy)
+	return data, errors.Wrap(err, "StringMap.MarshalJSON : json.Marshal")
 }
 
 // StringMapIterator provides for iterating over a StringMap.

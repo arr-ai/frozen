@@ -1,9 +1,11 @@
-package frozen
+package frozen_test
 
 import (
 	"fmt"
 	"math/bits"
 	"testing"
+
+	. "github.com/arr-ai/frozen"
 )
 
 func TestJoinSimple(t *testing.T) {
@@ -86,7 +88,6 @@ func (a bitRelation) join(b bitRelation) bitRelation {
 	return result
 }
 
-//nolint:gocognit
 func TestJoinExhaustive(t *testing.T) {
 	t.Parallel()
 
@@ -98,36 +99,41 @@ func TestJoinExhaustive(t *testing.T) {
 			continue
 		}
 		t.Run(fmt.Sprintf("0b%04b_%04b", i0>>4, i0&0xf), func(t *testing.T) {
-			t.Parallel()
-
-			innerTotal := 0
-			for i := i0; i < 0x1000; i += 0x100 {
-				a := expandBinaryToTernaryBitRelation(i, 0)
-				if a == 0 {
-					continue
-				}
-				for j := uint64(1); j < 0x1000; j++ {
-					b := expandBinaryToTernaryBitRelation(j, 2)
-					if b == 0 {
-						continue
-					}
-					c := a.join(b)
-					setA := a.toRelation()
-					setB := b.toRelation()
-					setC := c.toRelation()
-					if !assertSetEqual(t, setC, setA.Join(setB), "a=%b=%v b=%b=%v", a, setA, b, setB) {
-						_ = a.join(b)
-						setA.Join(setB)
-						t.FailNow()
-					}
-					innerTotal++
-				}
-			}
-			t.Logf("%d scenarios tested", innerTotal)
+			testJoinExhaustiveCase(t, i0)
 		})
 		outerTotal++
 	}
 	t.Logf("%d subtests created", outerTotal)
+}
+
+func testJoinExhaustiveCase(t *testing.T, i0 uint64) {
+	t.Helper()
+	t.Parallel()
+
+	innerTotal := 0
+	for i := i0; i < 0x1000; i += 0x100 {
+		a := expandBinaryToTernaryBitRelation(i, 0)
+		if a == 0 {
+			continue
+		}
+		for j := uint64(1); j < 0x1000; j++ {
+			b := expandBinaryToTernaryBitRelation(j, 2)
+			if b == 0 {
+				continue
+			}
+			c := a.join(b)
+			setA := a.toRelation()
+			setB := b.toRelation()
+			setC := c.toRelation()
+			if !assertSetEqual(t, setC, setA.Join(setB), "a=%b=%v b=%b=%v", a, setA, b, setB) {
+				_ = a.join(b)
+				setA.Join(setB)
+				t.FailNow()
+			}
+			innerTotal++
+		}
+	}
+	t.Logf("%d scenarios tested", innerTotal)
 }
 
 func TestNest(t *testing.T) {

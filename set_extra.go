@@ -2,6 +2,8 @@ package frozen
 
 import (
 	"encoding/json"
+
+	"github.com/pkg/errors"
 )
 
 // Iota returns Iota3(0, stop, 1).
@@ -52,7 +54,8 @@ func (s Set) MarshalJSON() ([]byte, error) {
 	for i := s.Range(); i.Next(); {
 		proxy = append(proxy, i.Value())
 	}
-	return json.Marshal(proxy)
+	data, err := json.Marshal(proxy)
+	return data, errors.Wrap(err, "Set.MarshalJSON : json.Marshal")
 }
 
 // Ensure that Set implements json.Marshaler.

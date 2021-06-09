@@ -1,4 +1,4 @@
-package frozen
+package frozen_test
 
 import (
 	"encoding/json"
@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/arr-ai/frozen"
 )
 
 func TestSetOfSet(t *testing.T) {

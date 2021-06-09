@@ -1,10 +1,12 @@
-package frozen
+package frozen_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	. "github.com/arr-ai/frozen"
 )
 
 func TestKeyValueString(t *testing.T) {
@@ -286,6 +288,7 @@ func TestMapReduce(t *testing.T) {
 
 func TestMapUpdate(t *testing.T) {
 	t.Parallel()
+
 	m := NewMap(KV(3, 4), KV(4, 5), KV(1, 2))
 	n := NewMap(KV(3, 4), KV(4, 7), KV(6, 7))
 	assertMapEqual(t, NewMap(KV(1, 2), KV(3, 4), KV(4, 7), KV(6, 7)), m.Update(n))
@@ -416,6 +419,8 @@ var prepopMapInt = memoizePrepop(func(n int) interface{} {
 })
 
 func benchmarkInsertMapInt(b *testing.B, n int) {
+	b.Helper()
+
 	m := prepopMapInt(n).(map[int]int)
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
@@ -444,6 +449,8 @@ var prepopMapInterface = memoizePrepop(func(n int) interface{} {
 })
 
 func benchmarkInsertMapInterface(b *testing.B, n int) {
+	b.Helper()
+
 	m := prepopMapInterface(n).(map[interface{}]interface{})
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
@@ -472,6 +479,8 @@ var prepopFrozenMap = memoizePrepop(func(n int) interface{} {
 })
 
 func benchmarkInsertFrozenMap(b *testing.B, n int) {
+	b.Helper()
+
 	m := prepopFrozenMap(n).(Map)
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
@@ -492,6 +501,8 @@ func BenchmarkInsertFrozenMap1M(b *testing.B) {
 }
 
 func benchmarkMergeFrozenMap(b *testing.B, limit int) {
+	b.Helper()
+
 	plus := func(_, a, b interface{}) interface{} { return a.(int) + b.(int) }
 	mapToTest := NewMapFromKeys(Iota(limit), func(key interface{}) interface{} {
 		return key

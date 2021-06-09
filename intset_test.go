@@ -1,4 +1,4 @@
-package frozen
+package frozen_test
 
 import (
 	"math"
@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/arr-ai/frozen"
 )
 
-const maxIntArrLen = 1000000
+const maxIntArrLen = 1_000_000
 
 func TestIntSetEmpty(t *testing.T) {
 	t.Parallel()
@@ -66,23 +68,22 @@ func TestIntSetWith(t *testing.T) {
 	for _, i := range arr[len(arr)/2:] {
 		assert.True(t, set.Has(i))
 	}
-	assert.Equal(t, len(getDistinctInts(arr)), set.count)
+	assert.Equal(t, len(getDistinctInts(arr)), set.Count())
 }
 
 func TestIntSetWithout(t *testing.T) {
 	t.Parallel()
 
 	arr, set := generateIntArrayAndSet(maxIntArrLen)
-	half := arr[:len(arr)/2]
-	set = set.Without(half...)
-	expectedCount := len(getDistinctInts(arr)) - len(getDistinctInts(half))
-	assert.Equal(t, expectedCount, set.count)
-	for _, i := range half {
+	left, right := arr[:len(arr)/2], arr[len(arr)/2:]
+	set = set.Without(left...)
+	expectedCount := len(getDistinctInts(arr)) - len(getDistinctInts(left))
+	assert.Equal(t, expectedCount, set.Count())
+	for _, i := range left {
 		assert.False(t, set.Has(i))
 	}
-
-	for i := set.data.Range(); i.Next(); {
-		assert.NotEqual(t, emptyBlock, i.Value().(cellBlock), i.Key())
+	for _, i := range right {
+		assert.True(t, set.Has(i))
 	}
 }
 
@@ -96,18 +97,18 @@ func TestIntSetIntersection(t *testing.T) {
 
 	intersect := fullSet.Intersection(firstQuartile)
 	assert.True(t, intersect.EqualSet(firstQuartile))
-	assert.Equal(t, firstQuartile.count, intersect.count)
+	assert.Equal(t, firstQuartile.Count(), intersect.Count())
 
 	intersect = firstQuartile.Intersection(thirdQuartile)
 	assert.True(t, intersect.IsEmpty())
-	assert.Equal(t, 0, intersect.count)
+	assert.Equal(t, 0, intersect.Count())
 
 	intersect = secondToFifthDecile.Intersection(firstQuartile)
 	distinctNums := len(getDistinctInts(arr[len(arr)/5 : len(arr)/4]))
 	for i := intersect.Range(); i.Next(); {
 		assert.True(t, secondToFifthDecile.Has(i.Value()) && firstQuartile.Has(i.Value()))
 	}
-	assert.Equal(t, distinctNums, intersect.count)
+	assert.Equal(t, distinctNums, intersect.Count())
 }
 
 func TestIntSetUnion(t *testing.T) {
@@ -124,13 +125,13 @@ func TestIntSetUnion(t *testing.T) {
 	for _, i := range distinct {
 		assert.True(t, union.Has(i))
 	}
-	assert.Equal(t, len(distinct), union.count)
+	assert.Equal(t, len(distinct), union.Count())
 
 	union = fullSet.Union(set)
 	for _, i := range distinct {
 		assert.True(t, union.Has(i))
 	}
-	assert.Equal(t, len(distinct), union.count)
+	assert.Equal(t, len(distinct), union.Count())
 }
 
 func TestIntSetIsSubsetOf(t *testing.T) {
@@ -165,9 +166,9 @@ func TestIntSetWhere(t *testing.T) {
 	evenPredWhere := fullSet.Where(evenPred)
 	oddPredWhere := fullSet.Where(oddPred)
 	assert.True(t, evenPredWhere.EqualSet(evenSet))
-	assert.Equal(t, evenSet.count, evenPredWhere.count)
+	assert.Equal(t, evenSet.Count(), evenPredWhere.Count())
 	assert.True(t, oddPredWhere.EqualSet(oddSet))
-	assert.Equal(t, oddSet.count, oddPredWhere.count)
+	assert.Equal(t, oddSet.Count(), oddPredWhere.Count())
 	assert.True(t, NewIntSet().Where(evenPred).EqualSet(NewIntSet()))
 }
 
