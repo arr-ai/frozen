@@ -91,20 +91,20 @@ func (n *node) opCanonical(
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				result.setChild(i, op(n.children[i], o.children[i], &counts[i]))
+				result.children[i] = op(n.children[i], o.children[i], &counts[i])
 			}()
 		}
 		wg.Wait()
 		for _, c := range counts {
 			*count += c
 		}
+		result.calcMask()
 	} else {
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 			i := mask.Index()
 			result.setChild(i, op(n.children[i], o.children[i], count))
 		}
 	}
-	result.calcMask()
 	return result.canonical()
 }
 
