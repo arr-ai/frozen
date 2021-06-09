@@ -37,7 +37,7 @@ func (kv KeyValue) String() string {
 
 // Map maps keys to values. The zero value is the empty Map.
 type Map struct {
-	root  *node
+	root  *branch
 	count int
 }
 
@@ -94,7 +94,7 @@ func (m Map) Any() (key, value interface{}) {
 func (m Map) With(key, val interface{}) Map {
 	kv := KV(key, val)
 	matches := 0
-	var prepared *node
+	var prepared *branch
 	root := m.root.with(kv, useRHS, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
 	return Map{root: root, count: m.Count() + 1 - matches}
 }
@@ -105,7 +105,7 @@ func (m Map) Without(keys Set) Map {
 	// TODO: O(m+n)
 	root := m.root
 	matches := 0
-	var prepared *node
+	var prepared *branch
 	for k := keys.Range(); k.Next(); {
 		kv := KV(k.Value(), nil)
 		root = root.without(kv, 0, newHasher(kv, 0), &matches, theCopier, &prepared)

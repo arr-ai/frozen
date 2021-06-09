@@ -39,8 +39,8 @@ func (kv StringKeyValue) String() string {
 
 // StringMapBuilder provides a more efficient way to build Maps incrementally.
 type StringMapBuilder struct {
-	root          *node
-	prepared      *node
+	root          *branch
+	prepared      *branch
 	redundantPuts int
 	removals      int
 	attemptedAdds int
@@ -92,7 +92,7 @@ func (b *StringMapBuilder) Finish() StringMap {
 
 // StringMap StringMaps keys to values. The zero value is the empty StringMap.
 type StringMap struct {
-	root  *node
+	root  *branch
 	count int
 }
 
@@ -139,7 +139,7 @@ func (m StringMap) Any() (key string, value interface{}) {
 func (m StringMap) With(key string, val interface{}) StringMap {
 	kv := StringKV(key, val)
 	matches := 0
-	var prepared *node
+	var prepared *branch
 	root := m.root.with(kv, useRHS, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
 	return StringMap{root: root, count: m.Count() + 1 - matches}
 }
@@ -150,7 +150,7 @@ func (m StringMap) Without(keys Set) StringMap {
 	// TODO: O(m+n)
 	root := m.root
 	matches := 0
-	var prepared *node
+	var prepared *branch
 	for k := keys.Range(); k.Next(); {
 		kv := StringKV(k.Value().(string), nil)
 		root = root.without(kv, 0, newHasher(kv, 0), &matches, theCopier, &prepared)

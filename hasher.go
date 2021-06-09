@@ -10,17 +10,17 @@ import (
 
 const (
 	hashBits       = 8 * int(unsafe.Sizeof(uintptr(0)))
-	hashBitsOffset = hashBits - nodeBits
+	hashBitsOffset = hashBits - fanoutBits
 )
 
 type hasher uintptr
 
 func newHasher(key interface{}, depth int) hasher {
-	return hasher(hash.Interface(key, 0)) << uint(depth*nodeBits)
+	return hasher(hash.Interface(key, 0)) << uint(depth*fanoutBits)
 }
 
 func (h hasher) next() hasher {
-	return h << nodeBits
+	return h << fanoutBits
 }
 
 func (h hasher) hash() int {
@@ -28,9 +28,9 @@ func (h hasher) hash() int {
 }
 
 func (h hasher) String() string {
-	const dregs = hashBits % nodeBits
+	const dregs = hashBits % fanoutBits
 	var s string
-	switch nodeBits {
+	switch fanoutBits {
 	case 2:
 		// TODO(if we care): Output a base-4 number.
 		s = fmt.Sprintf("%0*x", hashBits/4, h>>uint(dregs))
@@ -48,7 +48,7 @@ func (h hasher) String() string {
 		panic("not implemented")
 	}
 	if dregs != 0 {
-		s += fmt.Sprintf("%d", h<<uint(nodeBits-dregs)%nodeCount)
+		s += fmt.Sprintf("%d", h<<uint(fanoutBits-dregs)%fanout)
 	}
 	return strings.TrimRight(s, "0")
 }

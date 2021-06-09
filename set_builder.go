@@ -2,8 +2,8 @@ package frozen
 
 // SetBuilder provides a more efficient way to build sets incrementally.
 type SetBuilder struct {
-	root          *node
-	prepared      *node
+	root          *branch
+	prepared      *branch
 	attemptedAdds int
 	redundantAdds int
 	removals      int

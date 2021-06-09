@@ -26,7 +26,7 @@ def main():
     }
 
     renames = {
-        'FrozenNode': 'frozen.node',
+        'FrozenNode': 'frozen.branch',
         'FrozenMap': 'frozen.Map',
         'FrozenSet': 'frozen.Set',
         'MapInt': 'map[int]int',

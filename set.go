@@ -10,7 +10,7 @@ import (
 
 // Set holds a set of values. The zero value is the empty Set.
 type Set struct {
-	root  *node
+	root  *branch
 	count int
 }
 

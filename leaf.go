@@ -6,12 +6,12 @@ import (
 	"unsafe"
 )
 
-// Compile-time assert that node and leaf have the same size and alignment.
+// Compile-time assert that branch and leaf have the same size and alignment.
 const (
-	leafElems = nodeCount / 2
+	leafElems = fanout / 2
 
-	_ = -uint(unsafe.Sizeof(node{}) ^ unsafe.Sizeof(leaf{}))
-	_ = -uint(unsafe.Alignof(node{}) ^ unsafe.Alignof(leaf{}))
+	_ = -uint(unsafe.Sizeof(branch{}) ^ unsafe.Sizeof(leaf{}))
+	_ = -uint(unsafe.Alignof(branch{}) ^ unsafe.Alignof(leaf{}))
 )
 
 var emptyLeaf = newLeaf()
@@ -19,7 +19,7 @@ var emptyLeaf = newLeaf()
 type extraLeafElems []interface{}
 
 type leaf struct { //nolint:maligned
-	_         uint16 // mask only accessed via *node
+	_         uint16 // mask only accessed via *branch
 	lastIndex int16
 	elems     [leafElems]interface{}
 }
@@ -33,8 +33,8 @@ func newLeaf(elems ...interface{}) *leaf {
 	return l
 }
 
-func (l *leaf) node() *node {
-	return (*node)(unsafe.Pointer(l))
+func (l *leaf) branch() *branch {
+	return (*branch)(unsafe.Pointer(l))
 }
 
 func (l *leaf) last() *interface{} { //nolint:gocritic
@@ -120,7 +120,7 @@ func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
 	return l.isSubsetOf(m, eq) && m.isSubsetOf(l, eq)
 }
 
-func (l *leaf) where(pred func(elem interface{}) bool, matches *int) *node {
+func (l *leaf) where(pred func(elem interface{}) bool, matches *int) *branch {
 	result := leaf{lastIndex: -1}
 	for i := l.iterator(); i.Next(); {
 		v := *i.elem()
@@ -132,7 +132,7 @@ func (l *leaf) where(pred func(elem interface{}) bool, matches *int) *node {
 	if result.lastIndex < 0 {
 		return nil
 	}
-	return result.node()
+	return result.branch()
 }
 
 func (l *leaf) foreach(f func(elem interface{})) {
@@ -141,7 +141,7 @@ func (l *leaf) foreach(f func(elem interface{})) {
 	}
 }
 
-func (l *leaf) intersection(n *node, depth int, count *int) *node {
+func (l *leaf) intersection(n *branch, depth int, count *int) *branch {
 	result := leaf{lastIndex: -1}
 	for i := l.iterator(); i.Next(); {
 		v := *i.elem()
@@ -154,7 +154,7 @@ func (l *leaf) intersection(n *node, depth int, count *int) *node {
 	if result.lastIndex < 0 {
 		return nil
 	}
-	return result.node()
+	return result.branch()
 }
 
 func (l *leaf) with(
@@ -164,34 +164,34 @@ func (l *leaf) with(
 	h hasher,
 	matches *int,
 	c *cloner,
-) *node {
+) *branch {
 	if elem, i := l.get(v, Equal); elem != nil {
 		*matches++
 		res := f(elem, v)
-		return c.leaf(l).set(i, res).node()
+		return c.leaf(l).set(i, res).branch()
 	}
 	h0 := newHasher(l.elems[0], depth)
 	if h == h0 {
-		return l.push(v, c).node()
+		return l.push(v, c).branch()
 	}
-	result := &node{}
+	result := &branch{}
 	last := result
 	noffset, offset := h0.hash(), h.hash()
 	for noffset == offset {
 		last.mask = 1 << uint(offset)
-		newLast := &node{}
+		newLast := &branch{}
 		last.children[offset] = newLast
 		last = newLast
 		h0, h = h0.next(), h.next()
 		noffset, offset = h0.hash(), h.hash()
 	}
 	last.mask = 1<<uint(noffset) | 1<<uint(offset)
-	last.children[noffset] = l.node()
-	last.children[offset] = newLeaf(v).node()
+	last.children[noffset] = l.branch()
+	last.children[offset] = newLeaf(v).branch()
 	return result
 }
 
-func (l *leaf) difference(n *node, depth int, matches *int) *node {
+func (l *leaf) difference(n *branch, depth int, matches *int) *branch {
 	result := leaf{lastIndex: -1}
 	for i := l.iterator(); i.Next(); {
 		v := *i.elem()
@@ -205,15 +205,15 @@ func (l *leaf) difference(n *node, depth int, matches *int) *node {
 	if result.lastIndex < 0 {
 		return nil
 	}
-	return result.node()
+	return result.branch()
 }
 
-func (l *leaf) without(v interface{}, matches *int, c *cloner) *node {
+func (l *leaf) without(v interface{}, matches *int, c *cloner) *branch {
 	if elem, i := l.get(v, Equal); elem != nil {
 		*matches++
-		return l.remove(i, c).node()
+		return l.remove(i, c).branch()
 	}
-	return l.node()
+	return l.branch()
 }
 
 func (l *leaf) isSubsetOf(m *leaf, eq func(a, b interface{}) bool) bool {

@@ -2,8 +2,8 @@ package frozen
 
 // MapBuilder provides a more efficient way to build Maps incrementally.
 type MapBuilder struct {
-	root          *node
-	prepared      *node
+	root          *branch
+	prepared      *branch
 	redundantPuts int
 	removals      int
 	attemptedAdds int

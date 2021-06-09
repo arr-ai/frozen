@@ -38,7 +38,7 @@ func newCloner(mutate bool, capacity int) *cloner {
 	}
 }
 
-func (c *cloner) node(n *node, prepared **node) *node {
+func (c *cloner) branch(n *branch, prepared **branch) *branch {
 	switch {
 	case c.mutate:
 		return n

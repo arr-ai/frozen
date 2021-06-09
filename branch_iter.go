@@ -8,33 +8,33 @@ import (
 // Less dictates the order of two elements.
 type Less func(a, b interface{}) bool
 
-type nodeIter struct {
-	stk [][]*node
-	buf [8][]*node
+type branchIter struct {
+	stk [][]*branch
+	buf [8][]*branch
 	li  leafIterator
 }
 
-func newNodeIter(base []*node, count int) *nodeIter {
-	var result nodeIter
+func newBranchIter(base []*branch, count int) *branchIter {
+	var result branchIter
 	depth := (bits.Len64(uint64(count)) + 5) / 2 // 1.5 (log₈(n) + 1)
 	if depth <= len(result.buf) {
 		result.stk = result.buf[:][:1]
 	} else {
-		result.stk = make([][]*node, 1, depth)
+		result.stk = make([][]*branch, 1, depth)
 	}
 	result.stk[0] = base
 	result.li = newLeafIterator(emptyLeaf)
 	return &result
 }
 
-func (i *nodeIter) Next() bool {
+func (i *branchIter) Next() bool {
 	if i.li.Next() {
 		return true
 	}
 	for {
-		if nodes := &i.stk[len(i.stk)-1]; len(*nodes) > 0 {
-			b := (*nodes)[0]
-			*nodes = (*nodes)[1:]
+		if branches := &i.stk[len(i.stk)-1]; len(*branches) > 0 {
+			b := (*branches)[0]
+			*branches = (*branches)[1:]
 			switch {
 			case b == nil:
 			case b.isLeaf():
@@ -49,11 +49,11 @@ func (i *nodeIter) Next() bool {
 	}
 }
 
-func (i *nodeIter) Value() interface{} {
+func (i *branchIter) Value() interface{} {
 	return i.li.Value()
 }
 
-func (n *node) orderedIterator(less Less, capacity int) *ordered {
+func (n *branch) orderedIterator(less Less, capacity int) *ordered {
 	o := &ordered{less: less, elems: make([]interface{}, 0, capacity)}
 	for i := n.iterator(capacity); i.Next(); {
 		heap.Push(o, i.Value())

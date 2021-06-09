@@ -17,7 +17,7 @@ func (i intWithBadHash) Hash(seed uintptr) uintptr {
 	return hash.Int(int(i)%100, seed)
 }
 
-func TestNodeBadHash(t *testing.T) {
+func TestBadHash(t *testing.T) {
 	t.Parallel()
 
 	const N = 10000
@@ -34,7 +34,7 @@ func TestNodeBadHash(t *testing.T) {
 	}
 }
 
-func TestNodeRemoveCollider(t *testing.T) {
+func TestRemoveCollider(t *testing.T) {
 	t.Parallel()
 
 	var b SetBuilder

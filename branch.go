@@ -7,28 +7,28 @@ import (
 	"unsafe"
 )
 
-const nodeCount = 1 << nodeBits
+const fanout = 1 << fanoutBits
 
 var (
 	useRHS = func(_, b interface{}) interface{} { return b }
 	useLHS = func(a, _ interface{}) interface{} { return a }
 )
 
-type node struct {
+type branch struct {
 	mask     MaskIterator
 	_        uint16
-	children [nodeCount]*node
+	children [fanout]*branch
 }
 
-func (n *node) isLeaf() bool {
+func (n *branch) isLeaf() bool {
 	return n.mask == 0
 }
 
-func (n *node) leaf() *leaf {
+func (n *branch) leaf() *leaf {
 	return (*leaf)(unsafe.Pointer(n))
 }
 
-func (n *node) canonical() *node {
+func (n *branch) canonical() *branch {
 	if n.mask == 0 {
 		return nil
 	}
@@ -40,7 +40,7 @@ func (n *node) canonical() *node {
 	return n
 }
 
-func (n *node) setChild(i int, child *node) *node {
+func (n *branch) setChild(i int, child *branch) *branch {
 	mask := MaskIterator(1) << uint(i)
 	if child != nil {
 		n.mask |= mask
@@ -51,13 +51,13 @@ func (n *node) setChild(i int, child *node) *node {
 	return n
 }
 
-func (n *node) setChildAsync(i int, child *node, m sync.Locker) {
+func (n *branch) setChildAsync(i int, child *branch, m sync.Locker) {
 	m.Lock()
 	defer m.Unlock()
 	n.setChild(i, child)
 }
 
-func (n *node) setChildren(mask MaskIterator, children *[nodeCount]*node) {
+func (n *branch) setChildren(mask MaskIterator, children *[fanout]*branch) {
 	n.mask |= mask
 	for ; mask != 0; mask = mask.Next() {
 		i := mask.Index()
@@ -65,7 +65,7 @@ func (n *node) setChildren(mask MaskIterator, children *[nodeCount]*node) {
 	}
 }
 
-func (n *node) calcMask() {
+func (n *branch) calcMask() {
 	mask := MaskIterator(0)
 	for i, child := range n.children {
 		if child != nil {
@@ -75,17 +75,17 @@ func (n *node) calcMask() {
 	n.mask = mask
 }
 
-func (n *node) opCanonical(
-	o *node,
-	result *node,
+func (n *branch) opCanonical(
+	o *branch,
+	result *branch,
 	depth int,
 	count *int,
 	c *cloner,
-	op func(a, b *node, count *int) *node,
-) *node {
+	op func(a, b *branch, count *int) *branch,
+) *branch {
 	if depth <= c.parallelDepth {
 		var wg sync.WaitGroup
-		var counts [nodeCount]int
+		var counts [fanout]int
 		for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 			i := mask.Index()
 			wg.Add(1)
@@ -108,7 +108,7 @@ func (n *node) opCanonical(
 	return result.canonical()
 }
 
-func (n *node) equal(o *node, eq func(a, b interface{}) bool, depth int, c *cloner) bool { //nolint:cyclop
+func (n *branch) equal(o *branch, eq func(a, b interface{}) bool, depth int, c *cloner) bool { //nolint:cyclop
 	switch {
 	case n == o:
 		return true
@@ -118,7 +118,7 @@ func (n *node) equal(o *node, eq func(a, b interface{}) bool, depth int, c *clon
 		return n.leaf().equal(o.leaf(), eq)
 	default:
 		if depth <= c.parallelDepth {
-			results := make(chan bool, nodeCount)
+			results := make(chan bool, fanout)
 			for mask := n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
 				go func() {
@@ -142,11 +142,11 @@ func (n *node) equal(o *node, eq func(a, b interface{}) bool, depth int, c *clon
 	}
 }
 
-func (n *node) get(elem interface{}) interface{} {
+func (n *branch) get(elem interface{}) interface{} {
 	return n.getImpl(elem, newHasher(elem, 0))
 }
 
-func (n *node) getImpl(v interface{}, h hasher) interface{} {
+func (n *branch) getImpl(v interface{}, h hasher) interface{} {
 	switch {
 	case n == nil:
 		return nil
@@ -161,7 +161,7 @@ func (n *node) getImpl(v interface{}, h hasher) interface{} {
 	}
 }
 
-func (n *node) isSubsetOf(o *node, depth int, c *cloner) bool { //nolint:cyclop
+func (n *branch) isSubsetOf(o *branch, depth int, c *cloner) bool { //nolint:cyclop
 	switch {
 	case n == nil:
 		return true
@@ -181,7 +181,7 @@ func (n *node) isSubsetOf(o *node, depth int, c *cloner) bool { //nolint:cyclop
 		return false
 	default:
 		if depth <= c.parallelDepth {
-			results := make(chan bool, nodeCount)
+			results := make(chan bool, fanout)
 			for mask := n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
 				go func() {
@@ -205,15 +205,15 @@ func (n *node) isSubsetOf(o *node, depth int, c *cloner) bool { //nolint:cyclop
 	}
 }
 
-func (n *node) where(pred func(elem interface{}) bool, depth int, matches *int, c *cloner) *node {
+func (n *branch) where(pred func(elem interface{}) bool, depth int, matches *int, c *cloner) *branch {
 	switch {
 	case n == nil:
 		return n
 	case n.isLeaf():
 		return n.leaf().where(pred, matches)
 	default:
-		var prepared *node
-		return n.opCanonical(n, c.node(n, &prepared), depth, matches, c, func(a, _ *node, matches *int) *node {
+		var prepared *branch
+		return n.opCanonical(n, c.branch(n, &prepared), depth, matches, c, func(a, _ *branch, matches *int) *branch {
 			return a.where(pred, depth+1, matches, c)
 		})
 	}
@@ -224,7 +224,7 @@ type foreacher struct {
 	spawn func() *foreacher
 }
 
-func (n *node) foreach(f *foreacher, depth int, c *cloner) {
+func (n *branch) foreach(f *foreacher, depth int, c *cloner) {
 	switch {
 	case n == nil:
 	case n.isLeaf():
@@ -286,13 +286,13 @@ func (b *forbatch) flush() {
 	}
 }
 
-func (n *node) forbatches(f *forbatcher, depth int, c *cloner) {
+func (n *branch) forbatches(f *forbatcher, depth int, c *cloner) {
 	b := newForbatch(false, f.f)
 	defer b.flush()
 	n.forbatchesImpl(f, depth, c, b)
 }
 
-func (n *node) forbatchesImpl(f *forbatcher, depth int, c *cloner, fb *forbatch) {
+func (n *branch) forbatchesImpl(f *forbatcher, depth int, c *cloner, fb *forbatch) {
 	switch {
 	case n == nil:
 	case n.isLeaf():
@@ -326,7 +326,7 @@ func (n *node) forbatchesImpl(f *forbatcher, depth int, c *cloner, fb *forbatch)
 	}
 }
 
-func (n *node) intersection(o *node, depth int, count *int, c *cloner) *node {
+func (n *branch) intersection(o *branch, depth int, count *int, c *cloner) *branch {
 	switch {
 	case n == nil || o == nil:
 		return nil
@@ -335,20 +335,20 @@ func (n *node) intersection(o *node, depth int, count *int, c *cloner) *node {
 	case o.isLeaf():
 		return o.leaf().intersection(n, depth, count)
 	default:
-		return n.opCanonical(o, &node{}, depth, count, c, func(a, b *node, count *int) *node {
+		return n.opCanonical(o, &branch{}, depth, count, c, func(a, b *branch, count *int) *branch {
 			return a.intersection(b, depth+1, count, c)
 		})
 	}
 }
 
-func (n *node) union( //nolint:cyclop
-	o *node,
+func (n *branch) union( //nolint:cyclop
+	o *branch,
 	f func(a, b interface{}) interface{},
 	depth int,
 	matches *int,
 	c *cloner,
-) *node {
-	var prepared *node
+) *branch {
+	var prepared *branch
 	transform := f
 	switch {
 	case n == nil:
@@ -365,12 +365,12 @@ func (n *node) union( //nolint:cyclop
 		}
 		return n
 	default:
-		result := c.node(n, &prepared)
+		result := c.branch(n, &prepared)
 		result.setChildren(o.mask&^n.mask, &o.children)
 		if depth <= c.parallelDepth {
 			var m sync.Mutex
 			var wg sync.WaitGroup
-			var mm [nodeCount]int
+			var mm [fanout]int
 			for mask := o.mask & n.mask; mask != 0; mask = mask.Next() {
 				i := mask.Index()
 				wg.Add(1)
@@ -393,33 +393,33 @@ func (n *node) union( //nolint:cyclop
 	}
 }
 
-func (n *node) with(
+func (n *branch) with(
 	v interface{},
 	f func(a, b interface{}) interface{},
 	depth int,
 	h hasher,
 	matches *int,
 	c *cloner,
-	prepared **node,
-) *node {
+	prepared **branch,
+) *branch {
 	switch {
 	case n == nil:
-		return newLeaf(v).node()
+		return newLeaf(v).branch()
 	case n.isLeaf():
 		return n.leaf().with(v, f, depth, h, matches, c)
 	default:
 		offset := h.hash()
-		var childPrepared *node
+		var childPrepared *branch
 		child := n.children[offset].with(v, f, depth+1, h.next(), matches, c, &childPrepared)
 		if child.isLeaf() && (n.mask|MaskIterator(1)<<uint(offset)).Count() == 1 {
 			return child
 		}
-		return c.node(n, prepared).setChild(offset, child)
+		return c.branch(n, prepared).setChild(offset, child)
 	}
 }
 
-func (n *node) difference(o *node, depth int, matches *int, c *cloner) *node {
-	var prepared *node
+func (n *branch) difference(o *branch, depth int, matches *int, c *cloner) *branch {
+	var prepared *branch
 	switch {
 	case n == nil || o == nil:
 		return n
@@ -432,14 +432,14 @@ func (n *node) difference(o *node, depth int, matches *int, c *cloner) *node {
 	case n.isLeaf():
 		return n.leaf().difference(o, depth, matches)
 	default:
-		result := theCopier.node(n, &prepared)
-		return n.opCanonical(o, result, depth, matches, c, func(a, b *node, matches *int) *node {
+		result := theCopier.branch(n, &prepared)
+		return n.opCanonical(o, result, depth, matches, c, func(a, b *branch, matches *int) *branch {
 			return a.difference(b, depth+1, matches, c)
 		})
 	}
 }
 
-func (n *node) without(v interface{}, depth int, h hasher, matches *int, c *cloner, prepared **node) *node {
+func (n *branch) without(v interface{}, depth int, h hasher, matches *int, c *cloner, prepared **branch) *branch {
 	switch {
 	case n == nil:
 		return n
@@ -447,19 +447,19 @@ func (n *node) without(v interface{}, depth int, h hasher, matches *int, c *clon
 		return n.leaf().without(v, matches, c)
 	default:
 		offset := h.hash()
-		var childPrepared *node
+		var childPrepared *branch
 		child := n.children[offset].without(v, depth+1, h.next(), matches, c, &childPrepared)
-		return c.node(n, prepared).setChild(offset, child).canonical()
+		return c.branch(n, prepared).setChild(offset, child).canonical()
 	}
 }
 
-func (n *node) Format(f fmt.State, _ rune) {
+func (n *branch) Format(f fmt.State, _ rune) {
 	s := n.String()
 	fmt.Fprint(f, s)
 	padFormat(f, len(s))
 }
 
-func (n *node) String() string {
+func (n *branch) String() string {
 	if n == nil {
 		return "∅"
 	}
@@ -493,12 +493,12 @@ func (n *node) String() string {
 	return sb.String()
 }
 
-func (n *node) iterator(count int) Iterator {
+func (n *branch) iterator(count int) Iterator {
 	if n == nil {
 		return exhaustedIterator{}
 	}
 	if n.isLeaf() {
-		return newNodeIter([]*node{n}, count)
+		return newBranchIter([]*branch{n}, count)
 	}
-	return newNodeIter(n.children[:], count)
+	return newBranchIter(n.children[:], count)
 }
