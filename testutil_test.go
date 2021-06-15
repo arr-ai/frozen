@@ -25,19 +25,51 @@ func memoizePrepop(prepare func(n int) interface{}) func(n int) interface{} {
 	}
 }
 
+// func intSetToMap(s Set) map[int]bool {
+// 	result := make(map[int]bool, s.Count())
+// 	for i := s.Range(); i.Next(); {
+// 		result[i.Value().(int)] = true
+// 	}
+// 	return result
+// }
+
+// func intSetDiff(a, b Set) (l, m, r []int) {
+// 	ma := intSetToMap(a)
+// 	mb := intSetToMap(b)
+// 	for e := range ma {
+// 		if mb[e] {
+// 			m = append(m, e)
+// 		} else {
+// 			l = append(l, e)
+// 		}
+// 	}
+// 	for e := range mb {
+// 		if !ma[e] {
+// 			r = append(r, e)
+// 		}
+// 	}
+// 	sort.Ints(l)
+// 	sort.Ints(m)
+// 	sort.Ints(r)
+// 	return
+// }
+
 func assertSetEqual(t *testing.T, expected, actual Set, msgAndArgs ...interface{}) bool {
 	t.Helper()
 
-	format := "\nexpected %v != \nactual   %v" //nolint:goconst
+	format := "\nexpected: %v !=\nactual:   %v"
 	args := []interface{}{}
 	if len(msgAndArgs) > 0 {
 		format = msgAndArgs[0].(string) + format
-		args = append(append(args, format), msgAndArgs[1:]...)
-	} else {
-		args = append(args, format)
+		args = append(args, msgAndArgs[1:]...)
 	}
+
 	args = append(args, expected, actual)
-	return assert.True(t, expected.Equal(actual), args...)
+	if !expected.Equal(actual) {
+		t.Errorf(format, args...)
+		return false
+	}
+	return true
 }
 
 func assertSetHas(t *testing.T, s Set, i interface{}) bool {
@@ -85,38 +117,38 @@ func assertMapNotHas(t *testing.T, m Map, i interface{}) bool {
 	return ok1 && ok2
 }
 
-func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs ...interface{}) bool {
-	t.Helper()
+// func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs ...interface{}) bool {
+// 	t.Helper()
 
-	format := "\nexpected %v != \nactual   %v"
-	args := []interface{}{}
-	if len(msgAndArgs) > 0 {
-		format = msgAndArgs[0].(string) + format
-		args = append(append(args, format), msgAndArgs[1:]...)
-	} else {
-		args = append(args, format)
-	}
-	args = append(args, expected, actual)
-	return assert.True(t, expected.Equal(actual), args...)
-}
+// 	format := "\nexpected %v != \nactual   %v"
+// 	args := []interface{}{}
+// 	if len(msgAndArgs) > 0 {
+// 		format = msgAndArgs[0].(string) + format
+// 		args = append(append(args, format), msgAndArgs[1:]...)
+// 	} else {
+// 		args = append(args, format)
+// 	}
+// 	args = append(args, expected, actual)
+// 	return assert.True(t, expected.Equal(actual), args...)
+// }
 
-func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{}) bool {
-	t.Helper()
+// func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{}) bool {
+// 	t.Helper()
 
-	v, has := m.Get(i)
-	ok1 := assert.Equal(t, has, m.Has(i))
-	ok2 := assert.True(t, has, "i=%v", i) && assert.Equal(t, expected, v, "i=%v", i)
-	return ok1 && ok2
-}
+// 	v, has := m.Get(i)
+// 	ok1 := assert.Equal(t, has, m.Has(i))
+// 	ok2 := assert.True(t, has, "i=%v", i) && assert.Equal(t, expected, v, "i=%v", i)
+// 	return ok1 && ok2
+// }
 
-func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool {
-	t.Helper()
+// func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool {
+// 	t.Helper()
 
-	v, has := m.Get(i)
-	ok1 := assert.Equal(t, has, m.Has(i))
-	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
-	return ok1 && ok2
-}
+// 	v, has := m.Get(i)
+// 	ok1 := assert.Equal(t, has, m.Has(i))
+// 	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
+// 	return ok1 && ok2
+// }
 
 type mapOfSet map[string]Set
 

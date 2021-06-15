@@ -91,7 +91,7 @@ func TestMapNestBug(t *testing.T) {
 			"(aa: {(a: 10), (a: 11)}):{(c: 1)}",
 			"(aa: {(a: 11), (a: 10)}):{(c: 1)}",
 		}, b.String())
-	assert.Equal(t, a.Hash(0) == b.Hash(0), a.Equal(b))
+	assert.Equal(t, a.Hash(0) == b.Hash(0), KeyEqual(a, b))
 
 	// The bug actually caused an endless loop, but there's not way to assert
 	// for that

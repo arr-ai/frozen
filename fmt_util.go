@@ -2,7 +2,6 @@ package frozen
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 )
 
@@ -14,10 +13,8 @@ func padFormat(f fmt.State, N int) {
 	}
 }
 
-var indentRE = regexp.MustCompile("(?m)^")
-
 func indentBlock(s string) string {
-	return indentRE.ReplaceAllLiteralString(s, "    ")
+	return strings.ReplaceAll(s, "\n", "\n    ")
 }
 
 var brailleBytes = func() [0x100]rune {

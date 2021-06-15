@@ -3,250 +3,220 @@ package frozen
 import (
 	"fmt"
 	"strings"
-	"unsafe"
 )
 
-// Compile-time assert that branch and leaf have the same size and alignment.
-const (
-	leafElems = fanout / 2
+const maxLeafLen = 8
 
-	_ = -uint(unsafe.Sizeof(branch{}) ^ unsafe.Sizeof(leaf{}))
-	_ = -uint(unsafe.Alignof(branch{}) ^ unsafe.Alignof(leaf{}))
-)
+type leaf []interface{}
 
-var emptyLeaf = newLeaf()
-
-type extraLeafElems []interface{}
-
-type leaf struct { //nolint:maligned
-	_         uint16 // mask only accessed via *branch
-	lastIndex int16
-	elems     [leafElems]interface{}
-}
-
-func newLeaf(elems ...interface{}) *leaf {
-	l := &leaf{lastIndex: int16(len(elems) - 1)}
-	copy(l.elems[:], elems)
-	if len(elems) > leafElems {
-		panic("too many elems")
-	}
+func (l leaf) vet() node {
+	// if len(l) == 0 || len(l) > maxLeafLen {
+	// 	panic(wtf)
+	// }
 	return l
 }
 
-func (l *leaf) branch() *branch {
-	return (*branch)(unsafe.Pointer(l))
-}
-
-func (l *leaf) last() *interface{} { //nolint:gocritic
-	return &l.elems[leafElems-1]
-}
-
-func (l *leaf) extras() extraLeafElems {
-	extras, _ := (*l.last()).(extraLeafElems)
-	return extras
-}
-
-func (l *leaf) elem(i int) *interface{} { //nolint:gocritic
-	if i < leafElems {
-		return &l.elems[i]
-	}
-	return &l.extras()[i-leafElems]
-}
-
-func (l *leaf) set(i int, v interface{}) *leaf {
-	*l.elem(i) = v
-	return l
-}
-
-func (l *leaf) push(v interface{}, c *cloner) *leaf {
-	l = c.leaf(l)
-	l.lastIndex++
+func (l leaf) canonical(depth int) (out node) {
+	defer vet(&out)
 	switch {
-	case l.lastIndex < leafElems:
-		l.elems[l.lastIndex] = v
-	case l.lastIndex == leafElems:
-		*l.last() = extraLeafElems([]interface{}{*l.last(), v})
-		l.lastIndex++
+	case len(l) == 0:
+		return emptyNode{}
+	case len(l) <= maxLeafLen || depth*fanoutBits >= 64:
+		return l
 	default:
-		*l.last() = append(c.extras(l, 1), v)
+		var matches int
+		return (branch{}).combine(defaultNPCombineArgs, l, depth, &matches)
 	}
-	return l
 }
 
-func (l *leaf) pop(c *cloner) (result *leaf, v interface{}) {
-	if l.lastIndex == 0 {
-		return nil, l.elems[0]
-	}
+func (l leaf) combine(args *combineArgs, n node, depth int, matches *int) (out node) {
+	l.vet()
+	defer vet(&out)
 
-	l = c.leaf(l)
-	switch {
-	case l.lastIndex < leafElems:
-		v = l.elems[l.lastIndex]
-		l.elems[l.lastIndex] = nil
+	switch n := n.(type) {
+	case emptyNode:
+		return l.vet()
+	case leaf:
+		cloned := false
+		for i, e := range n {
+			if j := l.find(e, args.eq); j >= 0 {
+				if !cloned {
+					l = l.clone(0)
+					cloned = true
+				}
+				l[j] = args.f(l[j], e)
+			} else if len(l) < maxLeafLen {
+				l = append(l, e)
+			} else {
+				return (branch{}).combine(args, l, depth, matches).combine(args, n[i:], depth, matches)
+			}
+		}
+		if len(l) > maxLeafLen {
+			panic(wtf)
+		}
+		return l.canonical(depth)
+	case branch:
+		return n.combine(args.flip, l, depth, matches)
 	default:
-		extras := l.extras()
-		v = extras[len(extras)-1]
-		extras[len(extras)-1] = nil
-		if l.lastIndex == leafElems+1 {
-			*l.last() = extras[0]
-			l.lastIndex--
+		panic(wtf)
+	}
+}
+
+func (l leaf) countUpTo(int) int {
+	l.vet()
+	return len(l)
+}
+
+func (l leaf) difference(args *eqArgs, n node, depth int, removed *int) (out node) {
+	l.vet()
+	defer vet(&out)
+
+	var result leaf
+	for _, e := range l {
+		if n.get(args.flip, e, newHasher(e, depth)) == nil {
+			result = append(result, e)
 		} else {
-			*l.last() = extras[:len(extras)-1]
+			*removed++
 		}
 	}
-	l.lastIndex--
-	return l, v
+	return result.canonical(depth).vet()
 }
 
-func (l *leaf) remove(i int, c *cloner) *leaf {
-	if i == int(l.lastIndex) {
-		result, _ := l.pop(c)
-		return result
+func (l leaf) equal(args *eqArgs, n node, depth int) bool {
+	l.vet()
+
+	if m, is := n.(leaf); is {
+		if len(l) != len(m) {
+			return false
+		}
+		for _, e := range l {
+			if m.get(args, e, 0) == nil {
+				return false
+			}
+		}
+		return true
 	}
-	if result, v := l.pop(c); result != nil {
-		if i > int(result.lastIndex) {
-			i--
-		}
-		if i > leafElems {
-			*result.last() = c.extras(l, 0)
-		}
-		result.set(i, v)
-		return result
+	return false
+}
+
+func (l leaf) get(args *eqArgs, v interface{}, h hasher) *interface{} {
+	l.vet()
+	if i := l.find(v, args.eq); i != -1 {
+		return &l[i]
 	}
 	return nil
 }
 
-func (l *leaf) equal(m *leaf, eq func(a, b interface{}) bool) bool {
-	return l.isSubsetOf(m, eq) && m.isSubsetOf(l, eq)
-}
+func (l leaf) intersection(args *eqArgs, n node, depth int, matches *int) (out node) {
+	l.vet()
+	defer vet(&out)
 
-func (l *leaf) where(pred func(elem interface{}) bool, matches *int) *branch {
-	result := leaf{lastIndex: -1}
-	for i := l.iterator(); i.Next(); {
-		v := *i.elem()
-		if pred(v) {
+	var result leaf
+	for _, e := range l {
+		if n.get(args, e, newHasher(e, depth)) != nil {
 			*matches++
-			result.push(v, theMutator)
+			result = append(result, e)
 		}
 	}
-	if result.lastIndex < 0 {
-		return nil
-	}
-	return result.branch()
+	return result.canonical(depth)
 }
 
-func (l *leaf) foreach(f func(elem interface{})) {
-	for i := l.iterator(); i.Next(); {
-		f(*i.elem())
-	}
-}
+func (l leaf) isSubsetOf(args *eqArgs, n node, depth int) bool {
+	l.vet()
 
-func (l *leaf) intersection(n *branch, depth int, count *int) *branch {
-	result := leaf{lastIndex: -1}
-	for i := l.iterator(); i.Next(); {
-		v := *i.elem()
-		h := newHasher(v, depth)
-		if n.getImpl(v, h) != nil {
-			*count++
-			result.push(v, theMutator)
-		}
-	}
-	if result.lastIndex < 0 {
-		return nil
-	}
-	return result.branch()
-}
-
-func (l *leaf) with(
-	v interface{},
-	f func(a, b interface{}) interface{},
-	depth int,
-	h hasher,
-	matches *int,
-	c *cloner,
-) *branch {
-	if elem, i := l.get(v, Equal); elem != nil {
-		*matches++
-		res := f(elem, v)
-		return c.leaf(l).set(i, res).branch()
-	}
-	h0 := newHasher(l.elems[0], depth)
-	if h == h0 {
-		return l.push(v, c).branch()
-	}
-	result := &branch{}
-	last := result
-	noffset, offset := h0.hash(), h.hash()
-	for noffset == offset {
-		last.mask = 1 << uint(offset)
-		newLast := &branch{}
-		last.children[offset] = newLast
-		last = newLast
-		h0, h = h0.next(), h.next()
-		noffset, offset = h0.hash(), h.hash()
-	}
-	last.mask = 1<<uint(noffset) | 1<<uint(offset)
-	last.children[noffset] = l.branch()
-	last.children[offset] = newLeaf(v).branch()
-	return result
-}
-
-func (l *leaf) difference(n *branch, depth int, matches *int) *branch {
-	result := leaf{lastIndex: -1}
-	for i := l.iterator(); i.Next(); {
-		v := *i.elem()
-		h := newHasher(v, depth)
-		if n.getImpl(v, h) == nil {
-			result.push(v, theMutator)
-		} else {
-			*matches++
-		}
-	}
-	if result.lastIndex < 0 {
-		return nil
-	}
-	return result.branch()
-}
-
-func (l *leaf) without(v interface{}, matches *int, c *cloner) *branch {
-	if elem, i := l.get(v, Equal); elem != nil {
-		*matches++
-		return l.remove(i, c).branch()
-	}
-	return l.branch()
-}
-
-func (l *leaf) isSubsetOf(m *leaf, eq func(a, b interface{}) bool) bool {
-	for i := l.iterator(); i.Next(); {
-		if elem, _ := m.get(*i.elem(), eq); elem == nil {
+	for _, e := range l {
+		if n.get(args, e, 0) == nil {
 			return false
 		}
 	}
 	return true
 }
 
-func (l *leaf) get(v interface{}, eq func(a, b interface{}) bool) (_ interface{}, index int) { //nolint:gocritic
-	for i := l.iterator(); i.Next(); {
-		if elem := i.elem(); eq(*elem, v) {
-			return *elem, i.index
-		}
-	}
-	return nil, -1
-}
-
-func (l *leaf) String() string {
-	var b strings.Builder
-	b.WriteString("(")
-	for i, j := l.iterator(), 0; i.Next(); j++ {
-		if j > 0 {
-			b.WriteString(",")
-		}
-		fmt.Fprint(&b, *i.elem())
-	}
-	b.WriteString(")")
-	return b.String()
-}
-
-func (l *leaf) iterator() leafIterator {
+func (l leaf) iterator([]packed) Iterator {
+	l.vet()
 	return newLeafIterator(l)
+}
+
+func (l leaf) reduce(args nodeArgs, depth int, r func(values ...interface{}) interface{}) interface{} {
+	return r(l...)
+}
+
+func (l leaf) transform(args *combineArgs, depth int, counts *int, f func(v interface{}) interface{}) node {
+	var nb nodeBuilder
+	for _, e := range l {
+		nb.Add(args, f(e))
+	}
+	root := nb.Finish()
+	*counts = root.count
+	return root.n
+}
+
+func (l leaf) where(args *whereArgs, depth int, matches *int) (out node) {
+	l.vet()
+	defer vet(&out)
+
+	var result leaf
+	for _, e := range l {
+		if args.pred(e) {
+			result = append(result, e)
+			*matches++
+		}
+	}
+	return result.canonical(depth)
+}
+
+func (l leaf) with(args *combineArgs, v interface{}, depth int, h hasher, matches *int) (out node) {
+	l.vet()
+	defer vet(&out)
+
+	if i := l.find(v, args.eq); i >= 0 {
+		*matches++
+		result := l.clone(0)
+		result[i] = args.f(result[i], v)
+		return result
+	}
+	return append(l, v).canonical(depth)
+}
+
+func (l leaf) without(args *eqArgs, v interface{}, depth int, h hasher, matches *int) (out node) {
+	l.vet()
+	defer vet(&out)
+
+	if i := l.find(v, args.eq); i != -1 {
+		*matches++
+		result := l[:len(l)-1].clone(0)
+		if i != len(result) {
+			result[i] = l[len(result)]
+		}
+		return result.canonical(depth)
+	}
+	return l
+}
+
+func (l leaf) clone(extra int) leaf {
+	return append(make(leaf, 0, len(l)+extra), l...)
+}
+
+func (l leaf) find(v interface{}, eq func(a, b interface{}) bool) int { //nolint:gocritic
+	l.vet()
+	for i, e := range l {
+		if eq(e, v) {
+			return i
+		}
+	}
+	return -1
+}
+
+func (l leaf) String() string {
+	l.vet()
+	var b strings.Builder
+	b.WriteByte('(')
+	for i, e := range l {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		fmt.Fprint(&b, e)
+	}
+	b.WriteByte(')')
+	return b.String()
 }

@@ -22,12 +22,10 @@ func (kv KeyValue) Hash(seed uintptr) uintptr {
 	return hash.Interface(kv.Key, seed)
 }
 
-// Equal returns true iff i is a KeyValue whose key equals this KeyValue's key.
-func (kv KeyValue) Equal(i interface{}) bool {
-	if kv2, ok := i.(KeyValue); ok {
-		return Equal(kv.Key, kv2.Key)
-	}
-	return false
+func keyValueEqual(a, b interface{}) bool {
+	i := a.(KeyValue)
+	j := b.(KeyValue)
+	return Equal(i.Key, j.Key) && Equal(i.Value, j.Value)
 }
 
 // String returns a string representation of a KeyValue.
@@ -35,13 +33,20 @@ func (kv KeyValue) String() string {
 	return fmt.Sprintf("%#v:%#v", kv.Key, kv.Value)
 }
 
+func KeyEqual(a, b interface{}) bool {
+	return Equal(a.(KeyValue).Key, b.(KeyValue).Key)
+}
+
 // Map maps keys to values. The zero value is the empty Map.
 type Map struct {
-	root  *branch
-	count int
+	root nodeRoot
 }
 
 var _ Key = Map{}
+
+func newMap(root nodeRoot) Map {
+	return Map{root: root}
+}
 
 // NewMap creates a new Map with kvs as keys and values.
 func NewMap(kvs ...KeyValue) Map {
@@ -73,12 +78,12 @@ func NewMapFromGoMap(m map[interface{}]interface{}) Map {
 
 // IsEmpty returns true if the Map has no entries.
 func (m Map) IsEmpty() bool {
-	return m.root == nil
+	return m.root.empty()
 }
 
 // Count returns the number of entries in the Map.
 func (m Map) Count() int {
-	return m.count
+	return m.root.count
 }
 
 // Any returns an arbitrary entry from the Map.
@@ -93,35 +98,40 @@ func (m Map) Any() (key, value interface{}) {
 // retained from m.
 func (m Map) With(key, val interface{}) Map {
 	kv := KV(key, val)
-	matches := 0
-	var prepared *branch
-	root := m.root.with(kv, useRHS, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
-	return Map{root: root, count: m.Count() + 1 - matches}
+	return newMap(m.root.with(defaultNPKeyCombineArgs, kv))
 }
 
 // Without returns a new Map with all keys retained from m except the elements
 // of keys.
 func (m Map) Without(keys Set) Map {
-	// TODO: O(m+n)
-	root := m.root
-	matches := 0
-	var prepared *branch
-	for k := keys.Range(); k.Next(); {
-		kv := KV(k.Value(), nil)
-		root = root.without(kv, 0, newHasher(kv, 0), &matches, theCopier, &prepared)
+	args := newEqArgs(
+		m.root.gauge(),
+		func(a, b interface{}) bool {
+			return Equal(a.(KeyValue).Key, b)
+		},
+		keyHash,
+		hash.Interface)
+	return newMap(m.root.difference(args, keys.Root))
+}
+
+// Without2 shoves keys into a Set and calls m.Without.
+func (m Map) Without2(keys ...interface{}) Map {
+	var sb SetBuilder
+	for _, key := range keys {
+		sb.Add(key)
 	}
-	return Map{root: root, count: m.Count() - matches}
+	return m.Without(sb.Finish())
 }
 
 // Has returns true iff the key exists in the map.
 func (m Map) Has(key interface{}) bool {
-	return m.root.get(KV(key, nil)) != nil
+	return m.root.get(defaultNPKeyEqArgs, KV(key, nil)) != nil
 }
 
 // Get returns the value associated with key in m and true iff the key is found.
 func (m Map) Get(key interface{}) (interface{}, bool) {
-	if kv := m.root.get(KV(key, nil)); kv != nil {
-		return kv.(KeyValue).Value, true
+	if kv := m.root.get(defaultNPKeyEqArgs, KV(key, nil)); kv != nil {
+		return (*kv).(KeyValue).Value, true
 	}
 	return nil, false
 }
@@ -209,34 +219,37 @@ func (m Map) Reduce(f func(acc, key, val interface{}) interface{}, acc interface
 	return acc
 }
 
+func (m Map) eqArgs() *eqArgs {
+	return newEqArgs(
+		newParallelDepthGauge(m.Count()),
+		KeyEqual,
+		keyHash,
+		keyHash,
+	)
+}
+
 // Merge returns a map from the merging between two maps, should there be a key overlap,
 // the value that corresponds to key will be replaced by the value resulted from the
 // provided resolve function.
 func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
-	if m.IsEmpty() {
-		return n
-	}
-	matches := 0
 	extractAndResolve := func(a, b interface{}) interface{} {
 		i := a.(KeyValue)
 		j := b.(KeyValue)
 		return KV(i.Key, resolve(i.Key, i.Value, j.Value))
 	}
-	root := m.root.union(n.root, extractAndResolve, 0, &matches, theCopier)
-	return Map{root: root, count: m.Count() + n.Count() - matches}
+	args := newCombineArgs(m.eqArgs(), extractAndResolve)
+	return newMap(m.root.combine(args, n.root))
 }
 
 // Update returns a Map with key-value pairs from n added or replacing existing
 // keys.
 func (m Map) Update(n Map) Map {
 	f := useRHS
-	if m.Count() >= n.Count() {
+	if m.Count() > n.Count() {
 		m, n = n, m
 		f = useLHS
 	}
-	matches := 0
-	root := m.root.union(n.root, f, 0, &matches, theCopier)
-	return Map{root: root, count: m.Count() + n.Count() - matches}
+	return newMap(m.root.combine(newCombineArgs(m.eqArgs(), f), n.root))
 }
 
 // Hash computes a hash val for s.
@@ -252,12 +265,13 @@ func (m Map) Hash(seed uintptr) uintptr {
 // Map.
 func (m Map) Equal(i interface{}) bool {
 	if n, ok := i.(Map); ok {
-		c := newCloner(false, m.Count())
-		return m.root.equal(n.root, func(a, b interface{}) bool {
-			kva := a.(KeyValue)
-			kvb := b.(KeyValue)
-			return Equal(kva.Key, kvb.Key) && Equal(kva.Value, kvb.Value)
-		}, 0, c)
+		args := newEqArgs(
+			newParallelDepthGauge(m.Count()),
+			keyValueEqual,
+			hash.Interface,
+			hash.Interface,
+		)
+		return m.root.equal(args, n.root)
 	}
 	return false
 }
@@ -281,7 +295,7 @@ func (m Map) Format(state fmt.State, _ rune) {
 
 // Range returns a MapIterator over the Map.
 func (m Map) Range() *MapIterator {
-	return &MapIterator{i: m.root.iterator(m.count)}
+	return &MapIterator{i: m.root.iterator()}
 }
 
 // MapIterator provides for iterating over a Map.
