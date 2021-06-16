@@ -111,7 +111,7 @@ func (m Map) Without(keys Set) Map {
 		},
 		keyHash,
 		hash.Interface)
-	return newMap(m.root.Difference(args, keys.Root))
+	return newMap(m.root.Difference(args, keys.root))
 }
 
 // Without2 shoves keys into a Set and calls m.Without.

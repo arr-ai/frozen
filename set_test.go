@@ -1,8 +1,6 @@
 package frozen_test
 
 import (
-	"fmt"
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -143,22 +141,12 @@ func TestSetWithout(t *testing.T) {
 		s = s.With(i)
 		arr = append(arr, i)
 	}
-	var prev Set
 	for i := 0; i < N; i++ {
 		u := NewSet(arr...)
 		requireSameElements(t, arr, u.Elements(), i)
-		if !assertSetEqual(t, u, s, "i=%v", i) {
-			log.Print("u = ", u, u.Root)
-			log.Print("s = ", s, s.Root)
-			log.Print("prev = ", prev, prev.Root)
-			for {
-				prev.Without(i - 1)
-				u.EqualSet(s)
-			}
-		}
+		assertSetEqual(t, u, s, "i=%v", i)
 		assert.False(t, s.IsEmpty(), "i=%v", i)
 		assert.True(t, s.Has(i), "i=%v", i)
-		prev = s
 		s = s.Without(i)
 		assert.False(t, s.Has(i), "i=%v", i)
 		arr = arr[1:]
@@ -413,13 +401,9 @@ func TestSetMapLarge(t *testing.T) {
 	t.Parallel()
 
 	s := intSet(0, 50)
-	// assertSetEqual(t, NewSet(42), s.Map(func(e interface{}) interface{} { return 42 }))
-	if !assertSetEqual(t, Iota3(0, 2*s.Count(), 2), s.Map(func(e interface{}) interface{} { return 2 * e.(int) })) {
-		fmt.Print(Iota3(0, 2*s.Count(), 2).Root)
-		fmt.Print(s.Map(func(e interface{}) interface{} { return 2 * e.(int) }).Root)
-		s.Map(func(e interface{}) interface{} { return 2 * e.(int) })
-	}
-	// assertSetEqual(t, Iota(s.Count()/10), s.Map(func(e interface{}) interface{} { return e.(int) / 10 }))
+	assertSetEqual(t, NewSet(42), s.Map(func(e interface{}) interface{} { return 42 }))
+	assertSetEqual(t, Iota3(0, 2*s.Count(), 2), s.Map(func(e interface{}) interface{} { return 2 * e.(int) }))
+	assertSetEqual(t, Iota(s.Count()/10), s.Map(func(e interface{}) interface{} { return e.(int) / 10 }))
 }
 
 func TestSetReduce(t *testing.T) {
@@ -447,11 +431,7 @@ func TestSetReduceHuge(t *testing.T) {
 	sum := func(a, b interface{}) interface{} { return a.(int) + b.(int) }
 
 	n := hugeCollectionSize()
-	if !assert.Equal(t, (n-1)*n/2, Iota(n).Reduce2(sum)) {
-		i := Iota(n)
-		fmt.Printf("%v %v hello\nworld!\n", i, i.Root)
-		i.Reduce2(sum)
-	}
+	assert.Equal(t, (n-1)*n/2, Iota(n).Reduce2(sum))
 }
 
 func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set) Set) {

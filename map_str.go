@@ -129,7 +129,7 @@ func (m StringMap) Without(keys Set) StringMap {
 		},
 		stringKeyHash,
 		hash.Interface)
-	return newStringMap(m.root.Difference(args, keys.Root))
+	return newStringMap(m.root.Difference(args, keys.root))
 }
 
 // Without2 shoves keys into a Set and calls m.Without.

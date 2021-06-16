@@ -9,13 +9,13 @@ import (
 
 // Set holds a set of values. The zero value is the empty Set.
 type Set struct {
-	Root tree
+	root tree
 }
 
 var _ Key = Set{}
 
 func newSet(root tree) Set {
-	return Set{Root: root}
+	return Set{root: root}
 }
 
 // Iterator provides for iterating over a Set.
@@ -55,21 +55,21 @@ func (s Set) eqArgs() *eqArgs {
 
 // IsEmpty returns true iff the Set has no elements.
 func (s Set) IsEmpty() bool {
-	return s.Root.count == 0
+	return s.root.count == 0
 }
 
 func (s Set) Builder() *SetBuilder {
-	return &SetBuilder{nb: *s.Root.Builder()}
+	return &SetBuilder{nb: *s.root.Builder()}
 }
 
 // Count returns the number of elements in the Set.
 func (s Set) Count() int {
-	return s.Root.count
+	return s.root.count
 }
 
 // Range returns an Iterator over the Set.
 func (s Set) Range() Iterator {
-	return s.Root.Iterator()
+	return s.root.Iterator()
 }
 
 func (s Set) Elements() []interface{} {
@@ -111,7 +111,7 @@ func (s Set) AnyN(n int) Set {
 func (s Set) OrderedFirstN(n int, less Less) []interface{} {
 	result := make([]interface{}, 0, n)
 	currentLength := 0
-	for i := s.Root.OrderedIterator(less, n); i.Next() && currentLength < n; currentLength++ {
+	for i := s.root.OrderedIterator(less, n); i.Next() && currentLength < n; currentLength++ {
 		result = append(result, i.Value())
 	}
 	return result
@@ -155,7 +155,7 @@ func (s Set) Format(state fmt.State, _ rune) {
 // OrderedRange returns a SetIterator for the Set that iterates over the elements in
 // a specified order.
 func (s Set) OrderedRange(less Less) Iterator {
-	return s.Root.OrderedIterator(less, s.Count())
+	return s.root.OrderedIterator(less, s.Count())
 }
 
 // Hash computes a hash value for s.
@@ -178,18 +178,18 @@ func (s Set) Equal(t interface{}) bool {
 // EqualSet returns true iff s and set have all the same elements.
 func (s Set) EqualSet(t Set) bool {
 	args := s.eqArgs()
-	return s.Root.Equal(args, t.Root)
+	return s.root.Equal(args, t.root)
 }
 
 // IsSubsetOf returns true iff no element in s is not in t.
 func (s Set) IsSubsetOf(t Set) bool {
 	args := s.eqArgs()
-	return s.Root.SubsetOf(args, t.Root)
+	return s.root.SubsetOf(args, t.root)
 }
 
 // Has returns the value associated with key and true iff the key was found.
 func (s Set) Has(val interface{}) bool {
-	return s.Root.Get(defaultNPEqArgs, val) != nil
+	return s.root.Get(defaultNPEqArgs, val) != nil
 }
 
 // With returns a new Set retaining all the elements of the Set as well as values.
@@ -209,13 +209,13 @@ func (s Set) Where(pred func(elem interface{}) bool) Set {
 		pred:     pred,
 	}
 	// root = root.postop(c.parallelDepth)
-	return Set{Root: s.Root.Where(args)}
+	return Set{root: s.root.Where(args)}
 }
 
 // Map returns a Set with all the results of applying f to all elements in s.
 func (s Set) Map(f func(elem interface{}) interface{}) Set {
 	args := newCombineArgs(s.eqArgs(), useRHS)
-	return Set{Root: s.Root.Transform(args, f)}
+	return Set{root: s.root.Transform(args, f)}
 }
 
 // Reduce returns the result of applying `reduce` to the elements of `s` or
@@ -231,7 +231,7 @@ func (s Set) Map(f func(elem interface{}) interface{}) Set {
 //
 // 'elems` will never be empty.
 func (s Set) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
-	return s.Root.Reduce(s.nodeArgs(), reduce)
+	return s.root.Reduce(s.nodeArgs(), reduce)
 }
 
 // Reduce2 is a convenience wrapper for `Reduce`, allowing the caller to
@@ -249,18 +249,18 @@ func (s Set) Reduce2(reduce func(a, b interface{}) interface{}) interface{} {
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set) Intersection(t Set) Set {
-	return Set{Root: s.Root.Intersection(s.eqArgs(), t.Root)}
+	return Set{root: s.root.Intersection(s.eqArgs(), t.root)}
 }
 
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
-	return Set{Root: s.Root.Combine(newCombineArgs(s.eqArgs(), useRHS), t.Root)}
+	return Set{root: s.root.Combine(newCombineArgs(s.eqArgs(), useRHS), t.root)}
 }
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set) Difference(t Set) Set {
 	args := s.eqArgs()
-	return Set{Root: s.Root.Difference(args, t.Root)}
+	return Set{root: s.root.Difference(args, t.root)}
 }
 
 // SymmetricDifference returns a Set with all elements that are s or t, but not
