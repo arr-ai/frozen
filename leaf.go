@@ -9,7 +9,7 @@ const maxLeafLen = 8
 
 type leaf []interface{}
 
-func (l leaf) canonical(depth int) node {
+func (l leaf) Canonical(depth int) node {
 	switch {
 	case len(l) == 0:
 		return emptyNode{}
@@ -17,11 +17,11 @@ func (l leaf) canonical(depth int) node {
 		return l
 	default:
 		var matches int
-		return (branch{}).combine(defaultNPCombineArgs, l, depth, &matches)
+		return (branch{}).Combine(defaultNPCombineArgs, l, depth, &matches)
 	}
 }
 
-func (l leaf) combine(args *combineArgs, n node, depth int, matches *int) node {
+func (l leaf) Combine(args *combineArgs, n node, depth int, matches *int) node {
 	switch n := n.(type) {
 	case emptyNode:
 		return l
@@ -37,43 +37,43 @@ func (l leaf) combine(args *combineArgs, n node, depth int, matches *int) node {
 			} else if len(l) < maxLeafLen {
 				l = append(l, e)
 			} else {
-				return (branch{}).combine(args, l, depth, matches).combine(args, n[i:], depth, matches)
+				return (branch{}).Combine(args, l, depth, matches).Combine(args, n[i:], depth, matches)
 			}
 		}
 		if len(l) > maxLeafLen {
 			panic(wtf)
 		}
-		return l.canonical(depth)
+		return l.Canonical(depth)
 	case branch:
-		return n.combine(args.flip, l, depth, matches)
+		return n.Combine(args.flip, l, depth, matches)
 	default:
 		panic(wtf)
 	}
 }
 
-func (l leaf) countUpTo(int) int {
+func (l leaf) CountUpTo(int) int {
 	return len(l)
 }
 
-func (l leaf) difference(args *eqArgs, n node, depth int, removed *int) node {
+func (l leaf) Difference(args *eqArgs, n node, depth int, removed *int) node {
 	var result leaf
 	for _, e := range l {
-		if n.get(args.flip, e, newHasher(e, depth)) == nil {
+		if n.Get(args.flip, e, newHasher(e, depth)) == nil {
 			result = append(result, e)
 		} else {
 			*removed++
 		}
 	}
-	return result.canonical(depth)
+	return result.Canonical(depth)
 }
 
-func (l leaf) equal(args *eqArgs, n node, depth int) bool {
+func (l leaf) Equal(args *eqArgs, n node, depth int) bool {
 	if m, is := n.(leaf); is {
 		if len(l) != len(m) {
 			return false
 		}
 		for _, e := range l {
-			if m.get(args, e, 0) == nil {
+			if m.Get(args, e, 0) == nil {
 				return false
 			}
 		}
@@ -82,42 +82,42 @@ func (l leaf) equal(args *eqArgs, n node, depth int) bool {
 	return false
 }
 
-func (l leaf) get(args *eqArgs, v interface{}, h hasher) *interface{} {
+func (l leaf) Get(args *eqArgs, v interface{}, h hasher) *interface{} {
 	if i := l.find(v, args.eq); i != -1 {
 		return &l[i]
 	}
 	return nil
 }
 
-func (l leaf) intersection(args *eqArgs, n node, depth int, matches *int) node {
+func (l leaf) Intersection(args *eqArgs, n node, depth int, matches *int) node {
 	var result leaf
 	for _, e := range l {
-		if n.get(args, e, newHasher(e, depth)) != nil {
+		if n.Get(args, e, newHasher(e, depth)) != nil {
 			*matches++
 			result = append(result, e)
 		}
 	}
-	return result.canonical(depth)
+	return result.Canonical(depth)
 }
 
-func (l leaf) isSubsetOf(args *eqArgs, n node, depth int) bool {
+func (l leaf) SubsetOf(args *eqArgs, n node, depth int) bool {
 	for _, e := range l {
-		if n.get(args, e, 0) == nil {
+		if n.Get(args, e, 0) == nil {
 			return false
 		}
 	}
 	return true
 }
 
-func (l leaf) iterator([]packed) Iterator {
+func (l leaf) Iterator([]packed) Iterator {
 	return newLeafIterator(l)
 }
 
-func (l leaf) reduce(args nodeArgs, depth int, r func(values ...interface{}) interface{}) interface{} {
+func (l leaf) Reduce(args nodeArgs, depth int, r func(values ...interface{}) interface{}) interface{} {
 	return r(l...)
 }
 
-func (l leaf) transform(args *combineArgs, depth int, counts *int, f func(v interface{}) interface{}) node {
+func (l leaf) Transform(args *combineArgs, depth int, counts *int, f func(v interface{}) interface{}) node {
 	var nb nodeBuilder
 	for _, e := range l {
 		nb.Add(args, f(e))
@@ -127,7 +127,7 @@ func (l leaf) transform(args *combineArgs, depth int, counts *int, f func(v inte
 	return root.n
 }
 
-func (l leaf) where(args *whereArgs, depth int, matches *int) node {
+func (l leaf) Where(args *whereArgs, depth int, matches *int) node {
 	var result leaf
 	for _, e := range l {
 		if args.pred(e) {
@@ -135,27 +135,27 @@ func (l leaf) where(args *whereArgs, depth int, matches *int) node {
 			*matches++
 		}
 	}
-	return result.canonical(depth)
+	return result.Canonical(depth)
 }
 
-func (l leaf) with(args *combineArgs, v interface{}, depth int, h hasher, matches *int) node {
+func (l leaf) With(args *combineArgs, v interface{}, depth int, h hasher, matches *int) node {
 	if i := l.find(v, args.eq); i >= 0 {
 		*matches++
 		result := l.clone(0)
 		result[i] = args.f(result[i], v)
 		return result
 	}
-	return append(l, v).canonical(depth)
+	return append(l, v).Canonical(depth)
 }
 
-func (l leaf) without(args *eqArgs, v interface{}, depth int, h hasher, matches *int) node {
+func (l leaf) Without(args *eqArgs, v interface{}, depth int, h hasher, matches *int) node {
 	if i := l.find(v, args.eq); i != -1 {
 		*matches++
 		result := l[:len(l)-1].clone(0)
 		if i != len(result) {
 			result[i] = l[len(result)]
 		}
-		return result.canonical(depth)
+		return result.Canonical(depth)
 	}
 	return l
 }

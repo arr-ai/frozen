@@ -32,7 +32,7 @@ func (b *nodeBuilder) Get(args *eqArgs, el interface{}) *interface{} {
 func (b *nodeBuilder) Finish() tree {
 	root := b.root
 	if root.n != nil {
-		root.n = root.n.canonical(0)
+		root.n = root.n.Canonical(0)
 	} else {
 		root.n = emptyNode{}
 	}
@@ -50,7 +50,7 @@ func nodeAdd(
 	matches *int,
 	out *node,
 ) {
-	*out = n.with(args, v, depth, h, matches)
+	*out = n.With(args, v, depth, h, matches)
 }
 
 func nodeRemove(n node,
@@ -61,5 +61,5 @@ func nodeRemove(n node,
 	matches *int,
 	out *node,
 ) {
-	*out = n.without(args, v, depth, h, matches)
+	*out = n.Without(args, v, depth, h, matches)
 }

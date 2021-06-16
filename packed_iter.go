@@ -25,7 +25,7 @@ func (i *packedIterator) Next() bool {
 	if len(p.data) == 0 {
 		return false
 	}
-	i.i = p.data[0].iterator(i.stack[1:])
+	i.i = p.data[0].Iterator(i.stack[1:])
 	p.data = p.data[1:]
 	return i.i.Next()
 }
