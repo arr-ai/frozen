@@ -28,6 +28,7 @@ type node interface {
 	Canonical(depth int) node
 	Combine(args *combineArgs, n node, depth int, matches *int) node
 	CountUpTo(max int) int
+	Defrost() unNode
 	Difference(args *eqArgs, n node, depth int, removed *int) node
 	Equal(args *eqArgs, n node, depth int) bool
 	Get(args *eqArgs, v interface{}, h hasher) *interface{}

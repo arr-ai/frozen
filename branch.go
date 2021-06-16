@@ -62,6 +62,14 @@ func (b branch) CountUpTo(max int) int {
 	return total
 }
 
+func (b branch) Defrost() unNode {
+	u := newUnBranch()
+	for m := b.p.mask; m != 0; m = m.next() {
+		u.p[m.index()] = b.p.data[b.p.mask.offset(m)].Defrost()
+	}
+	return u
+}
+
 func (b branch) Difference(args *eqArgs, n node, depth int, removed *int) node {
 	switch n := n.(type) {
 	case emptyNode:

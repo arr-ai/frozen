@@ -33,6 +33,10 @@ func (t tree) String() string {
 	return t.Root().String()
 }
 
+func (t tree) Builder() *nodeBuilder {
+	return &nodeBuilder{t: unTree{root: unDefroster{n: t.root}}}
+}
+
 func (t tree) Combine(args *combineArgs, y tree) tree {
 	count := -(t.count + y.count)
 	return newTreeNeg(t.Root().Combine(args, y.Root(), 0, &count), &count)

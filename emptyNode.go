@@ -18,6 +18,10 @@ func (e emptyNode) CountUpTo(_ int) int {
 	return 0
 }
 
+func (e emptyNode) Defrost() unNode {
+	return unEmptyNode{}
+}
+
 func (e emptyNode) Difference(_ *eqArgs, _ node, _ int, _ *int) node {
 	return e
 }

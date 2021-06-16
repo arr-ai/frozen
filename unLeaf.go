@@ -9,6 +9,12 @@ var unLeafPool = sync.Pool{
 	},
 }
 
+var unLeafPool0 = sync.Pool{
+	New: func() interface{} {
+		return &unLeaf{}
+	},
+}
+
 type unLeaf struct {
 	data []interface{}
 
@@ -26,6 +32,16 @@ func newUnLeaf() *unLeaf {
 		l = unLeafPool.New().(*unLeaf)
 	}
 	l.data = l.buf[:0]
+	return l
+}
+
+func newUnLeaf0() *unLeaf {
+	var l *unLeaf
+	if usePools {
+		l = unLeafPool0.Get().(*unLeaf)
+	} else {
+		l = unLeafPool0.New().(*unLeaf)
+	}
 	return l
 }
 

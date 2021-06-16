@@ -58,6 +58,10 @@ func (s Set) IsEmpty() bool {
 	return s.Root.count == 0
 }
 
+func (s Set) Builder() *SetBuilder {
+	return &SetBuilder{nb: *s.Root.Builder()}
+}
+
 // Count returns the number of elements in the Set.
 func (s Set) Count() int {
 	return s.Root.count
