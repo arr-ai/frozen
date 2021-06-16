@@ -39,7 +39,7 @@ package frozen
 
 // // StringMapBuilder provides a more efficient way to build Maps incrementally.
 // type StringMapBuilder struct {
-// 	root          nodex
+// 	root          tree
 // 	redundantPuts int
 // 	removals      int
 // 	attemptedAdds int

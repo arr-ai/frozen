@@ -2,7 +2,7 @@ package frozen
 
 // nodeBuilder provides a more efficient way to build nodes incrementally.
 type nodeBuilder struct {
-	root nodeRoot
+	root tree
 }
 
 func newNodeBuilder(capacity int) *nodeBuilder {
@@ -29,7 +29,7 @@ func (b *nodeBuilder) Get(args *eqArgs, el interface{}) *interface{} {
 	return b.root.get(args, el)
 }
 
-func (b *nodeBuilder) Finish() nodeRoot {
+func (b *nodeBuilder) Finish() tree {
 	root := b.root
 	if root.n != nil {
 		root.n = root.n.canonical(0)

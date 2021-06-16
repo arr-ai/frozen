@@ -9,15 +9,7 @@ const maxLeafLen = 8
 
 type leaf []interface{}
 
-func (l leaf) vet() node {
-	// if len(l) == 0 || len(l) > maxLeafLen {
-	// 	panic(wtf)
-	// }
-	return l
-}
-
-func (l leaf) canonical(depth int) (out node) {
-	defer vet(&out)
+func (l leaf) canonical(depth int) node {
 	switch {
 	case len(l) == 0:
 		return emptyNode{}
@@ -29,13 +21,10 @@ func (l leaf) canonical(depth int) (out node) {
 	}
 }
 
-func (l leaf) combine(args *combineArgs, n node, depth int, matches *int) (out node) {
-	l.vet()
-	defer vet(&out)
-
+func (l leaf) combine(args *combineArgs, n node, depth int, matches *int) node {
 	switch n := n.(type) {
 	case emptyNode:
-		return l.vet()
+		return l
 	case leaf:
 		cloned := false
 		for i, e := range n {
@@ -63,14 +52,10 @@ func (l leaf) combine(args *combineArgs, n node, depth int, matches *int) (out n
 }
 
 func (l leaf) countUpTo(int) int {
-	l.vet()
 	return len(l)
 }
 
-func (l leaf) difference(args *eqArgs, n node, depth int, removed *int) (out node) {
-	l.vet()
-	defer vet(&out)
-
+func (l leaf) difference(args *eqArgs, n node, depth int, removed *int) node {
 	var result leaf
 	for _, e := range l {
 		if n.get(args.flip, e, newHasher(e, depth)) == nil {
@@ -79,12 +64,10 @@ func (l leaf) difference(args *eqArgs, n node, depth int, removed *int) (out nod
 			*removed++
 		}
 	}
-	return result.canonical(depth).vet()
+	return result.canonical(depth)
 }
 
 func (l leaf) equal(args *eqArgs, n node, depth int) bool {
-	l.vet()
-
 	if m, is := n.(leaf); is {
 		if len(l) != len(m) {
 			return false
@@ -100,17 +83,13 @@ func (l leaf) equal(args *eqArgs, n node, depth int) bool {
 }
 
 func (l leaf) get(args *eqArgs, v interface{}, h hasher) *interface{} {
-	l.vet()
 	if i := l.find(v, args.eq); i != -1 {
 		return &l[i]
 	}
 	return nil
 }
 
-func (l leaf) intersection(args *eqArgs, n node, depth int, matches *int) (out node) {
-	l.vet()
-	defer vet(&out)
-
+func (l leaf) intersection(args *eqArgs, n node, depth int, matches *int) node {
 	var result leaf
 	for _, e := range l {
 		if n.get(args, e, newHasher(e, depth)) != nil {
@@ -122,8 +101,6 @@ func (l leaf) intersection(args *eqArgs, n node, depth int, matches *int) (out n
 }
 
 func (l leaf) isSubsetOf(args *eqArgs, n node, depth int) bool {
-	l.vet()
-
 	for _, e := range l {
 		if n.get(args, e, 0) == nil {
 			return false
@@ -133,7 +110,6 @@ func (l leaf) isSubsetOf(args *eqArgs, n node, depth int) bool {
 }
 
 func (l leaf) iterator([]packed) Iterator {
-	l.vet()
 	return newLeafIterator(l)
 }
 
@@ -151,10 +127,7 @@ func (l leaf) transform(args *combineArgs, depth int, counts *int, f func(v inte
 	return root.n
 }
 
-func (l leaf) where(args *whereArgs, depth int, matches *int) (out node) {
-	l.vet()
-	defer vet(&out)
-
+func (l leaf) where(args *whereArgs, depth int, matches *int) node {
 	var result leaf
 	for _, e := range l {
 		if args.pred(e) {
@@ -165,10 +138,7 @@ func (l leaf) where(args *whereArgs, depth int, matches *int) (out node) {
 	return result.canonical(depth)
 }
 
-func (l leaf) with(args *combineArgs, v interface{}, depth int, h hasher, matches *int) (out node) {
-	l.vet()
-	defer vet(&out)
-
+func (l leaf) with(args *combineArgs, v interface{}, depth int, h hasher, matches *int) node {
 	if i := l.find(v, args.eq); i >= 0 {
 		*matches++
 		result := l.clone(0)
@@ -178,10 +148,7 @@ func (l leaf) with(args *combineArgs, v interface{}, depth int, h hasher, matche
 	return append(l, v).canonical(depth)
 }
 
-func (l leaf) without(args *eqArgs, v interface{}, depth int, h hasher, matches *int) (out node) {
-	l.vet()
-	defer vet(&out)
-
+func (l leaf) without(args *eqArgs, v interface{}, depth int, h hasher, matches *int) node {
 	if i := l.find(v, args.eq); i != -1 {
 		*matches++
 		result := l[:len(l)-1].clone(0)
@@ -198,7 +165,6 @@ func (l leaf) clone(extra int) leaf {
 }
 
 func (l leaf) find(v interface{}, eq func(a, b interface{}) bool) int { //nolint:gocritic
-	l.vet()
 	for i, e := range l {
 		if eq(e, v) {
 			return i
@@ -208,7 +174,6 @@ func (l leaf) find(v interface{}, eq func(a, b interface{}) bool) int { //nolint
 }
 
 func (l leaf) String() string {
-	l.vet()
 	var b strings.Builder
 	b.WriteByte('(')
 	for i, e := range l {

@@ -17,9 +17,7 @@ type branch struct {
 	p packed
 }
 
-func (b branch) canonical(_ int) (out node) {
-	defer vet(&out)
-
+func (b branch) canonical(_ int) node {
 	if b.p.mask.count() == 0 {
 		return emptyNode{}
 	}
@@ -33,9 +31,7 @@ func (b branch) canonical(_ int) (out node) {
 	return b
 }
 
-func (b branch) combine(args *combineArgs, n node, depth int, matches *int) (out node) {
-	defer vet(&out)
-
+func (b branch) combine(args *combineArgs, n node, depth int, matches *int) node {
 	switch n := n.(type) {
 	case emptyNode:
 		return b
@@ -66,9 +62,7 @@ func (b branch) countUpTo(max int) int {
 	return total
 }
 
-func (b branch) difference(args *eqArgs, n node, depth int, removed *int) (out node) {
-	defer vet(&out)
-
+func (b branch) difference(args *eqArgs, n node, depth int, removed *int) node {
 	switch n := n.(type) {
 	case emptyNode:
 		return b
@@ -102,9 +96,7 @@ func (b branch) get(args *eqArgs, v interface{}, h hasher) *interface{} {
 	return b.p.get(newMasker(h.hash())).get(args, v, h.next())
 }
 
-func (b branch) intersection(args *eqArgs, n node, depth int, matches *int) (out node) {
-	defer vet(&out)
-
+func (b branch) intersection(args *eqArgs, n node, depth int, matches *int) node {
 	switch n := n.(type) {
 	case emptyNode:
 		return n
@@ -175,29 +167,19 @@ func (b branch) transform(args *combineArgs, depth int, count *int, f func(v int
 	return acc
 }
 
-func (b branch) vet() node {
-	return b
-}
-
-func (b branch) where(args *whereArgs, depth int, matches *int) (out node) {
-	defer vet(&out)
-
+func (b branch) where(args *whereArgs, depth int, matches *int) node {
 	return b.transformImpl(args.parallel(depth), matches,
 		func(_ masker, n node, matches *int) node {
 			return n.where(args, depth+1, matches)
 		}).canonical(depth)
 }
 
-func (b branch) with(args *combineArgs, v interface{}, depth int, h hasher, matches *int) (out node) {
-	defer vet(&out)
-
+func (b branch) with(args *combineArgs, v interface{}, depth int, h hasher, matches *int) node {
 	i := newMasker(h.hash())
 	return branch{p: b.p.with(i, b.p.get(i).with(args, v, depth+1, h.next(), matches))}
 }
 
-func (b branch) without(args *eqArgs, v interface{}, depth int, h hasher, matches *int) (out node) {
-	defer vet(&out)
-
+func (b branch) without(args *eqArgs, v interface{}, depth int, h hasher, matches *int) node {
 	i := newMasker(h.hash())
 	child := b.p.get(i).without(args, v, depth+1, h.next(), matches)
 	return branch{p: b.p.with(i, child)}.canonical(depth)
@@ -221,9 +203,7 @@ func (b branch) transformPair(
 	parallel bool,
 	matches *int,
 	op func(m masker, a, b node, matches *int) node,
-) (out node) {
-	defer vet(&out)
-
+) node {
 	var allMatches [fanout]int
 	result := branch{p: b.p.transformPair(o.p, mask, parallel, func(m masker, x, y node) node {
 		return op(m, x, y, &allMatches[m.index()])
@@ -238,9 +218,7 @@ func (b branch) transformImpl(
 	parallel bool,
 	matches *int,
 	op func(m masker, n node, matches *int) node,
-) (out node) {
-	defer vet(&out)
-
+) node {
 	var allMatches [fanout]int
 	result := branch{p: b.p.transform(parallel, func(m masker, n node) node {
 		return op(m, n, &allMatches[m.index()])

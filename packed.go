@@ -52,29 +52,33 @@ func (p packed) with(i masker, n node) packed {
 	i = i.first()
 	index := p.mask.offset(i)
 	if existing := i.subsetOf(p.mask); existing {
-		switch n := n.(type) {
-		case emptyNode:
-			result := p.new(i, -1)
-			result.data = append(result.data, p.data[:index]...)
-			result.data = append(result.data, p.data[index+1:]...)
-			return result
-		default:
-			result := p.new(0, 0)
-			result.data = append(result.data, p.data...)
-			result.data[index] = n
-			return result
+		if _, is := n.(emptyNode); is {
+			mask := p.mask ^ i
+			switch index {
+			case 0:
+				return packed{mask: mask, data: p.data[1:]}
+			case len(p.data) - 1:
+				return packed{mask: mask, data: p.data[:index:index]}
+			default:
+				return packed{mask: mask, data: append(p.data[:index:index], p.data[index+1:]...)}
+			}
 		}
+		result := p.new(0, 0)
+		result.data = append(result.data, p.data...)
+		result.data[index] = n
+		return result
 	} else {
-		switch n := n.(type) {
-		case emptyNode:
+		if _, is := n.(emptyNode); is {
 			return p
-		default:
-			result := p.new(i, 1)
-			result.data = append(result.data, p.data[:index]...)
-			result.data = append(result.data, n)
-			result.data = append(result.data, p.data[index:]...)
-			return result
 		}
+		if index == len(p.data) {
+			return packed{p.mask ^ i, append(p.data, n)}
+		}
+		result := p.new(i, 1)
+		result.data = append(result.data, p.data[:index]...)
+		result.data = append(result.data, n)
+		result.data = append(result.data, p.data[index:]...)
+		return result
 	}
 }
 

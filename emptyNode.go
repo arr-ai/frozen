@@ -54,10 +54,6 @@ func (e emptyNode) where(_ *whereArgs, _ int, _ *int) node {
 	return e
 }
 
-func (e emptyNode) vet() node {
-	return e
-}
-
 func (emptyNode) with(args *combineArgs, v interface{}, depth int, h hasher, matches *int) node {
 	return leaf{v}
 }

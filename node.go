@@ -36,14 +36,9 @@ type node interface {
 	iterator(buf []packed) Iterator
 	reduce(args nodeArgs, depth int, r func(values ...interface{}) interface{}) interface{}
 	transform(args *combineArgs, depth int, count *int, f func(v interface{}) interface{}) node
-	vet() node
 	where(args *whereArgs, depth int, matches *int) node
 	with(args *combineArgs, v interface{}, depth int, h hasher, matches *int) node
 	without(args *eqArgs, v interface{}, depth int, h hasher, matches *int) node
-}
-
-func vet(n *node) {
-	// (*n).vet()
 }
 
 type nodeArgs struct {

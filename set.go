@@ -9,12 +9,12 @@ import (
 
 // Set holds a set of values. The zero value is the empty Set.
 type Set struct {
-	Root nodeRoot
+	Root tree
 }
 
 var _ Key = Set{}
 
-func newSet(root nodeRoot) Set {
+func newSet(root tree) Set {
 	return Set{Root: root}
 }
 
@@ -27,7 +27,7 @@ type Iterator interface {
 // NewSet creates a new Set with values as elements.
 func NewSet(values ...interface{}) Set {
 	if n := len(values); n <= maxLeafLen {
-		return newSet(newNodex(leaf(values), &n))
+		return newSet(newTree(leaf(values), &n))
 	}
 	var b SetBuilder
 	for _, value := range values {

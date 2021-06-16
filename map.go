@@ -39,12 +39,12 @@ func KeyEqual(a, b interface{}) bool {
 
 // Map maps keys to values. The zero value is the empty Map.
 type Map struct {
-	root nodeRoot
+	root tree
 }
 
 var _ Key = Map{}
 
-func newMap(root nodeRoot) Map {
+func newMap(root tree) Map {
 	return Map{root: root}
 }
 
