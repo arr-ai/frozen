@@ -4,6 +4,7 @@ import "sync"
 
 var unLeafPool = sync.Pool{
 	New: func() interface{} {
+		thePoolStats.New("unLeaf")
 		var buf [maxLeafLen]interface{}
 		return &unLeaf{buf: &buf}
 	},
@@ -28,6 +29,7 @@ func newUnLeaf() *unLeaf {
 	var l *unLeaf
 	if usePools {
 		l = unLeafPool.Get().(*unLeaf)
+		thePoolStats.Get("unLeaf")
 	} else {
 		l = unLeafPool.New().(*unLeaf)
 	}
@@ -48,6 +50,7 @@ func newUnLeaf0() *unLeaf {
 func (l *unLeaf) free() {
 	if usePools {
 		unLeafPool.Put(l)
+		thePoolStats.Put("unLeaf")
 	}
 }
 

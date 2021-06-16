@@ -2,10 +2,9 @@ package frozen
 
 import "sync"
 
-const usePools = true
-
 var unBranchPool = sync.Pool{
 	New: func() interface{} {
+		thePoolStats.New("unBranch")
 		return &unBranch{}
 	},
 }
@@ -29,12 +28,14 @@ func newUnBranch() *unBranch {
 		return unBranchPool.New().(*unBranch)
 	}
 	b := unBranchPool.Get().(*unBranch)
+	thePoolStats.Get("unBranch")
 	*b = unBranchPrototype
 	return b
 }
 
 func (b *unBranch) free() {
 	if usePools {
+		thePoolStats.Put("unBranch")
 		unBranchPool.Put(b)
 	}
 }
