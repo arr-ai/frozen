@@ -10,7 +10,7 @@ func (e unEmptyNode) Add(args *combineArgs, v interface{}, depth int, h hasher, 
 	return newUnLeaf().Add(args, v, depth, h, matches)
 }
 
-func (unEmptyNode) copyTo(n unNode) {}
+func (unEmptyNode) copyTo(*unLeaf) {}
 
 func (unEmptyNode) countUpTo(max int) int {
 	return 0

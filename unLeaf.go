@@ -57,8 +57,7 @@ func (l *unLeaf) Add(args *combineArgs, v interface{}, depth int, h hasher, matc
 	return b
 }
 
-func (l *unLeaf) copyTo(n unNode) {
-	to := n.(*unLeaf)
+func (l *unLeaf) copyTo(to *unLeaf) {
 	for _, e := range l.data {
 		to.Add(defaultNPCombineArgs, e, 0, 0, nil)
 	}

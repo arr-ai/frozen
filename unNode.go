@@ -7,6 +7,6 @@ type unNode interface {
 	Remove(args *eqArgs, v interface{}, depth int, h hasher, matches *int) unNode
 
 	// For internal use by unNode implementations.
-	copyTo(n unNode)
+	copyTo(n *unLeaf)
 	countUpTo(max int) int
 }

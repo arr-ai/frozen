@@ -49,7 +49,7 @@ func (b *unBranch) Add(args *combineArgs, v interface{}, depth int, h hasher, ma
 	return b
 }
 
-func (b *unBranch) copyTo(n unNode) {
+func (b *unBranch) copyTo(n *unLeaf) {
 	for _, e := range b.p {
 		if e != nil {
 			e.copyTo(n)
