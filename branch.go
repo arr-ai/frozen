@@ -22,11 +22,11 @@ func (b branch) Canonical(_ int) node {
 		return emptyNode{}
 	}
 	if n := b.CountUpTo(9); n < 9 {
-		result := make(leaf, 0, n)
+		l := make(leaf, 0, n)
 		for i := b.Iterator(make([]packed, 0, 8)); i.Next(); {
-			result = append(result, i.Value())
+			l = append(l, i.Value())
 		}
-		return result
+		return l
 	}
 	return b
 }
@@ -47,7 +47,7 @@ func (b branch) Combine(args *combineArgs, n node, depth int, matches *int) node
 				return x.Combine(args, y, depth+1, matches)
 			}).Canonical(depth)
 	default:
-		panic(wtf)
+		panic(WTF)
 	}
 }
 
@@ -78,7 +78,7 @@ func (b branch) Difference(args *eqArgs, n node, depth int, removed *int) node {
 				return a.Difference(args, b, depth+1, matches)
 			}).Canonical(depth)
 	default:
-		panic(wtf)
+		panic(WTF)
 	}
 }
 
@@ -108,21 +108,7 @@ func (b branch) Intersection(args *eqArgs, n node, depth int, matches *int) node
 				return a.Intersection(args, b, depth+1, matches)
 			}).Canonical(depth)
 	default:
-		panic(wtf)
-	}
-}
-
-func (b branch) SubsetOf(args *eqArgs, n node, depth int) bool {
-	switch n := n.(type) {
-	case emptyNode, leaf:
-		return false
-	case branch:
-		return b.allPair(n, b.p.mask, args.parallel(depth),
-			func(m masker, x, y node) bool {
-				return x.SubsetOf(args, y, depth+1)
-			})
-	default:
-		panic(wtf)
+		panic(WTF)
 	}
 }
 
@@ -142,6 +128,20 @@ func (b branch) Reduce(args nodeArgs, depth int, r func(values ...interface{}) i
 		acc = r(acc, results[m.index()])
 	}
 	return acc
+}
+
+func (b branch) SubsetOf(args *eqArgs, n node, depth int) bool {
+	switch n := n.(type) {
+	case emptyNode, leaf:
+		return false
+	case branch:
+		return b.allPair(n, b.p.mask, args.parallel(depth),
+			func(m masker, x, y node) bool {
+				return x.SubsetOf(args, y, depth+1)
+			})
+	default:
+		panic(WTF)
+	}
 }
 
 func (b branch) Transform(args *combineArgs, depth int, count *int, f func(v interface{}) interface{}) node {
@@ -176,13 +176,13 @@ func (b branch) Where(args *whereArgs, depth int, matches *int) node {
 
 func (b branch) With(args *combineArgs, v interface{}, depth int, h hasher, matches *int) node {
 	i := newMasker(h.hash())
-	return branch{p: b.p.With(i, b.p.Get(i).With(args, v, depth+1, h.next(), matches), false)}
+	return branch{p: b.p.With(i, b.p.Get(i).With(args, v, depth+1, h.next(), matches))}
 }
 
 func (b branch) Without(args *eqArgs, v interface{}, depth int, h hasher, matches *int) node {
 	i := newMasker(h.hash())
 	child := b.p.Get(i).Without(args, v, depth+1, h.next(), matches)
-	return branch{p: b.p.With(i, child, false)}.Canonical(depth)
+	return branch{p: b.p.With(i, child)}.Canonical(depth)
 }
 
 func (b branch) allPair(

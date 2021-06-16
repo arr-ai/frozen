@@ -17,7 +17,7 @@ func (l leaf) Canonical(depth int) node {
 		return l
 	default:
 		var matches int
-		return (branch{packed{}}).Combine(defaultNPCombineArgs, l, depth, &matches)
+		return (branch{}).Combine(defaultNPCombineArgs, l, depth, &matches)
 	}
 }
 
@@ -37,17 +37,17 @@ func (l leaf) Combine(args *combineArgs, n node, depth int, matches *int) node {
 			} else if len(l) < maxLeafLen {
 				l = append(l, e)
 			} else {
-				return (branch{packed{}}).Combine(args, l, depth, matches).Combine(args, n[i:], depth, matches)
+				return (branch{}).Combine(args, l, depth, matches).Combine(args, n[i:], depth, matches)
 			}
 		}
 		if len(l) > maxLeafLen {
-			panic(wtf)
+			panic(WTF)
 		}
 		return l.Canonical(depth)
 	case branch:
 		return n.Combine(args.flip, l, depth, matches)
 	default:
-		panic(wtf)
+		panic(WTF)
 	}
 }
 
@@ -100,6 +100,14 @@ func (l leaf) Intersection(args *eqArgs, n node, depth int, matches *int) node {
 	return result.Canonical(depth)
 }
 
+func (l leaf) Iterator([]packed) Iterator {
+	return newLeafIterator(l)
+}
+
+func (l leaf) Reduce(args nodeArgs, depth int, r func(values ...interface{}) interface{}) interface{} {
+	return r(l...)
+}
+
 func (l leaf) SubsetOf(args *eqArgs, n node, depth int) bool {
 	for _, e := range l {
 		if n.Get(args, e, 0) == nil {
@@ -109,22 +117,14 @@ func (l leaf) SubsetOf(args *eqArgs, n node, depth int) bool {
 	return true
 }
 
-func (l leaf) Iterator([]packed) Iterator {
-	return newLeafIterator(l)
-}
-
-func (l leaf) Reduce(args nodeArgs, depth int, r func(values ...interface{}) interface{}) interface{} {
-	return r(l...)
-}
-
 func (l leaf) Transform(args *combineArgs, depth int, counts *int, f func(v interface{}) interface{}) node {
 	var nb nodeBuilder
 	for _, e := range l {
 		nb.Add(args, f(e))
 	}
-	root := nb.Finish()
-	*counts = root.count
-	return root.n
+	t := nb.Finish()
+	*counts = t.count
+	return t.root
 }
 
 func (l leaf) Where(args *whereArgs, depth int, matches *int) node {

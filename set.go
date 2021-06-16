@@ -55,7 +55,7 @@ func (s Set) eqArgs() *eqArgs {
 
 // IsEmpty returns true iff the Set has no elements.
 func (s Set) IsEmpty() bool {
-	return s.Root.empty()
+	return s.Root.count == 0
 }
 
 // Count returns the number of elements in the Set.
@@ -65,7 +65,7 @@ func (s Set) Count() int {
 
 // Range returns an Iterator over the Set.
 func (s Set) Range() Iterator {
-	return s.Root.iterator()
+	return s.Root.Iterator()
 }
 
 func (s Set) Elements() []interface{} {
@@ -107,7 +107,7 @@ func (s Set) AnyN(n int) Set {
 func (s Set) OrderedFirstN(n int, less Less) []interface{} {
 	result := make([]interface{}, 0, n)
 	currentLength := 0
-	for i := s.Root.orderedIterator(less, n); i.Next() && currentLength < n; currentLength++ {
+	for i := s.Root.OrderedIterator(less, n); i.Next() && currentLength < n; currentLength++ {
 		result = append(result, i.Value())
 	}
 	return result
@@ -151,7 +151,7 @@ func (s Set) Format(state fmt.State, _ rune) {
 // OrderedRange returns a SetIterator for the Set that iterates over the elements in
 // a specified order.
 func (s Set) OrderedRange(less Less) Iterator {
-	return s.Root.orderedIterator(less, s.Count())
+	return s.Root.OrderedIterator(less, s.Count())
 }
 
 // Hash computes a hash value for s.
@@ -174,18 +174,18 @@ func (s Set) Equal(t interface{}) bool {
 // EqualSet returns true iff s and set have all the same elements.
 func (s Set) EqualSet(t Set) bool {
 	args := s.eqArgs()
-	return s.Root.equal(args, t.Root)
+	return s.Root.Equal(args, t.Root)
 }
 
 // IsSubsetOf returns true iff no element in s is not in t.
 func (s Set) IsSubsetOf(t Set) bool {
 	args := s.eqArgs()
-	return s.Root.isSubsetOf(args, t.Root)
+	return s.Root.SubsetOf(args, t.Root)
 }
 
 // Has returns the value associated with key and true iff the key was found.
 func (s Set) Has(val interface{}) bool {
-	return s.Root.get(defaultNPEqArgs, val) != nil
+	return s.Root.Get(defaultNPEqArgs, val) != nil
 }
 
 // With returns a new Set retaining all the elements of the Set as well as values.
@@ -205,13 +205,13 @@ func (s Set) Where(pred func(elem interface{}) bool) Set {
 		pred:     pred,
 	}
 	// root = root.postop(c.parallelDepth)
-	return Set{Root: s.Root.where(args)}
+	return Set{Root: s.Root.Where(args)}
 }
 
 // Map returns a Set with all the results of applying f to all elements in s.
 func (s Set) Map(f func(elem interface{}) interface{}) Set {
 	args := newCombineArgs(s.eqArgs(), useRHS)
-	return Set{Root: s.Root.transform(args, f)}
+	return Set{Root: s.Root.Transform(args, f)}
 }
 
 // Reduce returns the result of applying `reduce` to the elements of `s` or
@@ -227,7 +227,7 @@ func (s Set) Map(f func(elem interface{}) interface{}) Set {
 //
 // 'elems` will never be empty.
 func (s Set) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
-	return s.Root.reduce(s.nodeArgs(), reduce)
+	return s.Root.Reduce(s.nodeArgs(), reduce)
 }
 
 // Reduce2 is a convenience wrapper for `Reduce`, allowing the caller to
@@ -245,18 +245,18 @@ func (s Set) Reduce2(reduce func(a, b interface{}) interface{}) interface{} {
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set) Intersection(t Set) Set {
-	return Set{Root: s.Root.intersection(s.eqArgs(), t.Root)}
+	return Set{Root: s.Root.Intersection(s.eqArgs(), t.Root)}
 }
 
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
-	return Set{Root: s.Root.combine(newCombineArgs(s.eqArgs(), useRHS), t.Root)}
+	return Set{Root: s.Root.Combine(newCombineArgs(s.eqArgs(), useRHS), t.Root)}
 }
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set) Difference(t Set) Set {
 	args := s.eqArgs()
-	return Set{Root: s.Root.difference(args, t.Root)}
+	return Set{Root: s.Root.Difference(args, t.Root)}
 }
 
 // SymmetricDifference returns a Set with all elements that are s or t, but not
@@ -326,7 +326,8 @@ func (s Set) GroupBy(key func(el interface{}) interface{}) Map {
 		b.Add(v)
 	}
 	var result MapBuilder
-	for i := builders.Finish().Range(); i.Next(); {
+	fb := builders.Finish()
+	for i := fb.Range(); i.Next(); {
 		result.Put(i.Key(), i.Value().(*SetBuilder).Finish())
 	}
 	return result.Finish()

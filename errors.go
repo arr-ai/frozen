@@ -10,3 +10,14 @@ func errorsWrap(e interface{}, skip int) error { // nolint:unparam
 	}
 	return nil
 }
+
+type InternalError string
+
+func (e InternalError) Error() string {
+	return string(e)
+}
+
+const (
+	WTF           = InternalError("should never be called!")
+	Unimplemented = InternalError("not implemented")
+)

@@ -32,9 +32,9 @@ type node interface {
 	Equal(args *eqArgs, n node, depth int) bool
 	Get(args *eqArgs, v interface{}, h hasher) *interface{}
 	Intersection(args *eqArgs, n node, depth int, matches *int) node
-	SubsetOf(args *eqArgs, n node, depth int) bool
 	Iterator(buf []packed) Iterator
 	Reduce(args nodeArgs, depth int, r func(values ...interface{}) interface{}) interface{}
+	SubsetOf(args *eqArgs, n node, depth int) bool
 	Transform(args *combineArgs, depth int, count *int, f func(v interface{}) interface{}) node
 	Where(args *whereArgs, depth int, matches *int) node
 	With(args *combineArgs, v interface{}, depth int, h hasher, matches *int) node

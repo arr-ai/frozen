@@ -1,21 +1,8 @@
 package frozen
 
 type packed struct {
-	data []node
 	mask masker
-}
-
-func (p packed) new(flipper masker, prefix, delta int, unfrozen bool) packed {
-	if unfrozen {
-		p.mask = p.mask ^ flipper
-		p.data = p.data[:prefix]
-		return p
-	}
-	result := packed{}
-	result.mask = p.mask ^ flipper
-	result.data = make([]node, 0, len(p.data)+delta)
-	result.data = append(result.data, p.data[:prefix]...)
-	return result
+	data []node
 }
 
 func packedFromNodes(nodes *[fanout]node) packed {
@@ -38,13 +25,14 @@ func (p packed) Get(i masker) node {
 	return emptyNode{}
 }
 
-func (p packed) With(i masker, n node, unfrozen bool) packed {
+func (p packed) With(i masker, n node) packed {
 	i = i.first()
 	index := p.mask.offset(i)
 	existing := i.subsetOf(p.mask)
+	_, empty := n.(emptyNode)
 	if existing {
-		if _, is := n.(emptyNode); is {
-			result := p.new(i, index, -1, unfrozen)
+		if empty {
+			result := p.update(i, index, -1)
 			switch index {
 			case 0:
 				result.data = p.data[1:]
@@ -54,21 +42,17 @@ func (p packed) With(i masker, n node, unfrozen bool) packed {
 			}
 			return result
 		}
-		result := p.new(0, len(p.data), 0, unfrozen)
+		result := p.update(0, len(p.data), 0)
 		result.data[index] = n
 		return result
-	} else {
-		if _, is := n.(emptyNode); is {
-			return p
-		}
-		if index == len(p.data) {
-			return packed{mask: p.mask ^ i, data: append(p.data, n)}
-		}
-		result := p.new(i, index, 1, unfrozen)
+	}
+	if !empty {
+		result := p.update(i, index, 1)
 		result.data = append(result.data, n)
 		result.data = append(result.data, p.data[index:]...)
 		return result
 	}
+	return p
 }
 
 func (p packed) Iterator(buf []packed) Iterator {
@@ -125,4 +109,12 @@ func (p packed) TransformPair(q packed, mask masker, parallel bool, f func(m mas
 		return true
 	})
 	return packedFromNodes(&nodes)
+}
+
+func (p packed) update(flipper masker, prefix, delta int) packed {
+	result := packed{}
+	result.mask = p.mask ^ flipper
+	result.data = make([]node, 0, len(p.data)+delta)
+	result.data = append(result.data, p.data[:prefix]...)
+	return result
 }

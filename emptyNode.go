@@ -34,16 +34,16 @@ func (e emptyNode) Intersection(_ *eqArgs, _ node, _ int, _ *int) node {
 	return e
 }
 
-func (emptyNode) SubsetOf(_ *eqArgs, _ node, _ int) bool {
-	return true
-}
-
 func (emptyNode) Iterator([]packed) Iterator {
 	return emptyIterator{}
 }
 
 func (emptyNode) Reduce(_ nodeArgs, _ int, _ func(...interface{}) interface{}) interface{} {
-	panic(wtf)
+	panic(WTF)
+}
+
+func (emptyNode) SubsetOf(_ *eqArgs, _ node, _ int) bool {
+	return true
 }
 
 func (e emptyNode) Transform(_ *combineArgs, _ int, _ *int, _ func(interface{}) interface{}) node {
@@ -69,5 +69,5 @@ func (emptyIterator) Next() bool {
 }
 
 func (emptyIterator) Value() interface{} {
-	panic(wtf)
+	panic(WTF)
 }

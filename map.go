@@ -78,7 +78,7 @@ func NewMapFromGoMap(m map[interface{}]interface{}) Map {
 
 // IsEmpty returns true if the Map has no entries.
 func (m Map) IsEmpty() bool {
-	return m.root.empty()
+	return m.root.count == 0
 }
 
 // Count returns the number of entries in the Map.
@@ -98,20 +98,20 @@ func (m Map) Any() (key, value interface{}) {
 // retained from m.
 func (m Map) With(key, val interface{}) Map {
 	kv := KV(key, val)
-	return newMap(m.root.with(defaultNPKeyCombineArgs, kv))
+	return newMap(m.root.With(defaultNPKeyCombineArgs, kv))
 }
 
 // Without returns a new Map with all keys retained from m except the elements
 // of keys.
 func (m Map) Without(keys Set) Map {
 	args := newEqArgs(
-		m.root.gauge(),
+		m.root.Gauge(),
 		func(a, b interface{}) bool {
 			return Equal(a.(KeyValue).Key, b)
 		},
 		keyHash,
 		hash.Interface)
-	return newMap(m.root.difference(args, keys.Root))
+	return newMap(m.root.Difference(args, keys.Root))
 }
 
 // Without2 shoves keys into a Set and calls m.Without.
@@ -125,12 +125,12 @@ func (m Map) Without2(keys ...interface{}) Map {
 
 // Has returns true iff the key exists in the map.
 func (m Map) Has(key interface{}) bool {
-	return m.root.get(defaultNPKeyEqArgs, KV(key, nil)) != nil
+	return m.root.Get(defaultNPKeyEqArgs, KV(key, nil)) != nil
 }
 
 // Get returns the value associated with key in m and true iff the key is found.
 func (m Map) Get(key interface{}) (interface{}, bool) {
-	if kv := m.root.get(defaultNPKeyEqArgs, KV(key, nil)); kv != nil {
+	if kv := m.root.Get(defaultNPKeyEqArgs, KV(key, nil)); kv != nil {
 		return (*kv).(KeyValue).Value, true
 	}
 	return nil, false
@@ -238,7 +238,7 @@ func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
 		return KV(i.Key, resolve(i.Key, i.Value, j.Value))
 	}
 	args := newCombineArgs(m.eqArgs(), extractAndResolve)
-	return newMap(m.root.combine(args, n.root))
+	return newMap(m.root.Combine(args, n.root))
 }
 
 // Update returns a Map with key-value pairs from n added or replacing existing
@@ -249,7 +249,7 @@ func (m Map) Update(n Map) Map {
 		m, n = n, m
 		f = useLHS
 	}
-	return newMap(m.root.combine(newCombineArgs(m.eqArgs(), f), n.root))
+	return newMap(m.root.Combine(newCombineArgs(m.eqArgs(), f), n.root))
 }
 
 // Hash computes a hash val for s.
@@ -271,7 +271,7 @@ func (m Map) Equal(i interface{}) bool {
 			hash.Interface,
 			hash.Interface,
 		)
-		return m.root.equal(args, n.root)
+		return m.root.Equal(args, n.root)
 	}
 	return false
 }
@@ -295,7 +295,7 @@ func (m Map) Format(state fmt.State, _ rune) {
 
 // Range returns a MapIterator over the Map.
 func (m Map) Range() *MapIterator {
-	return &MapIterator{i: m.root.iterator()}
+	return &MapIterator{i: m.root.Iterator()}
 }
 
 // MapIterator provides for iterating over a Map.

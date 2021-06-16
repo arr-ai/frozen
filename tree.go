@@ -6,80 +6,76 @@ import (
 )
 
 type tree struct {
-	n     node
+	root  node
 	count int
 }
 
 func newTree(n node, count *int) tree {
-	return tree{n: n, count: *count}
+	return tree{root: n, count: *count}
 }
 
 func newTreeNeg(n node, count *int) tree {
-	return tree{n: n, count: -*count}
+	return tree{root: n, count: -*count}
 }
 
-func (x tree) empty() bool {
-	return x.count == 0
-}
-
-func (x tree) x() node {
-	if x.empty() {
+func (t tree) Root() node {
+	if t.count == 0 {
 		return emptyNode{}
 	}
-	return x.n
+	return t.root
 }
 
-func (x tree) gauge() parallelDepthGauge {
-	return newParallelDepthGauge(x.count)
+func (t tree) Gauge() parallelDepthGauge {
+	return newParallelDepthGauge(t.count)
 }
 
-func (x tree) String() string {
-	return x.x().String()
+func (t tree) String() string {
+	return t.Root().String()
 }
 
-func (x tree) combine(args *combineArgs, y tree) tree {
-	count := -(x.count + y.count)
-	return newTreeNeg(x.x().Combine(args, y.x(), 0, &count), &count)
+func (t tree) Combine(args *combineArgs, y tree) tree {
+	count := -(t.count + y.count)
+	return newTreeNeg(t.Root().Combine(args, y.Root(), 0, &count), &count)
 }
 
-func (x tree) difference(args *eqArgs, y tree) tree {
-	count := -x.count
-	a := x.x()
-	b := y.x()
+func (t tree) Difference(args *eqArgs, y tree) tree {
+	count := -t.count
+	a := t.Root()
+	b := y.Root()
 	return newTreeNeg(a.Difference(args, b, 0, &count), &count)
 }
 
-func (x tree) equal(args *eqArgs, n tree) bool {
-	return x.x().Equal(args, n.x(), 0)
+func (t tree) Equal(args *eqArgs, n tree) bool {
+	return t.Root().Equal(args, n.Root(), 0)
 }
 
-func (x tree) get(args *eqArgs, v interface{}) *interface{} {
-	return x.x().Get(args, v, newHasher(v, 0))
+func (t tree) Get(args *eqArgs, v interface{}) *interface{} {
+	return t.Root().Get(args, v, newHasher(v, 0))
 }
 
-func (x tree) isSubsetOf(args *eqArgs, y tree) bool {
-	return x.x().SubsetOf(args, y.x(), 0)
+func (t tree) SubsetOf(args *eqArgs, y tree) bool {
+	return t.Root().SubsetOf(args, y.Root(), 0)
 }
 
-func (x tree) intersection(args *eqArgs, y tree) tree {
-	if x.count > y.count {
-		x, y = y, x
+func (t tree) Intersection(args *eqArgs, u tree) tree {
+	if t.count > u.count {
+		t, u = u, t
 		args = args.flip
 	}
 	count := 0
-	return newTree(x.x().Intersection(args, y.x(), 0, &count), &count)
+	return newTree(t.Root().Intersection(args, u.Root(), 0, &count), &count)
 }
 
-func (x tree) iterator() Iterator {
-	return x.x().Iterator(packedIteratorBuf(x.count))
+func (t tree) Iterator() Iterator {
+	return t.Root().Iterator(packedIteratorBuf(t.count))
 }
 
-func (x tree) orderedIterator(less Less, n int) Iterator {
+func (t tree) OrderedIterator(less Less, n int) Iterator {
 	if n == -1 {
-		n = x.count
+		n = t.count
 	}
 	o := &ordered{less: less, elements: make([]interface{}, 0, n)}
-	for i := x.x().Iterator(packedIteratorBuf(x.count)); i.Next(); {
+	for i := t.Root().Iterator(packedIteratorBuf(t.count)); i.Next(); {
 		heap.Push(o, i.Value())
 		if o.Len() > n {
 			heap.Pop(o)
@@ -90,28 +86,28 @@ func (x tree) orderedIterator(less Less, n int) Iterator {
 	return r.(Iterator)
 }
 
-func (x tree) transform(args *combineArgs, f func(v interface{}) interface{}) tree {
+func (t tree) Transform(args *combineArgs, f func(v interface{}) interface{}) tree {
 	count := 0
-	return newTree(x.x().Transform(args, 0, &count, f), &count)
+	return newTree(t.Root().Transform(args, 0, &count, f), &count)
 }
 
-func (x tree) reduce(args nodeArgs, r func(values ...interface{}) interface{}) interface{} {
-	return x.x().Reduce(args, 0, r)
+func (t tree) Reduce(args nodeArgs, r func(values ...interface{}) interface{}) interface{} {
+	return t.Root().Reduce(args, 0, r)
 }
 
-func (x tree) where(args *whereArgs) tree {
+func (t tree) Where(args *whereArgs) tree {
 	count := 0
-	return newTree(x.x().Where(args, 0, &count), &count)
+	return newTree(t.Root().Where(args, 0, &count), &count)
 }
 
-func (x tree) with(args *combineArgs, v interface{}) tree {
-	count := -(x.count + 1)
-	return newTreeNeg(x.x().With(args, v, 0, newHasher(v, 0), &count), &count)
+func (t tree) With(args *combineArgs, v interface{}) tree {
+	count := -(t.count + 1)
+	return newTreeNeg(t.Root().With(args, v, 0, newHasher(v, 0), &count), &count)
 }
 
-// func (x nodeRoot) without(args *eqArgs, v interface{}) nodeRoot {
-// 	count := -x.count
-// 	return newTreeNeg(x.x().without(args, v, 0, newHasher(v, 0), &count), &count)
+// func (t tree) without(args *eqArgs, v interface{}) nodeRoot {
+// 	count := -t.count
+// 	return newTreeNeg(t.x().without(args, v, 0, newHasher(v, 0), &count), &count)
 // }
 
 func packedIteratorBuf(count int) []packed {

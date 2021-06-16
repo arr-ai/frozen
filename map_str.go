@@ -96,7 +96,7 @@ func NewStringMapFromGoMap(m map[string]interface{}) StringMap {
 
 // IsEmpty returns true if the StringMap has no entries.
 func (m StringMap) IsEmpty() bool {
-	return m.root.empty()
+	return m.root.count == 0
 }
 
 // Count returns the number of entries in the StringMap.
@@ -116,20 +116,20 @@ func (m StringMap) Any() (key string, value interface{}) {
 // retained from m.
 func (m StringMap) With(key string, val interface{}) StringMap {
 	kv := StringKV(key, val)
-	return newStringMap(m.root.with(defaultNPStringKeyCombineArgs, kv))
+	return newStringMap(m.root.With(defaultNPStringKeyCombineArgs, kv))
 }
 
 // Without returns a new StringMap with all keys retained from m except the elements
 // of keys.
 func (m StringMap) Without(keys Set) StringMap {
 	args := newEqArgs(
-		m.root.gauge(),
+		m.root.Gauge(),
 		func(a, b interface{}) bool {
 			return Equal(a.(StringKeyValue).Key, b)
 		},
 		stringKeyHash,
 		hash.Interface)
-	return newStringMap(m.root.difference(args, keys.Root))
+	return newStringMap(m.root.Difference(args, keys.Root))
 }
 
 // Without2 shoves keys into a Set and calls m.Without.
@@ -143,12 +143,12 @@ func (m StringMap) Without2(keys ...string) StringMap {
 
 // Has returns true iff the key exists in the map.
 func (m StringMap) Has(key string) bool {
-	return m.root.get(defaultNPStringKeyEqArgs, StringKV(key, nil)) != nil
+	return m.root.Get(defaultNPStringKeyEqArgs, StringKV(key, nil)) != nil
 }
 
 // Get returns the value associated with key in m and true iff the key is found.
 func (m StringMap) Get(key string) (interface{}, bool) {
-	if kv := m.root.get(defaultNPStringKeyEqArgs, StringKV(key, nil)); kv != nil {
+	if kv := m.root.Get(defaultNPStringKeyEqArgs, StringKV(key, nil)); kv != nil {
 		return (*kv).(StringKeyValue).Value, true
 	}
 	return nil, false
@@ -256,7 +256,7 @@ func (m StringMap) Merge(n StringMap, resolve func(key string, a, b interface{})
 		return StringKV(i.Key, resolve(i.Key, i.Value, j.Value))
 	}
 	args := newCombineArgs(m.eqArgs(), extractAndResolve)
-	return newStringMap(m.root.combine(args, n.root))
+	return newStringMap(m.root.Combine(args, n.root))
 }
 
 // Update returns a StringMap with key-value pairs from n added or replacing existing
@@ -267,7 +267,7 @@ func (m StringMap) Update(n StringMap) StringMap {
 		m, n = n, m
 		f = useLHS
 	}
-	return newStringMap(m.root.combine(newCombineArgs(m.eqArgs(), f), n.root))
+	return newStringMap(m.root.Combine(newCombineArgs(m.eqArgs(), f), n.root))
 }
 
 // Hash computes a hash val for s.
@@ -289,7 +289,7 @@ func (m StringMap) Equal(i interface{}) bool {
 			hash.Interface,
 			hash.Interface,
 		)
-		return m.root.equal(args, n.root)
+		return m.root.Equal(args, n.root)
 	}
 	return false
 }
@@ -313,7 +313,7 @@ func (m StringMap) Format(state fmt.State, _ rune) {
 
 // Range returns a StringMapIterator over the StringMap.
 func (m StringMap) Range() *StringMapIterator {
-	return &StringMapIterator{i: m.root.iterator()}
+	return &StringMapIterator{i: m.root.Iterator()}
 }
 
 // StringMapIterator provides for iterating over a StringMap.
