@@ -21,8 +21,6 @@ type poolStats struct {
 var thePoolStats = newPoolStats()
 
 func newPoolStats() *poolStats {
-	log.Printf("Initialising pool logging")
-
 	s := &poolStats{}
 
 	s.d = map[string]*poolStat{}
