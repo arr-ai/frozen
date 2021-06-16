@@ -17,7 +17,7 @@ func (l leaf) Canonical(depth int) node {
 		return l
 	default:
 		var matches int
-		return (branch{}).Combine(defaultNPCombineArgs, l, depth, &matches)
+		return (branch{packed{}}).Combine(defaultNPCombineArgs, l, depth, &matches)
 	}
 }
 
@@ -37,7 +37,7 @@ func (l leaf) Combine(args *combineArgs, n node, depth int, matches *int) node {
 			} else if len(l) < maxLeafLen {
 				l = append(l, e)
 			} else {
-				return (branch{}).Combine(args, l, depth, matches).Combine(args, n[i:], depth, matches)
+				return (branch{packed{}}).Combine(args, l, depth, matches).Combine(args, n[i:], depth, matches)
 			}
 		}
 		if len(l) > maxLeafLen {

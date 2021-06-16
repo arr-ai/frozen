@@ -11,6 +11,7 @@ import (
 const (
 	hashBits       = 8 * int(unsafe.Sizeof(uintptr(0)))
 	hashBitsOffset = hashBits - fanoutBits
+	maxTreeDepth   = 1 + (hashBits-1)/fanoutBits
 )
 
 type hasher uintptr

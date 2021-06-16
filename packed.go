@@ -1,19 +1,25 @@
 package frozen
 
 type packed struct {
-	mask masker
 	data []node
+	mask masker
 }
 
-func (p packed) new(flipper masker, delta int) packed {
-	var result packed
+func (p packed) new(flipper masker, prefix, delta int, unfrozen bool) packed {
+	if unfrozen {
+		p.mask = p.mask ^ flipper
+		p.data = p.data[:prefix]
+		return p
+	}
+	result := packed{}
 	result.mask = p.mask ^ flipper
 	result.data = make([]node, 0, len(p.data)+delta)
+	result.data = append(result.data, p.data[:prefix]...)
 	return result
 }
 
-func fromNodes(nodes *[fanout]node) packed {
-	var p packed
+func packedFromNodes(nodes *[fanout]node) packed {
+	p := packed{}
 	for i, n := range nodes {
 		switch n := n.(type) {
 		case nil, emptyNode:
@@ -25,46 +31,30 @@ func fromNodes(nodes *[fanout]node) packed {
 	return p
 }
 
-// func (p packed) toNodes() *[fanout]node {
-// 	var result [fanout]node
-// 	for m := masker(1)<<fanout - 1; m != 0; m = m.next() {
-// 		result[m.index()] = p.get(m)
-// 	}
-// 	return &result
-// }
-
-// func (p packed) empty() bool {
-// 	return p.mask == 0
-// }
-
-// func (p packed) count() int {
-// 	return p.mask.count()
-// }
-
-func (p packed) get(i masker) node {
+func (p packed) Get(i masker) node {
 	if i.firstIsIn(p.mask) {
 		return p.data[p.mask.offset(i)]
 	}
 	return emptyNode{}
 }
 
-func (p packed) with(i masker, n node) packed {
+func (p packed) With(i masker, n node, unfrozen bool) packed {
 	i = i.first()
 	index := p.mask.offset(i)
-	if existing := i.subsetOf(p.mask); existing {
+	existing := i.subsetOf(p.mask)
+	if existing {
 		if _, is := n.(emptyNode); is {
-			mask := p.mask ^ i
+			result := p.new(i, index, -1, unfrozen)
 			switch index {
 			case 0:
-				return packed{mask: mask, data: p.data[1:]}
+				result.data = p.data[1:]
 			case len(p.data) - 1:
-				return packed{mask: mask, data: p.data[:index:index]}
 			default:
-				return packed{mask: mask, data: append(p.data[:index:index], p.data[index+1:]...)}
+				result.data = append(result.data, p.data[index+1:]...)
 			}
+			return result
 		}
-		result := p.new(0, 0)
-		result.data = append(result.data, p.data...)
+		result := p.new(0, len(p.data), 0, unfrozen)
 		result.data[index] = n
 		return result
 	} else {
@@ -72,37 +62,36 @@ func (p packed) with(i masker, n node) packed {
 			return p
 		}
 		if index == len(p.data) {
-			return packed{p.mask ^ i, append(p.data, n)}
+			return packed{mask: p.mask ^ i, data: append(p.data, n)}
 		}
-		result := p.new(i, 1)
-		result.data = append(result.data, p.data[:index]...)
+		result := p.new(i, index, 1, unfrozen)
 		result.data = append(result.data, n)
 		result.data = append(result.data, p.data[index:]...)
 		return result
 	}
 }
 
-func (p packed) iterator(buf []packed) Iterator {
+func (p packed) Iterator(buf []packed) Iterator {
 	return newPackedIterator(buf, p)
 }
 
-func (p packed) all(parallel bool, f func(m masker, n node) bool) bool {
-	return p.allMask(p.mask, parallel, f)
+func (p packed) All(parallel bool, f func(m masker, n node) bool) bool {
+	return p.AllMask(p.mask, parallel, f)
 }
 
-func (p packed) allPair(q packed, mask masker, parallel bool, f func(m masker, a, b node) bool) bool {
-	return p.allMask(mask, parallel, func(m masker, n node) bool {
-		return f(m, n, q.get(m))
+func (p packed) AllPair(q packed, mask masker, parallel bool, f func(m masker, a, b node) bool) bool {
+	return p.AllMask(mask, parallel, func(m masker, n node) bool {
+		return f(m, n, q.Get(m))
 	})
 }
 
-func (p packed) allMask(mask masker, parallel bool, f func(m masker, n node) bool) bool {
+func (p packed) AllMask(mask masker, parallel bool, f func(m masker, n node) bool) bool {
 	if parallel {
 		dones := make(chan bool, fanout)
 		for m := mask; m != 0; m = m.next() {
 			m := m
 			go func() {
-				dones <- f(m, p.get(m))
+				dones <- f(m, p.Get(m))
 			}()
 		}
 		for m := mask; m != 0; m = m.next() {
@@ -112,7 +101,7 @@ func (p packed) allMask(mask masker, parallel bool, f func(m masker, n node) boo
 		}
 	} else {
 		for m := mask; m != 0; m = m.next() {
-			if !f(m, p.get(m)) {
+			if !f(m, p.Get(m)) {
 				return false
 			}
 		}
@@ -120,20 +109,20 @@ func (p packed) allMask(mask masker, parallel bool, f func(m masker, n node) boo
 	return true
 }
 
-func (p packed) transform(parallel bool, f func(m masker, n node) node) packed {
+func (p packed) Transform(parallel bool, f func(m masker, n node) node) packed {
 	var nodes [fanout]node
-	p.all(parallel, func(m masker, n node) bool {
+	p.All(parallel, func(m masker, n node) bool {
 		nodes[m.index()] = f(m, n)
 		return true
 	})
-	return fromNodes(&nodes)
+	return packedFromNodes(&nodes)
 }
 
-func (p packed) transformPair(q packed, mask masker, parallel bool, f func(m masker, x, y node) node) packed {
+func (p packed) TransformPair(q packed, mask masker, parallel bool, f func(m masker, x, y node) node) packed {
 	var nodes [fanout]node
-	p.allPair(q, mask, parallel, func(m masker, a, b node) bool {
+	p.AllPair(q, mask, parallel, func(m masker, a, b node) bool {
 		nodes[m.index()] = f(m, a, b)
 		return true
 	})
-	return fromNodes(&nodes)
+	return packedFromNodes(&nodes)
 }
