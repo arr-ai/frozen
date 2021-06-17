@@ -37,15 +37,15 @@ func (t tree) Builder() *nodeBuilder {
 	return &nodeBuilder{t: unTree{root: unDefroster{n: t.root}}}
 }
 
-func (t tree) Combine(args *combineArgs, y tree) tree {
-	count := -(t.count + y.count)
-	return newTreeNeg(t.Root().Combine(args, y.Root(), 0, &count), &count)
+func (t tree) Combine(args *combineArgs, u tree) tree {
+	count := -(t.count + u.count)
+	return newTreeNeg(t.Root().Combine(args, u.Root(), 0, &count), &count)
 }
 
-func (t tree) Difference(args *eqArgs, y tree) tree {
+func (t tree) Difference(args *eqArgs, u tree) tree {
 	count := -t.count
 	a := t.Root()
-	b := y.Root()
+	b := u.Root()
 	return newTreeNeg(a.Difference(args, b, 0, &count), &count)
 }
 
@@ -57,8 +57,8 @@ func (t tree) Get(args *eqArgs, v interface{}) *interface{} {
 	return t.Root().Get(args, v, newHasher(v, 0))
 }
 
-func (t tree) SubsetOf(args *eqArgs, y tree) bool {
-	return t.Root().SubsetOf(args, y.Root(), 0)
+func (t tree) SubsetOf(args *eqArgs, u tree) bool {
+	return t.Root().SubsetOf(args, u.Root(), 0)
 }
 
 func (t tree) Intersection(args *eqArgs, u tree) tree {
