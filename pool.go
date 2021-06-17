@@ -22,19 +22,29 @@ var thePoolStats = newPoolStats()
 
 func newPoolStats() *poolStats {
 	s := &poolStats{}
-
 	s.d = map[string]*poolStat{}
-	s.die = make(chan struct{})
 
 	usePools = os.Getenv("FROZEN_NO_POOLS") != "1"
 	logInterval := os.Getenv("FROZEN_POOL_LOG_INTERVAL")
 	if poolLogInterval, err := time.ParseDuration(logInterval); err == nil {
 		log.Printf("Logging pool stats every %v", poolLogInterval)
+	}
+	return s
+}
+
+func (s *poolStats) Running() bool {
+	return s.die != nil
+}
+
+func (s *poolStats) Start(poolLogInterval time.Duration) {
+	if s.die == nil {
+		s.die = make(chan struct{})
+		die := s.die
 		go func() {
 			ticker := time.NewTicker(poolLogInterval)
 			for {
 				select {
-				case _, ok := <-s.die:
+				case _, ok := <-die:
 					if !ok {
 						return
 					}
@@ -44,23 +54,29 @@ func newPoolStats() *poolStats {
 			}
 		}()
 	}
-	return s
 }
 
-func (s *poolStats) Close() {
+func (s *poolStats) Stop() {
 	close(s.die)
+	s.die = nil
 }
 
 func (s *poolStats) Get(name string) {
-	atomic.AddUint64(&s.stat(name).gets, 1)
+	if s.Running() {
+		atomic.AddUint64(&s.stat(name).gets, 1)
+	}
 }
 
 func (s *poolStats) New(name string) {
-	atomic.AddUint64(&s.stat(name).news, 1)
+	if s.Running() {
+		atomic.AddUint64(&s.stat(name).news, 1)
+	}
 }
 
 func (s *poolStats) Put(name string) {
-	atomic.AddUint64(&s.stat(name).puts, 1)
+	if s.Running() {
+		atomic.AddUint64(&s.stat(name).puts, 1)
+	}
 }
 
 func (s *poolStats) Report() {
