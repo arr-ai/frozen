@@ -28,6 +28,7 @@ func newPoolStats() *poolStats {
 	logInterval := os.Getenv("FROZEN_POOL_LOG_INTERVAL")
 	if poolLogInterval, err := time.ParseDuration(logInterval); err == nil {
 		log.Printf("Logging pool stats every %v", poolLogInterval)
+		s.Start(poolLogInterval)
 	}
 	return s
 }
