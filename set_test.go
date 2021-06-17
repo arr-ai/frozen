@@ -1,6 +1,7 @@
 package frozen_test
 
 import (
+	"math/bits"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -90,7 +91,10 @@ func TestNewSet(t *testing.T) {
 	}
 
 	for i := N - 1; i >= 0; i-- {
-		assertSameElements(t, arr[i:], NewSet(arr[i:]...).Elements())
+		expected := arr[i:]
+		actual := NewSet(arr[i:]...)
+		require.Equal(t, len(expected), actual.Count())
+		assertSameElements(t, expected, actual.Elements())
 	}
 }
 
@@ -474,8 +478,10 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 		for _, y := range sets {
 			sx := NewSetFromMask64(x)
 			sy := NewSetFromMask64(y)
-			sxy := NewSetFromMask64(bitop(x, y))
+			bxy := bitop(x, y)
+			sxy := NewSetFromMask64(bxy)
 			sxsy := setop(sx, sy)
+			require.Equal(t, bits.OnesCount64(bxy), sxsy.Count())
 			if !assertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
 				setop(sx, sy)
 				break

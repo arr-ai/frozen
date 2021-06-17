@@ -34,6 +34,7 @@ func (l leaf) Combine(args *combineArgs, n node, depth int, matches *int) node {
 					cloned = true
 				}
 				l[j] = args.f(l[j], e)
+				*matches++
 			} else if len(l) < maxLeafLen {
 				l = append(l, e)
 			} else {
