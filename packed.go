@@ -28,9 +28,9 @@ func (p packed) Get(i masker) node {
 func (p packed) With(i masker, n node) packed {
 	i = i.first()
 	index := p.mask.offset(i)
-	existing := i.subsetOf(p.mask)
+
 	_, empty := n.(emptyNode)
-	if existing {
+	if existing := i.subsetOf(p.mask); existing {
 		if empty {
 			result := p.update(i, index, -1)
 			switch index {

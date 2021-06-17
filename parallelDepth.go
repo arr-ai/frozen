@@ -10,17 +10,17 @@ import (
 var (
 	maxConcurrency = func() int {
 		frozenConcurrency := os.Getenv("FROZEN_CONCURRENCY")
-		var maxConcurrency int
+		var ret int
 		var err error
 		if strings.ToLower(frozenConcurrency) == "off" {
-			maxConcurrency = 1<<(bits.UintSize-1) - 1
+			ret = 1<<(bits.UintSize-1) - 1
 		} else {
-			maxConcurrency, err = strconv.Atoi(frozenConcurrency)
+			ret, err = strconv.Atoi(frozenConcurrency)
 			if err != nil {
-				maxConcurrency = 15
+				ret = 15
 			}
 		}
-		return maxConcurrency
+		return ret
 	}()
 
 	nonParallel parallelDepthGauge = -1

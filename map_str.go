@@ -1,4 +1,3 @@
-//nolint:dupl
 package frozen
 
 import (
@@ -228,9 +227,11 @@ func (m StringMap) StringMap(f func(key string, val interface{}) interface{}) St
 	return b.Finish()
 }
 
+type StringMapReduceFunc func(acc interface{}, key string, val interface{}) interface{}
+
 // Reduce returns the result of applying f to each key-value pair on the StringMap.
 // The result of each call is used as the acc argument for the next element.
-func (m StringMap) Reduce(f func(acc interface{}, key string, val interface{}) interface{}, acc interface{}) interface{} {
+func (m StringMap) Reduce(f StringMapReduceFunc, acc interface{}) interface{} {
 	for i := m.Range(); i.Next(); {
 		acc = f(acc, i.Key(), i.Value())
 	}

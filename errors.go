@@ -18,6 +18,10 @@ func (e InternalError) Error() string {
 }
 
 const (
-	WTF           = InternalError("should never be called!")
+	// WTF is panicked from code that should never be reached.
+	WTF = InternalError("should never be called!")
+
+	// Unimplemented is panicked from functions that aren't implemented yet.
+	// They shouldn't happened outside frozen development.
 	Unimplemented = InternalError("not implemented")
 )

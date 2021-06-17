@@ -77,7 +77,7 @@ type eqArgs struct {
 
 	eq func(a, b interface{}) bool
 	// TODO
-	lhash, rhash func(a interface{}, seed uintptr) uintptr
+	lhash, rhash func(a interface{}, seed uintptr) uintptr //nolint:structcheck
 
 	flip *eqArgs
 }

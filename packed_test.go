@@ -7,6 +7,8 @@ import (
 )
 
 func TestPackedWith(t *testing.T) {
+	t.Parallel()
+
 	p := packed{}
 	for i := 0; i < maxLeafLen; i++ {
 		assertEqualPacked(t, p, p.With(newMasker(i), emptyNode{}), i)
@@ -18,6 +20,8 @@ func TestPackedWith(t *testing.T) {
 }
 
 func TestPackedWithMulti(t *testing.T) {
+	t.Parallel()
+
 	p := packed{}.
 		With(newMasker(1), leaf{1, 2}).
 		With(newMasker(3), leaf{10, 20}).
@@ -30,6 +34,7 @@ func TestPackedWithMulti(t *testing.T) {
 	assertEqualPacked(t, p, q)
 }
 
+//nolint:unparam
 func assertEqualPacked(t *testing.T, expected, actual packed, msgAndArgs ...interface{}) bool {
 	t.Helper()
 
