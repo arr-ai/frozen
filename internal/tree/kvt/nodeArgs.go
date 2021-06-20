@@ -6,7 +6,11 @@ import (
 )
 
 var (
-	DefaultNPEqArgs      = NewDefaultEqArgs(depth.NonParallel)
+	// DefaultNPEqArgs provides default equality with non-parallel behaviour.
+	DefaultNPEqArgs = NewDefaultEqArgs(depth.NonParallel)
+
+	// DefaultNPCombineArgs provides default combiner with non-parallel
+	// behaviour.
 	DefaultNPCombineArgs = NewCombineArgs(DefaultNPEqArgs, UseRHS)
 )
 

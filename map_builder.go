@@ -1,8 +1,6 @@
 package frozen
 
 import (
-	"github.com/arr-ai/hash"
-
 	"github.com/arr-ai/frozen/internal/depth"
 	"github.com/arr-ai/frozen/internal/tree/kvt"
 )
@@ -10,15 +8,7 @@ import (
 var (
 	defaultNPKeyEqArgs      = newDefaultKeyEqArgs(depth.NonParallel)
 	defaultNPKeyCombineArgs = kvt.NewCombineArgs(defaultNPKeyEqArgs, kvt.UseRHS)
-
-	keyHash = keyHasher(hash.Interface)
 )
-
-func keyHasher(hash func(v interface{}, seed uintptr) uintptr) func(v interface{}, seed uintptr) uintptr {
-	return func(v interface{}, seed uintptr) uintptr {
-		return hash(v.(KeyValue).Key, seed)
-	}
-}
 
 func newDefaultKeyEqArgs(gauge depth.Gauge) *kvt.EqArgs {
 	return kvt.NewEqArgs(gauge, kvt.KeyEqual, kvt.KeyHash, kvt.KeyHash)

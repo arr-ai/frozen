@@ -5,9 +5,10 @@ import (
 	"strings"
 	"unsafe"
 
+	"github.com/arr-ai/hash"
+
 	"github.com/arr-ai/frozen/internal/fmtutil"
 	"github.com/arr-ai/frozen/pkg/kv"
-	"github.com/arr-ai/hash"
 )
 
 const (

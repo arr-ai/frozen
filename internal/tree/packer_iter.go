@@ -92,7 +92,7 @@ func (r *reverseOrdered) Next() bool {
 	if r.Len() == 0 {
 		return false
 	}
-	r.val = heap.Pop(r) // SUBST %: $ => .(%)
+	r.val = heap.Pop(r) // SUBST %: \(r\) => (r).(%)
 	return true
 }
 

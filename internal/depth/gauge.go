@@ -23,6 +23,7 @@ var (
 		return ret
 	}()
 
+	// NonParallel is a Gauge that never triggers parallel behaviour.
 	NonParallel Gauge = -1
 )
 

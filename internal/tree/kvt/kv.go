@@ -3,11 +3,11 @@ package kvt
 import (
 	"github.com/arr-ai/hash"
 
-	"github.com/arr-ai/frozen/internal/depth"
 	"github.com/arr-ai/frozen/internal/value"
 	"github.com/arr-ai/frozen/pkg/kv"
 )
 
+// KeyHash hashes using the KeyValue's own key.
 var KeyHash = keyHasher(func(kv kv.KeyValue, seed uintptr) uintptr { return kv.Hash(seed) })
 
 // KV creates a kv.KeyValue.
@@ -23,10 +23,6 @@ func keyHasher(hash func(v kv.KeyValue, seed uintptr) uintptr) func(v kv.KeyValu
 	return func(v kv.KeyValue, seed uintptr) uintptr {
 		return hash(v, seed)
 	}
-}
-
-func newDefaultKeyEqArgs(gauge depth.Gauge) *EqArgs {
-	return NewEqArgs(gauge, KeyEqual, KeyHash, KeyHash)
 }
 
 func KeyEqual(a, b kv.KeyValue) bool {

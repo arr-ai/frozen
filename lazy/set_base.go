@@ -3,9 +3,8 @@ package lazy
 import (
 	"github.com/arr-ai/hash"
 
-	"github.com/arr-ai/frozen/internal/value"
-
 	"github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/internal/value"
 )
 
 const (

@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// UsePools triggers use of pools to allocate transient node structures.
 var UsePools bool
 
 type poolStats struct {
@@ -18,6 +19,7 @@ type poolStats struct {
 	die chan struct{}
 }
 
+// ThePoolStats is the global pool statistics collector.
 var ThePoolStats = newPoolStats()
 
 func newPoolStats() *poolStats {

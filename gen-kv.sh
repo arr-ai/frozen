@@ -12,6 +12,8 @@ PACKAGE=$(basename $OUTDIR)
 
 mkdir -p $OUTDIR
 
+TYPE=kv.KeyValue
+
 for f in $FILES; do
     perl -ne "
         BEGIN {
@@ -19,7 +21,7 @@ for f in $FILES; do
         }
 
         s{^package \w+$}{package $PACKAGE\nimport \"github.com/arr-ai/frozen/pkg/kv\"};
-        s/\binterface{}/kv.KeyValue/g;
+        s/\binterface{}/$TYPE/g;
         s/\bactualInterface\b/interface{}/g;
         if ('$PACKAGE' eq 'kvi') {
         } elsif ('$PACKAGE' eq 'kvt') {
@@ -29,16 +31,22 @@ for f in $FILES; do
          	s{\"github.com/arr-ai/frozen/internal/iterator\"}{\"github.com/arr-ai/frozen/internal/iterator/kvi\"};
         }
 
-        if (m{^\\s*// SUBST (KeyValue|%): (.*) => (.*)\$}) {
+        if (m{^\\s*// SUBST ($TYPE|%): (.*) => (.*)\$}) {
+            print STDERR \"????\n\";
             \$FROM = \$2;
             \$TO = \$3;
-            \$TO =~ s/%/KeyValue/ if \$1 eq '%';
-        } elsif (m{^(.*)// SUBST (KeyValue|%): (.*) => (.*)\$}) {
-            s/\$2/\$1\$3/g;
+            \$TO =~ s/%/$TYPE/ if \$1 eq '%';
+        } elsif (m{^(.*?)\\s*// SUBST ($TYPE|%): (.*) => (.*)\$}) {
+            \$_ = \$1 . \"\\n\";
+            \$from = \$3;
+            \$to = \$4;
+            \$to =~ s/%/$TYPE/ if \$2 eq '%';
+            s/\$from/\$to/g;
+            print;
         } elsif (m{^\\s*// !SUBST\$}) {
             undef \$FROM;
             undef \$TO;
-        } elsif (m{^\\s*// ELIDE (KeyValue|%)\$}) {
+        } elsif (m{^\\s*// ELIDE ($TYPE|%)\$}) {
             \$PRINT = 0;
         } elsif (m{^\\s*// !ELIDE\$}) {
             \$PRINT = 1;
@@ -49,4 +57,4 @@ for f in $FILES; do
     " $SRCDIR/$f > $OUTDIR/$f
 done
 
-goimports -w $OUTDIR
+goimports -w -local $(head -1 go.mod | awk '{print$2}') $OUTDIR

@@ -71,19 +71,19 @@ func assertSetEqual(t *testing.T, expected, actual Set, msgAndArgs ...interface{
 	return true
 }
 
-func assertSetHas(t *testing.T, s Set, i interface{}) bool {
+func assertSetHas(t *testing.T, s Set, i interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	return assert.True(t, s.Has(i), "i=%v", i)
 }
 
-func assertSetNotHas(t *testing.T, s Set, i interface{}) bool {
+func assertSetNotHas(t *testing.T, s Set, i interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	return assert.False(t, s.Has(i), "i=%v", i)
 }
 
-func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{}) bool {
+func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	format := "\nexpected %v != \nactual   %v"
@@ -98,7 +98,7 @@ func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool {
+func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -107,7 +107,7 @@ func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool {
 	return ok1 && ok2
 }
 
-func assertMapNotHas(t *testing.T, m Map, i interface{}) bool {
+func assertMapNotHas(t *testing.T, m Map, i interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)

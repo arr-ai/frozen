@@ -14,7 +14,10 @@ import (
 const fanout = 1 << fanoutBits
 
 var (
+	// UseRHS returns its RHS arg.
 	UseRHS = func(_, b kv.KeyValue) kv.KeyValue { return b }
+
+	// UseLHS returns its LHS arg.
 	UseLHS = func(a, _ kv.KeyValue) kv.KeyValue { return a }
 )
 

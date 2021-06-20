@@ -30,6 +30,9 @@ tree.files = \
     unNode.go \
     unTree.go
 
+.PHONY: gen
+gen: gen-kv
+
 .PHONY: gen-kv
 gen-kv: gen-kv-iterator gen-kv-tree
 
@@ -41,5 +44,5 @@ test:
 	go test $(TESTFLAGS) ./...
 
 .PHONY: lint
-lint:
+lint: gen
 	golangci-lint run

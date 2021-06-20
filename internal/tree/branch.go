@@ -13,7 +13,10 @@ import (
 const fanout = 1 << fanoutBits
 
 var (
+	// UseRHS returns its RHS arg.
 	UseRHS = func(_, b interface{}) interface{} { return b }
+
+	// UseLHS returns its LHS arg.
 	UseLHS = func(a, _ interface{}) interface{} { return a }
 )
 

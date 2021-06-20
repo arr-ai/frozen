@@ -47,6 +47,7 @@ func (o *ordered) Next() bool {
 	if o.Len() == 0 {
 		return false
 	}
+	o.val = heap.Pop(o).(kv.KeyValue)
 	return true
 }
 
@@ -67,6 +68,7 @@ func (o *ordered) Swap(i, j int) {
 }
 
 func (o *ordered) Push(x interface{}) {
+	o.elements = append(o.elements, x.(kv.KeyValue))
 }
 
 func (o *ordered) Pop() interface{} {
@@ -91,6 +93,7 @@ func (r *reverseOrdered) Next() bool {
 	if r.Len() == 0 {
 		return false
 	}
+	r.val = heap.Pop(r).(kv.KeyValue)
 	return true
 }
 

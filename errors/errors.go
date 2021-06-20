@@ -3,7 +3,7 @@ package errors
 import "github.com/go-errors/errors"
 
 // Wrap errors, returning a nil error if errors.Wrap returns a nil *Error.
-func Wrap(e interface{}, skip int) error { // nolint:unparam
+func Wrap(e interface{}, skip int) error {
 	// nolint:revive
 	if err := errors.Wrap(e, skip+1); err != nil {
 		return err
