@@ -2,6 +2,8 @@ package frozen
 
 import (
 	"encoding/json"
+
+	"github.com/arr-ai/frozen/errors"
 )
 
 // Iota returns Iota3(0, stop, 1).
@@ -53,7 +55,7 @@ func (s Set) MarshalJSON() ([]byte, error) {
 		proxy = append(proxy, i.Value())
 	}
 	data, err := json.Marshal(proxy)
-	return data, errorsWrap(err, 0)
+	return data, errors.Wrap(err, 0)
 }
 
 // Ensure that Set implements json.Marshaler.

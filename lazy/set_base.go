@@ -3,6 +3,8 @@ package lazy
 import (
 	"github.com/arr-ai/hash"
 
+	"github.com/arr-ai/frozen/internal/value"
+
 	"github.com/arr-ai/frozen"
 )
 
@@ -84,7 +86,7 @@ func (s *baseSet) Has(el interface{}) bool {
 		return has
 	}
 	for i := s.set.Range(); i.Next(); {
-		if frozen.Equal(el, i.Value()) {
+		if value.Equal(el, i.Value()) {
 			return true
 		}
 	}

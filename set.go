@@ -5,31 +5,27 @@ import (
 	"log"
 
 	"github.com/arr-ai/hash"
+
+	"github.com/arr-ai/frozen/internal/depth"
+	"github.com/arr-ai/frozen/internal/iterator"
+	"github.com/arr-ai/frozen/internal/tree"
+	"github.com/arr-ai/frozen/internal/value"
 )
 
 // Set holds a set of values. The zero value is the empty Set.
 type Set struct {
-	root tree
+	tree tree.Tree
 }
 
-var _ Key = Set{}
+var _ value.Key = Set{}
 
-func newSet(root tree) Set {
-	return Set{root: root}
-}
-
-// Iterator provides for iterating over a Set.
-type Iterator interface {
-	Next() bool
-	Value() interface{}
+func newSet(tree tree.Tree) Set {
+	return Set{tree: tree}
 }
 
 // NewSet creates a new Set with values as elements.
 func NewSet(values ...interface{}) Set {
-	if n := len(values); n <= maxLeafLen {
-		return newSet(newTree(leaf(values), &n))
-	}
-	var b SetBuilder
+	b := NewSetBuilder(len(values))
 	for _, value := range values {
 		b.Add(value)
 	}
@@ -45,31 +41,31 @@ func NewSetFromStrings(values ...string) Set {
 	return b.Finish()
 }
 
-func (s Set) nodeArgs() nodeArgs {
-	return newNodeArgs(newParallelDepthGauge(s.Count()))
+func (s Set) nodeArgs() tree.NodeArgs {
+	return tree.NewNodeArgs(depth.NewGauge(s.Count()))
 }
 
-func (s Set) eqArgs() *eqArgs {
-	return newDefaultEqArgs(newParallelDepthGauge(s.Count()))
+func (s Set) eqArgs() *tree.EqArgs {
+	return tree.NewDefaultEqArgs(depth.NewGauge(s.Count()))
 }
 
 // IsEmpty returns true iff the Set has no elements.
 func (s Set) IsEmpty() bool {
-	return s.root.count == 0
+	return s.tree.Count() == 0
 }
 
 func (s Set) Builder() *SetBuilder {
-	return &SetBuilder{nb: *s.root.Builder()}
+	return &SetBuilder{b: *s.tree.Builder()}
 }
 
 // Count returns the number of elements in the Set.
 func (s Set) Count() int {
-	return s.root.count
+	return s.tree.Count()
 }
 
 // Range returns an Iterator over the Set.
-func (s Set) Range() Iterator {
-	return s.root.Iterator()
+func (s Set) Range() iterator.Iterator {
+	return s.tree.Iterator()
 }
 
 func (s Set) Elements() []interface{} {
@@ -81,7 +77,7 @@ func (s Set) Elements() []interface{} {
 }
 
 // OrderedElements takes elements in a defined order.
-func (s Set) OrderedElements(less Less) []interface{} {
+func (s Set) OrderedElements(less tree.Less) []interface{} {
 	result := make([]interface{}, 0, s.Count())
 	for i := s.OrderedRange(less); i.Next(); {
 		result = append(result, i.Value())
@@ -108,17 +104,17 @@ func (s Set) AnyN(n int) Set {
 }
 
 // OrderedFirstN returns a list of elements in a defined order.
-func (s Set) OrderedFirstN(n int, less Less) []interface{} {
+func (s Set) OrderedFirstN(n int, less tree.Less) []interface{} {
 	result := make([]interface{}, 0, n)
 	currentLength := 0
-	for i := s.root.OrderedIterator(less, n); i.Next() && currentLength < n; currentLength++ {
+	for i := s.tree.OrderedIterator(less, n); i.Next() && currentLength < n; currentLength++ {
 		result = append(result, i.Value())
 	}
 	return result
 }
 
 // First returns the first element in a defined order.
-func (s Set) First(less Less) interface{} {
+func (s Set) First(less tree.Less) interface{} {
 	for _, i := range s.OrderedFirstN(1, less) {
 		return i
 	}
@@ -126,7 +122,7 @@ func (s Set) First(less Less) interface{} {
 }
 
 // FirstN returns a set of the first n elements in a defined order.
-func (s Set) FirstN(n int, less Less) Set {
+func (s Set) FirstN(n int, less tree.Less) Set {
 	return NewSet(s.OrderedFirstN(n, less)...)
 }
 
@@ -154,8 +150,8 @@ func (s Set) Format(state fmt.State, _ rune) {
 
 // OrderedRange returns a SetIterator for the Set that iterates over the elements in
 // a specified order.
-func (s Set) OrderedRange(less Less) Iterator {
-	return s.root.OrderedIterator(less, s.Count())
+func (s Set) OrderedRange(less tree.Less) iterator.Iterator {
+	return s.tree.OrderedIterator(less, s.Count())
 }
 
 // Hash computes a hash value for s.
@@ -178,18 +174,18 @@ func (s Set) Equal(t interface{}) bool {
 // EqualSet returns true iff s and set have all the same elements.
 func (s Set) EqualSet(t Set) bool {
 	args := s.eqArgs()
-	return s.root.Equal(args, t.root)
+	return s.tree.Equal(args, t.tree)
 }
 
 // IsSubsetOf returns true iff no element in s is not in t.
 func (s Set) IsSubsetOf(t Set) bool {
 	args := s.eqArgs()
-	return s.root.SubsetOf(args, t.root)
+	return s.tree.SubsetOf(args, t.tree)
 }
 
 // Has returns the value associated with key and true iff the key was found.
 func (s Set) Has(val interface{}) bool {
-	return s.root.Get(defaultNPEqArgs, val) != nil
+	return s.tree.Get(tree.DefaultNPEqArgs, val) != nil
 }
 
 // With returns a new Set retaining all the elements of the Set as well as values.
@@ -204,18 +200,18 @@ func (s Set) Without(values ...interface{}) Set {
 
 // Where returns a Set with all elements that are in s and satisfy pred.
 func (s Set) Where(pred func(elem interface{}) bool) Set {
-	args := &whereArgs{
-		nodeArgs: newNodeArgs(newParallelDepthGauge(s.Count())),
-		pred:     pred,
+	args := &tree.WhereArgs{
+		NodeArgs: tree.NewNodeArgs(depth.NewGauge(s.Count())),
+		Pred:     pred,
 	}
 	// root = root.postop(c.parallelDepth)
-	return Set{root: s.root.Where(args)}
+	return Set{tree: s.tree.Where(args)}
 }
 
 // Map returns a Set with all the results of applying f to all elements in s.
 func (s Set) Map(f func(elem interface{}) interface{}) Set {
-	args := newCombineArgs(s.eqArgs(), useRHS)
-	return Set{root: s.root.Transform(args, f)}
+	args := tree.NewCombineArgs(s.eqArgs(), tree.UseRHS)
+	return Set{tree: s.tree.Transform(args, f)}
 }
 
 // Reduce returns the result of applying `reduce` to the elements of `s` or
@@ -231,7 +227,7 @@ func (s Set) Map(f func(elem interface{}) interface{}) Set {
 //
 // 'elems` will never be empty.
 func (s Set) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
-	return s.root.Reduce(s.nodeArgs(), reduce)
+	return s.tree.Reduce(s.nodeArgs(), reduce)
 }
 
 // Reduce2 is a convenience wrapper for `Reduce`, allowing the caller to
@@ -249,18 +245,18 @@ func (s Set) Reduce2(reduce func(a, b interface{}) interface{}) interface{} {
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set) Intersection(t Set) Set {
-	return Set{root: s.root.Intersection(s.eqArgs(), t.root)}
+	return Set{tree: s.tree.Intersection(s.eqArgs(), t.tree)}
 }
 
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
-	return Set{root: s.root.Combine(newCombineArgs(s.eqArgs(), useRHS), t.root)}
+	return Set{tree: s.tree.Combine(tree.NewCombineArgs(s.eqArgs(), tree.UseRHS), t.tree)}
 }
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set) Difference(t Set) Set {
 	args := s.eqArgs()
-	return Set{root: s.root.Difference(args, t.root)}
+	return Set{tree: s.tree.Difference(args, t.tree)}
 }
 
 // SymmetricDifference returns a Set with all elements that are s or t, but not

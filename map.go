@@ -4,51 +4,31 @@ import (
 	"fmt"
 
 	"github.com/arr-ai/hash"
+
+	"github.com/arr-ai/frozen/internal/depth"
+	"github.com/arr-ai/frozen/internal/iterator/kvi"
+	"github.com/arr-ai/frozen/internal/tree/kvt"
+	"github.com/arr-ai/frozen/internal/value"
+	"github.com/arr-ai/frozen/pkg/kv"
 )
 
-// KeyValue represents a key-value pair for insertion into a Map.
-type KeyValue struct {
-	Key, Value interface{}
-}
-
-// KV creates a KeyValue.
-func KV(key, val interface{}) KeyValue {
-	return KeyValue{Key: key, Value: val}
-}
-
-// Hash computes a hash for a KeyValue.
-func (kv KeyValue) Hash(seed uintptr) uintptr {
-	return hash.Interface(kv.Key, seed)
-}
-
-func keyValueEqual(a, b interface{}) bool {
-	i := a.(KeyValue)
-	j := b.(KeyValue)
-	return Equal(i.Key, j.Key) && Equal(i.Value, j.Value)
-}
-
-// String returns a string representation of a KeyValue.
-func (kv KeyValue) String() string {
-	return fmt.Sprintf("%#v:%#v", kv.Key, kv.Value)
-}
-
 func KeyEqual(a, b interface{}) bool {
-	return Equal(a.(KeyValue).Key, b.(KeyValue).Key)
+	return value.Equal(a.(KeyValue).Key, b.(KeyValue).Key)
 }
 
 // Map maps keys to values. The zero value is the empty Map.
 type Map struct {
-	root tree
+	tree kvt.Tree
 }
 
-var _ Key = Map{}
+var _ value.Key = Map{}
 
-func newMap(root tree) Map {
-	return Map{root: root}
+func newMap(tree kvt.Tree) Map {
+	return Map{tree: tree}
 }
 
 // NewMap creates a new Map with kvs as keys and values.
-func NewMap(kvs ...KeyValue) Map {
+func NewMap(kvs ...kv.KeyValue) Map {
 	var b MapBuilder
 	for _, kv := range kvs {
 		b.Put(kv.Key, kv.Value)
@@ -77,12 +57,12 @@ func NewMapFromGoMap(m map[interface{}]interface{}) Map {
 
 // IsEmpty returns true if the Map has no entries.
 func (m Map) IsEmpty() bool {
-	return m.root.count == 0
+	return m.tree.Count() == 0
 }
 
 // Count returns the number of entries in the Map.
 func (m Map) Count() int {
-	return m.root.count
+	return m.tree.Count()
 }
 
 // Any returns an arbitrary entry from the Map.
@@ -97,20 +77,23 @@ func (m Map) Any() (key, value interface{}) {
 // retained from m.
 func (m Map) With(key, val interface{}) Map {
 	kv := KV(key, val)
-	return newMap(m.root.With(defaultNPKeyCombineArgs, kv))
+	return newMap(m.tree.With(defaultNPKeyCombineArgs, kv))
 }
 
 // Without returns a new Map with all keys retained from m except the elements
 // of keys.
 func (m Map) Without(keys Set) Map {
-	args := newEqArgs(
-		m.root.Gauge(),
-		func(a, b interface{}) bool {
-			return Equal(a.(KeyValue).Key, b)
-		},
-		keyHash,
-		hash.Interface)
-	return newMap(m.root.Difference(args, keys.root))
+	args := kvt.NewEqArgs(
+		m.tree.Gauge(),
+		kvt.KeyEqual,
+		kvt.KeyHash,
+		kvt.KeyHash)
+	for i := keys.Range(); i.Next(); {
+		m.tree = m.tree.Without(args, KV(i.Value(), nil))
+	}
+	return m
+	// TODO: Reinstate parallelisable implementation below.
+	// return newMap(m.tree.Difference(args, keys.tree))
 }
 
 // Without2 shoves keys into a Set and calls m.Without.
@@ -124,13 +107,13 @@ func (m Map) Without2(keys ...interface{}) Map {
 
 // Has returns true iff the key exists in the map.
 func (m Map) Has(key interface{}) bool {
-	return m.root.Get(defaultNPKeyEqArgs, KV(key, nil)) != nil
+	return m.tree.Get(defaultNPKeyEqArgs, KV(key, nil)) != nil
 }
 
 // Get returns the value associated with key in m and true iff the key is found.
 func (m Map) Get(key interface{}) (interface{}, bool) {
-	if kv := m.root.Get(defaultNPKeyEqArgs, KV(key, nil)); kv != nil {
-		return (*kv).(KeyValue).Value, true
+	if kv := m.tree.Get(defaultNPKeyEqArgs, KV(key, nil)); kv != nil {
+		return kv.Value, true
 	}
 	return nil, false
 }
@@ -218,12 +201,12 @@ func (m Map) Reduce(f func(acc, key, val interface{}) interface{}, acc interface
 	return acc
 }
 
-func (m Map) eqArgs() *eqArgs {
-	return newEqArgs(
-		newParallelDepthGauge(m.Count()),
-		KeyEqual,
-		keyHash,
-		keyHash,
+func (m Map) EqArgs() *kvt.EqArgs {
+	return kvt.NewEqArgs(
+		depth.NewGauge(m.Count()),
+		kvt.KeyEqual,
+		kvt.KeyHash,
+		kvt.KeyHash,
 	)
 }
 
@@ -231,24 +214,22 @@ func (m Map) eqArgs() *eqArgs {
 // the value that corresponds to key will be replaced by the value resulted from the
 // provided resolve function.
 func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
-	extractAndResolve := func(a, b interface{}) interface{} {
-		i := a.(KeyValue)
-		j := b.(KeyValue)
-		return KV(i.Key, resolve(i.Key, i.Value, j.Value))
+	extractAndResolve := func(a, b KeyValue) KeyValue {
+		return KV(a.Key, resolve(a.Key, a.Value, b.Value))
 	}
-	args := newCombineArgs(m.eqArgs(), extractAndResolve)
-	return newMap(m.root.Combine(args, n.root))
+	args := kvt.NewCombineArgs(m.EqArgs(), extractAndResolve)
+	return newMap(m.tree.Combine(args, n.tree))
 }
 
 // Update returns a Map with key-value pairs from n added or replacing existing
 // keys.
 func (m Map) Update(n Map) Map {
-	f := useRHS
+	f := kvt.UseRHS
 	if m.Count() > n.Count() {
 		m, n = n, m
-		f = useLHS
+		f = kvt.UseLHS
 	}
-	return newMap(m.root.Combine(newCombineArgs(m.eqArgs(), f), n.root))
+	return newMap(m.tree.Combine(kvt.NewCombineArgs(m.EqArgs(), f), n.tree))
 }
 
 // Hash computes a hash val for s.
@@ -264,13 +245,13 @@ func (m Map) Hash(seed uintptr) uintptr {
 // Map.
 func (m Map) Equal(i interface{}) bool {
 	if n, ok := i.(Map); ok {
-		args := newEqArgs(
-			newParallelDepthGauge(m.Count()),
-			keyValueEqual,
-			hash.Interface,
-			hash.Interface,
+		args := kvt.NewEqArgs(
+			depth.NewGauge(m.Count()),
+			kv.KeyValueEqual,
+			kvt.KeyHash,
+			kvt.KeyHash,
 		)
-		return m.root.Equal(args, n.root)
+		return m.tree.Equal(args, n.tree)
 	}
 	return false
 }
@@ -294,23 +275,19 @@ func (m Map) Format(state fmt.State, _ rune) {
 
 // Range returns a MapIterator over the Map.
 func (m Map) Range() *MapIterator {
-	return &MapIterator{i: m.root.Iterator()}
+	return &MapIterator{i: m.tree.Iterator()}
 }
 
 // MapIterator provides for iterating over a Map.
 type MapIterator struct {
-	i  Iterator
+	i  kvi.Iterator
 	kv KeyValue
 }
 
 // Next moves to the next key-value pair or returns false if there are no more.
 func (i *MapIterator) Next() bool {
 	if i.i.Next() {
-		var ok bool
-		i.kv, ok = i.i.Value().(KeyValue)
-		if !ok {
-			panic(fmt.Sprintf("Unexpected type: %T", i.i.Value()))
-		}
+		i.kv = i.i.Value()
 		return true
 	}
 	return false

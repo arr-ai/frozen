@@ -1,27 +1,51 @@
 package frozen
 
+import (
+	"github.com/arr-ai/hash"
+
+	"github.com/arr-ai/frozen/internal/depth"
+	"github.com/arr-ai/frozen/internal/tree/kvt"
+)
+
+var (
+	defaultNPKeyEqArgs      = newDefaultKeyEqArgs(depth.NonParallel)
+	defaultNPKeyCombineArgs = kvt.NewCombineArgs(defaultNPKeyEqArgs, kvt.UseRHS)
+
+	keyHash = keyHasher(hash.Interface)
+)
+
+func keyHasher(hash func(v interface{}, seed uintptr) uintptr) func(v interface{}, seed uintptr) uintptr {
+	return func(v interface{}, seed uintptr) uintptr {
+		return hash(v.(KeyValue).Key, seed)
+	}
+}
+
+func newDefaultKeyEqArgs(gauge depth.Gauge) *kvt.EqArgs {
+	return kvt.NewEqArgs(gauge, kvt.KeyEqual, kvt.KeyHash, kvt.KeyHash)
+}
+
 // MapBuilder provides a more efficient way to build Maps incrementally.
 type MapBuilder struct {
-	nb nodeBuilder
+	tb kvt.Builder
 }
 
 func NewMapBuilder(capacity int) *MapBuilder {
-	return &MapBuilder{nb: *newNodeBuilder(capacity)}
+	return &MapBuilder{tb: *kvt.NewBuilder(capacity)}
 }
 
 // Count returns the number of entries in the Map under construction.
 func (b *MapBuilder) Count() int {
-	return b.nb.Count()
+	return b.tb.Count()
 }
 
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder) Put(key, value interface{}) {
-	b.nb.Add(defaultNPKeyCombineArgs, KV(key, value))
+	b.tb.Add(defaultNPKeyCombineArgs, KV(key, value))
 }
 
 // Remove removes an entry from the Map under construction.
 func (b *MapBuilder) Remove(key interface{}) {
-	b.nb.Remove(defaultNPKeyEqArgs, KV(key, nil))
+	b.tb.Remove(defaultNPKeyEqArgs, KV(key, nil))
 }
 
 func (b *MapBuilder) Has(v interface{}) bool {
@@ -32,8 +56,8 @@ func (b *MapBuilder) Has(v interface{}) bool {
 // Get returns the value for key from the Map under construction or false if
 // not found.
 func (b *MapBuilder) Get(key interface{}) (interface{}, bool) {
-	if entry := b.nb.Get(defaultNPKeyEqArgs, KV(key, nil)); entry != nil {
-		return (*entry).(KeyValue).Value, true
+	if entry := b.tb.Get(defaultNPKeyEqArgs, KV(key, nil)); entry != nil {
+		return entry.Value, true
 	}
 	return nil, false
 }
@@ -41,5 +65,5 @@ func (b *MapBuilder) Get(key interface{}) (interface{}, bool) {
 // Finish returns a Map containing all entries added since the MapBuilder was
 // initialised or the last call to Finish.
 func (b *MapBuilder) Finish() Map {
-	return newMap(b.nb.Finish())
+	return newMap(b.tb.Finish())
 }

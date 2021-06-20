@@ -1,9 +1,45 @@
-.PHONY: all test lint
-
+.PHONY: all
 all: lint test
 
+iterator.package = kvi
+iterator.files = \
+	empty.go \
+	iterator.go
+
+tree.package = kvt
+tree.files = \
+    branch.go \
+    branch16.go \
+    branch4.go \
+    branch8.go \
+    builder.go \
+    emptyNode.go \
+    hasher.go \
+    leaf.go \
+    leaf_iterator.go \
+    masker.go \
+    node.go \
+    nodeArgs.go \
+    packer.go \
+    packer_iter.go \
+    tree.go \
+    unBranch.go \
+    unDefroster.go \
+    unEmptyNode.go \
+    unLeaf.go \
+    unNode.go \
+    unTree.go
+
+.PHONY: gen-kv
+gen-kv: gen-kv-iterator gen-kv-tree
+
+gen-kv-%:
+	./gen-kv.sh internal/$* internal/$*/$($*.package) $($*.files)
+
+.PHONY: test
 test:
 	go test $(TESTFLAGS) ./...
 
+.PHONY: lint
 lint:
 	golangci-lint run
