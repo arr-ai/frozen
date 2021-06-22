@@ -1,6 +1,7 @@
 package frozen
 
 import (
+	"math/bits"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -19,9 +20,16 @@ const (
 	blockBits  = cellBits * blockCells
 )
 
+func init() {
+	// uintptr must fit inside uint64 for bits package calls to work correctly.
+	if unsafe.Sizeof(uintptr(0)) > unsafe.Sizeof(uint64(0)) {
+		panic("Hmm, that's weird!")
+	}
+}
+
 type cellBlock [blockCells]cellMask
 
-func (b *cellBlock) isSubsetOf(c cellBlock) bool {
+func (b *cellBlock) isSubsetOf(c *cellBlock) bool {
 	for i, x := range b {
 		y := c[i]
 		if x&^y != 0 {
@@ -30,8 +38,6 @@ func (b *cellBlock) isSubsetOf(c cellBlock) bool {
 	}
 	return true
 }
-
-var emptyBlock cellBlock
 
 func locateBlock(i int) (blockIndex, cellIndex int, bitMask cellMask) {
 	return i / blockBits, i % blockBits / cellBits, cellMask(1) << uint(i%cellBits)
@@ -42,29 +48,29 @@ func NewIntSet(is ...int) IntSet {
 	var b MapBuilder
 	count := 0
 	prevBlockIndex := int(^uint(0) >> 1) // maxint
-	var block cellBlock
-	blockIsFilled := false
+	var block *cellBlock
+	notEmpty := false
 	for _, i := range is {
 		blockIndex, cellIndex, bitMask := locateBlock(i)
 		if blockIndex != prevBlockIndex {
-			if blockIsFilled {
+			if notEmpty {
 				b.Put(prevBlockIndex, block)
 			}
 			prevBlockIndex = blockIndex
 			var v interface{}
-			if v, blockIsFilled = b.Get(blockIndex); blockIsFilled {
-				block = v.(cellBlock)
+			if v, notEmpty = b.Get(blockIndex); notEmpty {
+				block = v.(*cellBlock)
 			} else {
-				block = emptyBlock
+				block = &cellBlock{}
 			}
 		}
 		if block[cellIndex]&bitMask == 0 {
 			block[cellIndex] |= bitMask
 			count++
-			blockIsFilled = true
+			notEmpty = true
 		}
 	}
-	if blockIsFilled {
+	if notEmpty {
 		b.Put(prevBlockIndex, block)
 	}
 	return IntSet{data: b.Finish(), count: count}
@@ -100,7 +106,7 @@ func (s IntSet) Elements() []int {
 func (s IntSet) Any() int {
 	k, v := s.data.Any()
 	blockIndex := k.(int)
-	block := v.(cellBlock)
+	block := v.(*cellBlock)
 	for cellIndex, cell := range block {
 		if cell != 0 {
 			bit := BitIterator(cell).Index()
@@ -131,14 +137,24 @@ func (s IntSet) String() string {
 
 // EqualSet returns true if both IntSets are equal.
 func (s IntSet) EqualSet(t IntSet) bool {
-	return s.data.Equal(t.data)
+	if s.data.Count() != t.data.Count() {
+		return false
+	}
+	for r := s.data.Range(); r.Next(); {
+		blockIndex, sBlock := r.Entry()
+		tBlock, has := t.data.Get(blockIndex)
+		if !has || *sBlock.(*cellBlock) != *tBlock.(*cellBlock) {
+			return false
+		}
+	}
+	return true
 }
 
 // IsSubsetOf returns true if s is a subset of t and false otherwise.
 func (s IntSet) IsSubsetOf(t IntSet) bool {
 	for r := s.data.Range(); r.Next(); {
-		sBlock := r.Value().(cellBlock)
-		if tBlock, has := t.data.Get(r.Key()); !has || !sBlock.isSubsetOf(tBlock.(cellBlock)) {
+		sBlock := r.Value().(*cellBlock)
+		if tBlock, has := t.data.Get(r.Key()); !has || !sBlock.isSubsetOf(tBlock.(*cellBlock)) {
 			return false
 		}
 	}
@@ -148,9 +164,6 @@ func (s IntSet) IsSubsetOf(t IntSet) bool {
 // Has returns true if value exists in the IntSet and false otherwise.
 func (s IntSet) Has(val int) bool {
 	block, _, cellIndex, bitMask := s.locate(val)
-	if cellIndex < 0 {
-		return false
-	}
 	return block[cellIndex]&bitMask != 0
 }
 
@@ -159,8 +172,9 @@ func (s IntSet) With(is ...int) IntSet {
 	for _, i := range is {
 		block, blockIndex, cellIndex, bitMask := s.locate(i)
 		if block[cellIndex]&bitMask == 0 {
-			block[cellIndex] |= bitMask
-			s.data = s.data.With(blockIndex, block)
+			newBlock := *block
+			newBlock[cellIndex] |= bitMask
+			s.data = s.data.With(blockIndex, &newBlock)
 			s.count++
 		}
 	}
@@ -173,10 +187,11 @@ func (s IntSet) Without(is ...int) IntSet {
 	for _, i := range is {
 		block, blockIndex, cellIndex, bitMask := s.locate(i)
 		if block[cellIndex]&bitMask != 0 {
-			block[cellIndex] &^= bitMask
+			newBlock := *block
+			newBlock[cellIndex] &^= bitMask
 			// TODO: optimize this so it doesn't do With many times
-			s.data = s.data.With(blockIndex, block)
-			if block == emptyBlock {
+			s.data = s.data.With(blockIndex, &newBlock)
+			if newBlock == emptyBlock {
 				indexToRemove.Add(blockIndex)
 			}
 			s.count--
@@ -189,13 +204,28 @@ func (s IntSet) Without(is ...int) IntSet {
 // Where returns an IntSet whose values fulfill the provided condition.
 func (s IntSet) Where(pred func(elem int) bool) IntSet {
 	// TODO: find a way that works more on block level or maybe make IntSetBuilder?
-	arr := make([]int, 0, s.count)
-	for i := s.Range(); i.Next(); {
-		if pred(i.Value()) {
-			arr = append(arr, i.Value())
+	var b MapBuilder
+	count := 0
+	for r := s.data.Range(); r.Next(); {
+		blockIndex, block := r.Entry()
+		blockOffset := blockIndex.(int) * blockBits
+		newBlock := &cellBlock{}
+		for cellIndex, bitMask := range block.(*cellBlock) {
+			cellOffset := blockOffset + cellIndex*cellBits
+			for bitMask != 0 {
+				maskIndex := bitMask.index()
+				if pred(cellOffset + maskIndex) {
+					newBlock[cellIndex] |= cellMask(1) << maskIndex
+				}
+				bitMask &= (bitMask - 1)
+			}
+		}
+		if *newBlock != (cellBlock{}) {
+			b.Put(blockIndex, newBlock)
+			count += newBlock.count()
 		}
 	}
-	return NewIntSet(arr...)
+	return IntSet{data: b.Finish(), count: count}
 }
 
 // Map returns an IntSet with whose values are mapped from s.
@@ -216,8 +246,8 @@ func (s IntSet) Intersection(t IntSet) IntSet {
 	count := 0
 	for tBlock := t.data.Range(); tBlock.Next(); {
 		if sBlock, exists := s.data.Get(tBlock.Key()); exists {
-			intersectBlock := sBlock.(cellBlock).intersection(tBlock.Value().(cellBlock))
-			if intersectBlock != emptyBlock {
+			intersectBlock := sBlock.(*cellBlock).intersection(tBlock.Value().(*cellBlock))
+			if intersectBlock != nil {
 				intersectMap.Put(tBlock.Key(), intersectBlock)
 				count += intersectBlock.count()
 			}
@@ -230,13 +260,13 @@ func (s IntSet) Intersection(t IntSet) IntSet {
 func (s IntSet) Union(t IntSet) IntSet {
 	unionMap := s.data
 	count := s.count
-	var unionBlock cellBlock
+	var unionBlock *cellBlock
 	for tBlock := t.data.Range(); tBlock.Next(); {
 		if sBlock, exists := s.data.Get(tBlock.Key()); exists {
-			unionBlock = sBlock.(cellBlock).union(tBlock.Value().(cellBlock))
-			count += unionBlock.diffCount(sBlock.(cellBlock))
+			unionBlock = sBlock.(*cellBlock).union(tBlock.Value().(*cellBlock))
+			count += unionBlock.diffCount(sBlock.(*cellBlock))
 		} else {
-			unionBlock = tBlock.Value().(cellBlock)
+			unionBlock = tBlock.Value().(*cellBlock)
 			count += unionBlock.count()
 		}
 		unionMap = unionMap.With(tBlock.Key(), unionBlock)
@@ -249,47 +279,59 @@ func (s IntSet) Union(t IntSet) IntSet {
 // func (s IntSet) Powerset() IntSet                         {}
 // func (s IntSet) GroupBy(key func(el int) int) Map         {}
 
-func (s IntSet) locate(i int) (block cellBlock, blockIndex, cellIndex int, bitMask cellMask) {
+var emptyBlock cellBlock
+
+func (s IntSet) locate(i int) (block *cellBlock, blockIndex, cellIndex int, bitMask cellMask) {
 	blockIndex, cellIndex, bitMask = locateBlock(i)
 	if v, has := s.data.Get(blockIndex); has {
-		block = v.(cellBlock)
+		block = v.(*cellBlock)
+	} else {
+		block = &emptyBlock
 	}
 	return
 }
 
-func (b cellBlock) intersection(b2 cellBlock) (intersect cellBlock) {
+func (b *cellBlock) intersection(b2 *cellBlock) *cellBlock {
+	ret := *b
 	for i := range b {
-		intersect[i] = b[i] & b2[i]
+		ret[i] &= b2[i]
 	}
-	return
+	if ret == (cellBlock{}) {
+		return nil
+	}
+	return &ret
 }
 
-func (b cellBlock) union(b2 cellBlock) (u cellBlock) {
+func (b *cellBlock) union(b2 *cellBlock) *cellBlock {
+	ret := *b
 	for i := range b {
-		u[i] = b[i] | b2[i]
+		ret[i] |= b2[i]
 	}
-	return
+	return &ret
 }
 
-func (b cellBlock) diffCount(b2 cellBlock) (diffCount int) {
+func (b *cellBlock) diffCount(b2 *cellBlock) (diffCount int) {
 	for i := range b {
 		diffCount += b[i].diffCount(b2[i])
 	}
 	return
 }
 
-func (b cellBlock) count() (count int) {
+func (b *cellBlock) count() (count int) {
 	for _, c := range b {
 		count += c.onesCount()
 	}
 	return
 }
 
-func (c cellMask) diffCount(c2 cellMask) int { return (c ^ c2).onesCount() }
+func (c cellMask) diffCount(c2 cellMask) int {
+	return (c ^ c2).onesCount()
+}
 
-func (c cellMask) onesCount() (count int) {
-	for ; c != 0; c &= c - 1 {
-		count++
-	}
-	return
+func (c cellMask) onesCount() int {
+	return bits.OnesCount64(uint64(c))
+}
+
+func (c cellMask) index() int {
+	return bits.TrailingZeros64(uint64(c))
 }
