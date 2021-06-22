@@ -4,9 +4,7 @@ import (
 	"github.com/arr-ai/frozen/pkg/kv"
 )
 
-type unEmptyNode struct {
-	emptyNode
-}
+type unEmptyNode struct{}
 
 var _ unNode = unEmptyNode{}
 
@@ -21,7 +19,7 @@ func (unEmptyNode) countUpTo(max int) int {
 }
 
 func (unEmptyNode) Freeze() node {
-	return emptyNode{}
+	return leaf(nil)
 }
 
 func (e unEmptyNode) Get(args *EqArgs, v kv.KeyValue, h hasher) *kv.KeyValue {

@@ -11,10 +11,10 @@ func TestPackedWith(t *testing.T) {
 
 	p := packer{}
 	for i := 0; i < maxLeafLen; i++ {
-		assertEqualPacked(t, p, p.With(newMasker(i), emptyNode{}), i)
+		assertEqualPacked(t, p, p.With(newMasker(i), theEmptyNode), i)
 	}
 	for i := 0; i < maxLeafLen; i++ {
-		q := p.With(newMasker(i), leaf{1}).With(newMasker(i), emptyNode{})
+		q := p.With(newMasker(i), leaf{1}).With(newMasker(i), theEmptyNode)
 		assertEqualPacked(t, p, q, i)
 	}
 }
@@ -25,11 +25,11 @@ func TestPackedWithMulti(t *testing.T) {
 	p := packer{}.
 		With(newMasker(1), leaf{1, 2}).
 		With(newMasker(3), leaf{10, 20}).
-		With(newMasker(3), emptyNode{}).
+		With(newMasker(3), theEmptyNode).
 		With(newMasker(5), leaf{3, 4})
 	q := packer{}.
 		With(newMasker(1), leaf{1, 2}).
-		With(newMasker(3), emptyNode{}).
+		With(newMasker(3), theEmptyNode).
 		With(newMasker(5), leaf{3, 4})
 	assertEqualPacked(t, p, q)
 }

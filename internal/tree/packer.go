@@ -12,9 +12,7 @@ type packer struct {
 func packerFromNodes(nodes *[fanout]node) packer {
 	p := packer{}
 	for i, n := range nodes {
-		switch n := n.(type) {
-		case nil, emptyNode:
-		default:
+		if n != nil && !n.Empty() {
 			p.mask |= masker(1) << i
 			p.data = append(p.data, n)
 		}
@@ -26,14 +24,14 @@ func (p packer) Get(i masker) node {
 	if i.firstIsIn(p.mask) {
 		return p.data[p.mask.offset(i)]
 	}
-	return emptyNode{}
+	return theEmptyNode
 }
 
 func (p packer) With(i masker, n node) packer {
 	i = i.first()
 	index := p.mask.offset(i)
 
-	_, empty := n.(emptyNode)
+	empty := n.Empty()
 	if existing := i.subsetOf(p.mask); existing {
 		if empty {
 			result := p.update(i, index, -1)

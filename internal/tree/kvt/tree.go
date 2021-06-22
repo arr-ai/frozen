@@ -24,7 +24,7 @@ func newTreeNeg(n node, count *int) Tree {
 
 func (t Tree) Root() node {
 	if t.count == 0 {
-		return emptyNode{}
+		return theEmptyNode
 	}
 	return t.root
 }

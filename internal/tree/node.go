@@ -14,6 +14,7 @@ type node interface {
 	CountUpTo(max int) int
 	Defrost() unNode
 	Difference(args *EqArgs, n node, depth int, removed *int) node
+	Empty() bool
 	Equal(args *EqArgs, n node, depth int) bool
 	Get(args *EqArgs, v interface{}, h hasher) *interface{}
 	Intersection(args *EqArgs, n node, depth int, matches *int) node

@@ -20,6 +20,10 @@ func (d unDefroster) countUpTo(max int) int {
 	return d.n.CountUpTo(max)
 }
 
+func (d unDefroster) Empty() bool {
+	return d.n.Empty()
+}
+
 func (d unDefroster) Freeze() node {
 	return d.n
 }

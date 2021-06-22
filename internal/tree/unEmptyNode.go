@@ -1,8 +1,6 @@
 package tree
 
-type unEmptyNode struct {
-	emptyNode
-}
+type unEmptyNode struct{}
 
 var _ unNode = unEmptyNode{}
 
@@ -17,7 +15,7 @@ func (unEmptyNode) countUpTo(max int) int {
 }
 
 func (unEmptyNode) Freeze() node {
-	return emptyNode{}
+	return leaf(nil)
 }
 
 func (e unEmptyNode) Get(args *EqArgs, v interface{}, h hasher) *interface{} {

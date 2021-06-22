@@ -13,7 +13,6 @@ tree.files = \
     branch4.go \
     branch8.go \
     builder.go \
-    emptyNode.go \
     hasher.go \
     leaf.go \
     leaf_iterator.go \

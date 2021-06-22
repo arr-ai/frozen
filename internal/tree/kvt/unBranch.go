@@ -90,7 +90,7 @@ func (b *unBranch) Freeze() node {
 		data = append(data, b.p[m.index()].Freeze())
 	}
 	b.free()
-	return branch{p: packer{mask: mask, data: data}}
+	return &branch{p: packer{mask: mask, data: data}}
 }
 
 func (b *unBranch) Get(args *EqArgs, v kv.KeyValue, h hasher) *kv.KeyValue {

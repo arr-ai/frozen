@@ -8,24 +8,22 @@ import (
 	"github.com/arr-ai/frozen/internal/iterator"
 )
 
+var theEmptyNode leaf
+
 type leaf []interface{}
 
 func (l leaf) Canonical(depth int) node {
 	switch {
-	case len(l) == 0:
-		return emptyNode{}
 	case len(l) <= maxLeafLen || depth*fanoutBits >= 64:
 		return l
 	default:
 		var matches int
-		return (branch{}).Combine(DefaultNPCombineArgs, l, depth, &matches)
+		return (&branch{}).Combine(DefaultNPCombineArgs, l, depth, &matches)
 	}
 }
 
 func (l leaf) Combine(args *CombineArgs, n node, depth int, matches *int) node {
 	switch n := n.(type) {
-	case emptyNode:
-		return l
 	case leaf:
 		cloned := false
 		for i, e := range n {
@@ -39,14 +37,14 @@ func (l leaf) Combine(args *CombineArgs, n node, depth int, matches *int) node {
 			} else if len(l) < maxLeafLen {
 				l = append(l, e)
 			} else {
-				return (branch{}).Combine(args, l, depth, matches).Combine(args, n[i:], depth, matches)
+				return (&branch{}).Combine(args, l, depth, matches).Combine(args, n[i:], depth, matches)
 			}
 		}
 		if len(l) > maxLeafLen {
 			panic(errors.WTF)
 		}
 		return l.Canonical(depth)
-	case branch:
+	case *branch:
 		return n.Combine(args.flip, l, depth, matches)
 	default:
 		panic(errors.WTF)
@@ -73,6 +71,10 @@ func (l leaf) Difference(args *EqArgs, n node, depth int, removed *int) node {
 		}
 	}
 	return result.Canonical(depth)
+}
+
+func (l leaf) Empty() bool {
+	return len(l) == 0
 }
 
 func (l leaf) Equal(args *EqArgs, n node, depth int) bool {
