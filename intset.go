@@ -20,13 +20,6 @@ const (
 	blockBits  = cellBits * blockCells
 )
 
-func init() {
-	// uintptr must fit inside uint64 for bits package calls to work correctly.
-	if unsafe.Sizeof(uintptr(0)) > unsafe.Sizeof(uint64(0)) {
-		panic("Hmm, that's weird!")
-	}
-}
-
 type cellBlock [blockCells]cellMask
 
 func (b *cellBlock) isSubsetOf(c *cellBlock) bool {
@@ -45,33 +38,21 @@ func locateBlock(i int) (blockIndex, cellIndex int, bitMask cellMask) {
 
 // NewIntSet returns an IntSet with the values provided.
 func NewIntSet(is ...int) IntSet {
-	var b MapBuilder
-	count := 0
-	prevBlockIndex := int(^uint(0) >> 1) // maxint
-	var block *cellBlock
-	notEmpty := false
+	m := map[int]*cellBlock{}
 	for _, i := range is {
 		blockIndex, cellIndex, bitMask := locateBlock(i)
-		if blockIndex != prevBlockIndex {
-			if notEmpty {
-				b.Put(prevBlockIndex, block)
-			}
-			prevBlockIndex = blockIndex
-			var v interface{}
-			if v, notEmpty = b.Get(blockIndex); notEmpty {
-				block = v.(*cellBlock)
-			} else {
-				block = &cellBlock{}
-			}
+		block, has := m[blockIndex]
+		if !has {
+			block = &cellBlock{}
+			m[blockIndex] = block
 		}
-		if block[cellIndex]&bitMask == 0 {
-			block[cellIndex] |= bitMask
-			count++
-			notEmpty = true
-		}
+		block[cellIndex] |= bitMask
 	}
-	if notEmpty {
-		b.Put(prevBlockIndex, block)
+	b := NewMapBuilder(len(m))
+	count := 0
+	for blockIndex, block := range m {
+		b.Put(blockIndex, block)
+		count += block.count()
 	}
 	return IntSet{data: b.Finish(), count: count}
 }

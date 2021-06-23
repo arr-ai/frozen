@@ -2,6 +2,7 @@ package frozen_test
 
 import (
 	"math"
+	"math/rand"
 	"sort"
 	"testing"
 
@@ -225,7 +226,12 @@ func generateIntArrayAndSet(maxLen int) ([]int, IntSet) {
 			seen[e] = true
 		}
 	}
-	return out, NewIntSet(out...)
+	set := NewIntSet(out...)
+	rand.Shuffle(len(out), func(i, j int) {
+		a := out
+		a[i], a[j] = a[j], a[i]
+	})
+	return out, set
 }
 
 func getDistinctInts(x []int) []int {

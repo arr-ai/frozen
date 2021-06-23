@@ -31,9 +31,6 @@ func (i *intSetIterator) Next() bool {
 		}
 		i.firstIntInCell = i.blockIter.Key().(int) * blockBits
 		block := i.blockIter.Value().(*cellBlock)
-		if *block == (cellBlock{}) {
-			panic("WTF?")
-		}
 		for i.block = block[:]; i.block[0] == 0; i.block = i.block[1:] {
 			i.firstIntInCell += cellBits
 		}
