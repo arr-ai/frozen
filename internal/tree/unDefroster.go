@@ -1,5 +1,7 @@
 package tree
 
+import "github.com/arr-ai/frozen/errors"
+
 type unDefroster struct {
 	n node
 }
@@ -10,10 +12,8 @@ func (d unDefroster) Add(args *CombineArgs, v interface{}, depth int, h hasher, 
 	return d.n.Defrost().Add(args, v, depth, h, matches)
 }
 
-func (d unDefroster) copyTo(to *unLeaf) {
-	for i := d.n.Iterator(make([]packer, 0, maxTreeDepth)); i.Next(); {
-		to.data = append(to.data, i.Value())
-	}
+func (d unDefroster) copyTo(to *unLeaf, depth int) {
+	panic(errors.Unimplemented)
 }
 
 func (d unDefroster) countUpTo(max int) int {

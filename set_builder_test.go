@@ -78,15 +78,18 @@ func TestSetBuilderRemove(t *testing.T) {
 func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) {
 	t.Parallel()
 
-	replayable(false, func(r replayer) {
+	replayable(true, func(r replayer) {
 		var b SetBuilder
 
 		s := uint64(0)
 
-		requireMatch := func(format string, args ...interface{}) {
-			for j := 0; j < 35; j++ {
-				assert.Equalf(t, s&(uint64(1)<<uint(j)) != 0, b.Has(j), format+" j=%v", append(args, j)...)
+		assertMatch := func(format string, args ...interface{}) bool {
+			for j := 0; j < 60; j++ {
+				if !assert.Equalf(t, s&(uint64(1)<<uint(j)) != 0, b.Has(j), format+" j=%v", append(args, j)...) {
+					return false
+				}
 			}
+			return true
 		}
 
 		add := func(i int) {
@@ -99,31 +102,34 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) {
 			s &^= uint64(1) << uint(i)
 		}
 
-		requireMatch("")
-		for i := 0; i < 35; i++ {
+		assertMatch("")
+		for i := 0; i < 60; i++ {
 			add(i)
-			requireMatch("i=%v", i)
+			assertMatch("i=%v", i)
 		}
-		for i := 10; i < 25; i++ {
+		for i := 20; i < 50; i++ {
+			m := r.mark(i)
 			remove(i)
-			requireMatch("i=%v", i)
+			if !assertMatch("i=%v", i) {
+				r.replayTo(m)
+			}
 		}
 
-		for i := 5; i < 15; i++ {
+		for i := 10; i < 30; i++ {
 			add(i)
-			requireMatch("i=%v", i)
+			assertMatch("i=%v", i)
 		}
-		for i := 20; i < 30; i++ {
+		for i := 40; i < 55; i++ {
 			remove(i)
-			requireMatch("i=%v", i)
+			assertMatch("i=%v", i)
 		}
 		m := b.Finish()
 
-		for i := 0; i < 35; i++ {
+		for i := 0; i < 60; i++ {
 			switch {
-			case i < 15:
-				assertSetHas(t, m, i)
 			case i < 30:
+				assertSetHas(t, m, i)
+			case i < 55:
 				assertSetNotHas(t, m, i)
 			default:
 				assertSetHas(t, m, i)

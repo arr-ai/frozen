@@ -1,26 +1,5 @@
 package tree
 
-import (
-	"sync"
-
-	"github.com/arr-ai/frozen/internal/pool"
-)
-
-var unBranchPool = sync.Pool{
-	New: func() actualInterface {
-		pool.ThePoolStats.New("unBranch")
-		return &unBranch{}
-	},
-}
-
-var unBranchPrototype = func() unBranch {
-	var b unBranch
-	for i := range b.p {
-		b.p[i] = unEmptyNode{}
-	}
-	return b
-}()
-
 type unBranch struct {
 	p [fanout]unNode
 }
@@ -28,20 +7,7 @@ type unBranch struct {
 var _ unNode = &unBranch{}
 
 func newUnBranch() *unBranch {
-	if !pool.UsePools {
-		return unBranchPool.New().(*unBranch)
-	}
-	b := unBranchPool.Get().(*unBranch)
-	pool.ThePoolStats.Get("unBranch")
-	*b = unBranchPrototype
-	return b
-}
-
-func (b *unBranch) free() {
-	if pool.UsePools {
-		pool.ThePoolStats.Put("unBranch")
-		unBranchPool.Put(b)
-	}
+	return &unBranch{}
 }
 
 func (b *unBranch) Add(args *CombineArgs, v interface{}, depth int, h hasher, matches *int) unNode {
@@ -54,10 +20,10 @@ func (b *unBranch) Add(args *CombineArgs, v interface{}, depth int, h hasher, ma
 	return b
 }
 
-func (b *unBranch) copyTo(n *unLeaf) {
+func (b *unBranch) copyTo(n *unLeaf, depth int) {
 	for _, e := range b.p {
 		if e != nil {
-			e.copyTo(n)
+			e.copyTo(n, depth)
 		}
 	}
 }
@@ -88,7 +54,6 @@ func (b *unBranch) Freeze() node {
 	for m := mask; m != 0; m = m.next() {
 		data = append(data, b.p[m.index()].Freeze())
 	}
-	b.free()
 	return &branch{p: packer{mask: mask, data: data}}
 }
 
@@ -103,11 +68,12 @@ func (b *unBranch) Remove(args *EqArgs, v interface{}, depth int, h hasher, matc
 	i := h.hash()
 	if n := b.p[i]; n != nil {
 		b.p[i] = b.p[i].Remove(args, v, depth+1, h.next(), matches)
-		if n := b.countUpTo(maxLeafLen + 1); n <= maxLeafLen {
-			l := newUnLeaf()
-			b.copyTo(l)
-			b.free()
-			return l
+		if _, is := b.p[i].(*unBranch); !is {
+			if n := b.countUpTo(maxLeafLen + 1); n <= maxLeafLen {
+				l := newUnLeaf()
+				b.copyTo(l, depth)
+				return l
+			}
 		}
 	}
 	return b

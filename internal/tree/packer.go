@@ -1,6 +1,10 @@
 package tree
 
-import "github.com/arr-ai/frozen/internal/iterator"
+import (
+	"sync"
+
+	"github.com/arr-ai/frozen/internal/iterator"
+)
 
 const maxLeafLen = 8
 
@@ -66,9 +70,27 @@ func (p packer) All(parallel bool, f func(m masker, n node) bool) bool {
 }
 
 func (p packer) AllPair(q packer, mask masker, parallel bool, f func(m masker, a, b node) bool) bool {
-	return p.AllMask(mask, parallel, func(m masker, n node) bool {
-		return f(m, n, q.Get(m))
-	})
+	if parallel {
+		dones := make(chan bool, fanout)
+		for m := mask; m != 0; m = m.next() {
+			m := m
+			go func() {
+				dones <- f(m, p.Get(m), q.Get(m))
+			}()
+		}
+		for m := mask; m != 0; m = m.next() {
+			if !<-dones {
+				return false
+			}
+		}
+	} else {
+		for m := mask; m != 0; m = m.next() {
+			if !f(m, p.Get(m), q.Get(m)) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (p packer) AllMask(mask masker, parallel bool, f func(m masker, n node) bool) bool {
@@ -106,10 +128,22 @@ func (p packer) Transform(parallel bool, f func(m masker, n node) node) packer {
 
 func (p packer) TransformPair(q packer, mask masker, parallel bool, f func(m masker, x, y node) node) packer {
 	var nodes [fanout]node
-	p.AllPair(q, mask, parallel, func(m masker, a, b node) bool {
-		nodes[m.index()] = f(m, a, b)
-		return true
-	})
+	if parallel {
+		var wg sync.WaitGroup
+		for m := mask; m != 0; m = m.next() {
+			m := m
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				nodes[m.index()] = f(m, p.Get(m), q.Get(m))
+			}()
+		}
+		wg.Wait()
+	} else {
+		for m := mask; m != 0; m = m.next() {
+			nodes[m.index()] = f(m, p.Get(m), q.Get(m))
+		}
+	}
 	return packerFromNodes(&nodes)
 }
 

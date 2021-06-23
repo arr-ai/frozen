@@ -11,6 +11,10 @@ func Wrap(e interface{}, skip int) error {
 	return nil
 }
 
+func Errorf(format string, args ...interface{}) error {
+	return errors.Errorf(format, args...)
+}
+
 type InternalError string
 
 func (e InternalError) Error() string {

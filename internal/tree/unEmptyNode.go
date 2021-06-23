@@ -8,7 +8,7 @@ func (e unEmptyNode) Add(args *CombineArgs, v interface{}, depth int, h hasher, 
 	return newUnLeaf().Add(args, v, depth, h, matches)
 }
 
-func (unEmptyNode) copyTo(*unLeaf) {}
+func (unEmptyNode) copyTo(*unLeaf, int) {}
 
 func (unEmptyNode) countUpTo(max int) int {
 	return 0

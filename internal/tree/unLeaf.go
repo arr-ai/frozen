@@ -1,133 +1,111 @@
 package tree
 
-import (
-	"sync"
-
-	"github.com/arr-ai/frozen/internal/pool"
-)
-
-var unLeafPool = sync.Pool{
-	New: func() actualInterface {
-		pool.ThePoolStats.New("unLeaf")
-		var buf [maxLeafLen]interface{}
-		return &unLeaf{buf: &buf}
-	},
-}
-
-var unLeafPool0 = sync.Pool{
-	New: func() actualInterface {
-		return &unLeaf{}
-	},
-}
-
 type unLeaf struct {
-	data []interface{}
-
-	// Use a pointer to decouple the memory lifecycle from the parent's.
-	buf *[maxLeafLen]interface{}
+	data  map[hasher][]interface{}
+	count int
 }
 
 var _ unNode = &unLeaf{}
 
 func newUnLeaf() *unLeaf {
-	var l *unLeaf
-	if pool.UsePools {
-		l = unLeafPool.Get().(*unLeaf)
-		pool.ThePoolStats.Get("unLeaf")
-	} else {
-		l = unLeafPool.New().(*unLeaf)
-	}
-	l.data = l.buf[:0]
-	return l
+	return &unLeaf{data: map[hasher][]interface{}{}}
 }
 
-func newUnLeaf0() *unLeaf {
-	var l *unLeaf
-	if pool.UsePools {
-		l = unLeafPool0.Get().(*unLeaf)
-	} else {
-		l = unLeafPool0.New().(*unLeaf)
+func (l *unLeaf) Add(args *CombineArgs, v interface{}, depth int, h hasher, matches *int) (ret unNode) {
+	if vetting {
+		defer vetUnNode(l)(&ret)
 	}
-	return l
-}
-
-func (l *unLeaf) free() {
-	if pool.UsePools {
-		unLeafPool.Put(l)
-		pool.ThePoolStats.Put("unLeaf")
+	bucket := l.data[h]
+	for i, e := range bucket {
+		if args.eq(e, v) {
+			*matches++
+			bucket[i] = args.f(e, v)
+			return l
+		}
 	}
-}
-
-func (l *unLeaf) Add(args *CombineArgs, v interface{}, depth int, h hasher, matches *int) unNode {
-	if i := l.find(args.EqArgs, v); i != -1 {
-		*matches++
-		l.data[i] = args.f(l.data[i], v)
-		return l
-	}
-	if len(l.data) <= maxLeafLen-1 || depth >= maxTreeDepth {
-		l.data = append(l.data, v)
+	if l.count < maxLeafLen || depth >= maxTreeDepth {
+		l.count++
+		l.data[h] = append(bucket, v)
 		return l
 	}
 
 	b := newUnBranch()
-	for _, e := range l.data {
-		b.Add(args, e, depth, newHasher(e, depth), matches)
+	for _, bucket := range l.data {
+		for _, e := range bucket {
+			b.Add(args, e, depth, newHasher(e, depth), matches)
+		}
 	}
-	b.Add(args, v, depth, newHasher(v, depth), matches)
-
-	l.free()
+	b.Add(args, v, depth, h, matches)
 
 	return b
 }
 
-func (l *unLeaf) copyTo(to *unLeaf) {
-	for _, e := range l.data {
-		to.Add(DefaultNPCombineArgs, e, 0, 0, nil)
+func (l *unLeaf) copyTo(to *unLeaf, depth int) {
+	if vetting {
+		defer vetUnNode(l)(&to)
 	}
+	for _, bucket := range l.data {
+		for _, e := range bucket {
+			h := newHasher(e, depth)
+			bucket := to.data[h]
+			to.data[h] = append(bucket, e)
+		}
+	}
+	to.count += l.count
 }
 
 func (l *unLeaf) countUpTo(max int) int {
-	return len(l.data)
+	if vetting {
+		defer vetUnNode(l)()
+	}
+	return l.count
 }
 
 func (l *unLeaf) Freeze() node {
-	if len(l.data) == maxLeafLen {
-		return leaf(l.data)
+	if vetting {
+		defer vetUnNode(l)()
 	}
-	result := append(make(leaf, 0, len(l.data)), l.data...)
-	l.free()
-	return result
+	ret := make(leaf, 0, l.count)
+	for _, bucket := range l.data {
+		ret = append(ret, bucket...)
+	}
+	return ret
 }
 
 func (l *unLeaf) Get(args *EqArgs, v interface{}, h hasher) *interface{} {
-	if i := l.find(args, v); i != -1 {
-		return &l.data[i]
+	if vetting {
+		defer vetUnNode(l)()
+	}
+	bucket := l.data[h]
+	for i, e := range bucket {
+		if args.eq(e, v) {
+			return &bucket[i]
+		}
 	}
 	return nil
 }
 
-func (l *unLeaf) Remove(args *EqArgs, v interface{}, depth int, h hasher, matches *int) unNode {
-	if i := l.find(args, v); i != -1 {
-		*matches++
-		last := len(l.data) - 1
-		if last == 0 {
-			l.free()
-			return unEmptyNode{}
+func (l *unLeaf) Remove(args *EqArgs, v interface{}, depth int, h hasher, matches *int) (ret unNode) {
+	if vetting {
+		defer vetUnNode(l)(&ret)
+	}
+	bucket := l.data[h]
+	for i, e := range bucket {
+		if args.eq(e, v) {
+			*matches++
+			if l.count--; l.count == 0 {
+				return unEmptyNode{}
+			}
+			if last := len(bucket) - 1; last > 0 {
+				if i < last {
+					bucket[i] = bucket[last]
+				}
+				l.data[h] = bucket[:last]
+			} else {
+				delete(l.data, h)
+			}
+			return l
 		}
-		if i < last {
-			l.data[i] = l.data[last]
-		}
-		l.data = l.data[:last]
-		return l
 	}
 	return l
-}
-
-func (l *unLeaf) find(args *EqArgs, v interface{}) int {
-	for i, e := range l.data {
-		if args.eq(e, v) {
-			return i
-		}
-	}
-	return -1
 }
