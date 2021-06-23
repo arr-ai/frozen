@@ -20,25 +20,15 @@ func (b *unBranch) Add(args *CombineArgs, v interface{}, depth int, h hasher, ma
 	return b
 }
 
-func (b *unBranch) copyTo(n *unLeaf, depth int) {
+func (b *unBranch) appendTo(dest []interface{}) []interface{} {
 	for _, e := range b.p {
 		if e != nil {
-			e.copyTo(n, depth)
-		}
-	}
-}
-
-func (b *unBranch) countUpTo(max int) int {
-	total := 0
-	for _, e := range b.p {
-		if e != nil {
-			total += e.countUpTo(max)
-			if total >= max {
+			if dest = e.appendTo(dest); dest == nil {
 				break
 			}
 		}
 	}
-	return total
+	return dest
 }
 
 func (b *unBranch) Freeze() node {
@@ -69,10 +59,11 @@ func (b *unBranch) Remove(args *EqArgs, v interface{}, depth int, h hasher, matc
 	if n := b.p[i]; n != nil {
 		b.p[i] = b.p[i].Remove(args, v, depth+1, h.next(), matches)
 		if _, is := b.p[i].(*unBranch); !is {
-			if n := b.countUpTo(maxLeafLen + 1); n <= maxLeafLen {
+			var buf [maxLeafLen]interface{}
+			if b := b.appendTo(buf[:]); b != nil {
 				l := newUnLeaf()
-				b.copyTo(l, depth)
-				return l
+				l = append(l, b...)
+				return &l
 			}
 		}
 	}

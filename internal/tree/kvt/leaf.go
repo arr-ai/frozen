@@ -58,9 +58,7 @@ func (l leaf) CountUpTo(int) int {
 }
 
 func (l leaf) Defrost() unNode {
-	u := newUnLeaf0()
-	u.data = l
-	return u
+	panic(errors.Unimplemented)
 }
 
 func (l leaf) Difference(args *EqArgs, n node, depth int, removed *int) node {

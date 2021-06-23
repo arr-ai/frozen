@@ -26,7 +26,9 @@ func (b *Builder) Add(args *CombineArgs, v kv.KeyValue) {
 
 func (b *Builder) Remove(args *EqArgs, v kv.KeyValue) {
 	removed := 0
-	nodeRemove(b.t.Root(), args, v, 0, newHasher(v, 0), &removed, &b.t.root)
+	root := b.t.Root()
+	h := newHasher(v, 0)
+	nodeRemove(root, args, v, 0, h, &removed, &b.t.root)
 	b.t.count -= removed
 }
 

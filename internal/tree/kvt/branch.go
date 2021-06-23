@@ -50,9 +50,12 @@ func (b *branch) Combine(args *CombineArgs, n node, depth int, matches *int) nod
 		return result
 	case *branch:
 		var allMatches [fanout]int
-		result := &branch{p: b.p.TransformPair(n.p, b.p.mask|n.p.mask, args.Parallel(depth), func(m masker, x, y node) node {
-			return x.Combine(args, y, depth+1, &allMatches[m.index()])
-		})}
+		result := &branch{
+			p: b.p.TransformPair(n.p, b.p.mask|n.p.mask, args.Parallel(depth),
+				func(m masker, x, y node) node {
+					return x.Combine(args, y, depth+1, &allMatches[m.index()])
+				}),
+		}
 		for _, m := range allMatches {
 			*matches += m
 		}

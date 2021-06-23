@@ -2,6 +2,7 @@
 package kvt
 
 import (
+	"github.com/arr-ai/frozen/errors"
 	"github.com/arr-ai/frozen/pkg/kv"
 )
 
@@ -15,14 +16,8 @@ func (d unDefroster) Add(args *CombineArgs, v kv.KeyValue, depth int, h hasher, 
 	return d.n.Defrost().Add(args, v, depth, h, matches)
 }
 
-func (d unDefroster) copyTo(to *unLeaf) {
-	for i := d.n.Iterator(make([]packer, 0, maxTreeDepth)); i.Next(); {
-		to.data = append(to.data, i.Value())
-	}
-}
-
-func (d unDefroster) countUpTo(max int) int {
-	return d.n.CountUpTo(max)
+func (d unDefroster) appendTo([]kv.KeyValue) []kv.KeyValue {
+	panic(errors.Unimplemented)
 }
 
 func (d unDefroster) Empty() bool {

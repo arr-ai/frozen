@@ -12,12 +12,8 @@ func (d unDefroster) Add(args *CombineArgs, v interface{}, depth int, h hasher, 
 	return d.n.Defrost().Add(args, v, depth, h, matches)
 }
 
-func (d unDefroster) copyTo(to *unLeaf, depth int) {
+func (d unDefroster) appendTo([]interface{}) []interface{} {
 	panic(errors.Unimplemented)
-}
-
-func (d unDefroster) countUpTo(max int) int {
-	return d.n.CountUpTo(max)
 }
 
 func (d unDefroster) Empty() bool {

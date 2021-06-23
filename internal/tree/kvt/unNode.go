@@ -12,6 +12,8 @@ type unNode interface {
 	Remove(args *EqArgs, v kv.KeyValue, depth int, h hasher, matches *int) unNode
 
 	// For internal use by unNode implementations.
-	copyTo(n *unLeaf)
-	countUpTo(max int) int
+
+	// copyTo copies all the unNode's elements into dest without triggering a
+	// reallocation of the target slice. Returns true iff all elements fit.
+	appendTo(dest []kv.KeyValue) []kv.KeyValue
 }

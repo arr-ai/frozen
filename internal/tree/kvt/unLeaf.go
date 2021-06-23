@@ -2,134 +2,75 @@
 package kvt
 
 import (
-	"sync"
-
-	"github.com/arr-ai/frozen/internal/pool"
 	"github.com/arr-ai/frozen/pkg/kv"
 )
 
-var unLeafPool = sync.Pool{
-	New: func() interface{} {
-		pool.ThePoolStats.New("unLeaf")
-		var buf [maxLeafLen]kv.KeyValue
-		return &unLeaf{buf: &buf}
-	},
-}
-
-var unLeafPool0 = sync.Pool{
-	New: func() interface{} {
-		return &unLeaf{}
-	},
-}
-
-type unLeaf struct {
-	data []kv.KeyValue
-
-	// Use a pointer to decouple the memory lifecycle from the parent's.
-	buf *[maxLeafLen]kv.KeyValue
-}
+type unLeaf []kv.KeyValue
 
 var _ unNode = &unLeaf{}
 
-func newUnLeaf() *unLeaf {
-	var l *unLeaf
-	if pool.UsePools {
-		l = unLeafPool.Get().(*unLeaf)
-		pool.ThePoolStats.Get("unLeaf")
-	} else {
-		l = unLeafPool.New().(*unLeaf)
-	}
-	l.data = l.buf[:0]
-	return l
-}
-
-func newUnLeaf0() *unLeaf {
-	var l *unLeaf
-	if pool.UsePools {
-		l = unLeafPool0.Get().(*unLeaf)
-	} else {
-		l = unLeafPool0.New().(*unLeaf)
-	}
-	return l
-}
-
-func (l *unLeaf) free() {
-	if pool.UsePools {
-		unLeafPool.Put(l)
-		pool.ThePoolStats.Put("unLeaf")
-	}
+func newUnLeaf() unLeaf {
+	return make(unLeaf, 0, maxLeafLen)
 }
 
 func (l *unLeaf) Add(args *CombineArgs, v kv.KeyValue, depth int, h hasher, matches *int) unNode {
-	if i := l.find(args.EqArgs, v); i != -1 {
-		*matches++
-		l.data[i] = args.f(l.data[i], v)
-		return l
+	for i, e := range *l {
+		if args.eq(e, v) {
+			*matches++
+			(*l)[i] = args.f(e, v)
+			return l
+		}
 	}
-	if len(l.data) <= maxLeafLen-1 || depth >= maxTreeDepth {
-		l.data = append(l.data, v)
+	if len(*l) < cap(*l) || depth >= maxTreeDepth {
+		*l = append(*l, v)
 		return l
 	}
 
 	b := newUnBranch()
-	for _, e := range l.data {
+	for _, e := range *l {
 		b.Add(args, e, depth, newHasher(e, depth), matches)
 	}
-	b.Add(args, v, depth, newHasher(v, depth), matches)
-
-	l.free()
+	b.Add(args, v, depth, h, matches)
 
 	return b
 }
 
-func (l *unLeaf) copyTo(to *unLeaf) {
-	for _, e := range l.data {
-		to.Add(DefaultNPCombineArgs, e, 0, 0, nil)
+func (l unLeaf) appendTo(dest []kv.KeyValue) []kv.KeyValue {
+	if len(dest)+len(l) > cap(dest) {
+		return nil
 	}
+	return append(dest, l...)
 }
 
-func (l *unLeaf) countUpTo(max int) int {
-	return len(l.data)
+func (l unLeaf) Freeze() node {
+	ret := make(leaf, 0, len(l))
+	ret = append(ret, l...)
+	return ret
 }
 
-func (l *unLeaf) Freeze() node {
-	if len(l.data) == maxLeafLen {
-		return leaf(l.data)
-	}
-	result := append(make(leaf, 0, len(l.data)), l.data...)
-	l.free()
-	return result
-}
-
-func (l *unLeaf) Get(args *EqArgs, v kv.KeyValue, h hasher) *kv.KeyValue {
-	if i := l.find(args, v); i != -1 {
-		return &l.data[i]
+func (l unLeaf) Get(args *EqArgs, v kv.KeyValue, h hasher) *kv.KeyValue {
+	for i, e := range l {
+		if args.eq(e, v) {
+			return &(l)[i]
+		}
 	}
 	return nil
 }
 
 func (l *unLeaf) Remove(args *EqArgs, v kv.KeyValue, depth int, h hasher, matches *int) unNode {
-	if i := l.find(args, v); i != -1 {
-		*matches++
-		last := len(l.data) - 1
-		if last == 0 {
-			l.free()
-			return unEmptyNode{}
+	for i, e := range *l {
+		if args.eq(e, v) {
+			*matches++
+			last := len(*l) - 1
+			if last == 0 {
+				return unEmptyNode{}
+			}
+			if i < last {
+				(*l)[i] = (*l)[last]
+			}
+			*l = (*l)[:last]
+			return l
 		}
-		if i < last {
-			l.data[i] = l.data[last]
-		}
-		l.data = l.data[:last]
-		return l
 	}
 	return l
-}
-
-func (l *unLeaf) find(args *EqArgs, v kv.KeyValue) int {
-	for i, e := range l.data {
-		if args.eq(e, v) {
-			return i
-		}
-	}
-	return -1
 }

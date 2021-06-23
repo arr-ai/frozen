@@ -75,7 +75,7 @@ func TestSetBuilderRemove(t *testing.T) {
 	}
 }
 
-func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) {
+func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop
 	t.Parallel()
 
 	replayable(true, func(r replayer) {
