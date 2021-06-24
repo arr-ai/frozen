@@ -66,11 +66,7 @@ func (p packer) Iterator(buf []packer) kvi.Iterator {
 	return newPackerIterator(buf, p)
 }
 
-func (p packer) All(parallel bool, f func(m masker, n node) bool) bool {
-	return p.AllMask(p.mask, parallel, f)
-}
-
-func (p packer) AllPair(q packer, mask masker, parallel bool, f func(m masker, a, b node) bool) bool {
+func (p packer) All(q packer, mask masker, parallel bool, f func(m masker, a, b node) bool) bool {
 	if parallel {
 		dones := make(chan bool, fanout)
 		for m := mask; m != 0; m = m.next() {
@@ -92,39 +88,6 @@ func (p packer) AllPair(q packer, mask masker, parallel bool, f func(m masker, a
 		}
 	}
 	return true
-}
-
-func (p packer) AllMask(mask masker, parallel bool, f func(m masker, n node) bool) bool {
-	if parallel {
-		dones := make(chan bool, fanout)
-		for m := mask; m != 0; m = m.next() {
-			m := m
-			go func() {
-				dones <- f(m, p.Get(m))
-			}()
-		}
-		for m := mask; m != 0; m = m.next() {
-			if !<-dones {
-				return false
-			}
-		}
-	} else {
-		for m := mask; m != 0; m = m.next() {
-			if !f(m, p.Get(m)) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func (p packer) Transform(parallel bool, f func(m masker, n node) node) packer {
-	var nodes [fanout]node
-	p.All(parallel, func(m masker, n node) bool {
-		nodes[m.index()] = f(m, n)
-		return true
-	})
-	return packerFromNodes(&nodes)
 }
 
 func (p packer) TransformPair(q packer, mask masker, parallel bool, f func(m masker, x, y node) node) packer {

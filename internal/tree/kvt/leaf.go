@@ -53,7 +53,7 @@ func (l leaf) Combine(args *CombineArgs, n node, depth int, matches *int) node {
 	}
 }
 
-func (l leaf) CopyTo(dest leaf) leaf {
+func (l leaf) CopyTo(dest []kv.KeyValue) []kv.KeyValue {
 	if len(dest)+len(l) > cap(dest) {
 		return nil
 	}

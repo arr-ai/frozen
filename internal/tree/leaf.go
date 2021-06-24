@@ -51,7 +51,7 @@ func (l leaf) Combine(args *CombineArgs, n node, depth int, matches *int) node {
 	}
 }
 
-func (l leaf) CopyTo(dest leaf) leaf {
+func (l leaf) CopyTo(dest []interface{}) []interface{} {
 	if len(dest)+len(l) > cap(dest) {
 		return nil
 	}

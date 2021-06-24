@@ -26,8 +26,8 @@ type branch struct {
 
 func (b *branch) Canonical(_ int) node {
 	var buf [maxLeafLen]interface{}
-	if l := b.CopyTo(buf[:0]); l != nil {
-		return l
+	if data := b.CopyTo(buf[:0]); data != nil {
+		return append(leaf(nil), data...)
 	}
 	return b
 }
@@ -58,7 +58,7 @@ func (b *branch) Combine(args *CombineArgs, n node, depth int, matches *int) nod
 	}
 }
 
-func (b *branch) CopyTo(dest leaf) leaf {
+func (b *branch) CopyTo(dest []interface{}) []interface{} {
 	for _, child := range b.p.data {
 		if dest = child.CopyTo(dest); dest == nil {
 			break
@@ -84,10 +84,15 @@ func (b *branch) Difference(args *EqArgs, n node, depth int, removed *int) node 
 		}
 		return result
 	case *branch:
-		return b.transformPair(n, b.p.mask, args.Parallel(depth), removed,
-			func(_ masker, a, b node, matches *int) node {
-				return a.Difference(args, b, depth+1, matches)
-			}).Canonical(depth)
+		var allMatches [fanout]int
+		result := &branch{p: b.p.TransformPair(n.p, b.p.mask, args.Parallel(depth),
+			func(m masker, x, y node) node {
+				return x.Difference(args, y, depth+1, &allMatches[m.index()])
+			})}
+		for _, m := range allMatches {
+			*removed += m
+		}
+		return result.Canonical(depth)
 	default:
 		panic(errors.WTF)
 	}
@@ -99,9 +104,9 @@ func (b *branch) Empty() bool {
 
 func (b *branch) Equal(args *EqArgs, n node, depth int) bool {
 	if n, is := n.(*branch); is {
-		return b.allPair(n, b.p.mask|n.p.mask, args.Parallel(depth),
-			func(m masker, x, y node) bool {
-				return x.Equal(args, y, depth+1)
+		return b.p.All(n.p, b.p.mask|n.p.mask, args.Parallel(depth),
+			func(m masker, a, b node) bool {
+				return a.Equal(args, b, depth+1)
 			})
 	}
 	return false
@@ -116,10 +121,15 @@ func (b *branch) Intersection(args *EqArgs, n node, depth int, matches *int) nod
 	case leaf:
 		return n.Intersection(args.flip, b, depth, matches)
 	case *branch:
-		return b.transformPair(n, b.p.mask&n.p.mask, args.Parallel(depth), matches,
-			func(_ masker, a, b node, matches *int) node {
-				return a.Intersection(args, b, depth+1, matches)
-			}).Canonical(depth)
+		var allMatches [fanout]int
+		result := &branch{p: b.p.TransformPair(n.p, b.p.mask&n.p.mask, args.Parallel(depth),
+			func(m masker, a, b node) node {
+				return a.Intersection(args, b, depth+1, &allMatches[m.index()])
+			})}
+		for _, m := range allMatches {
+			*matches += m
+		}
+		return result.Canonical(depth)
 	default:
 		panic(errors.WTF)
 	}
@@ -131,7 +141,7 @@ func (b *branch) Iterator(buf []packer) iterator.Iterator {
 
 func (b *branch) Reduce(args NodeArgs, depth int, r func(values ...interface{}) interface{}) interface{} {
 	var results [fanout]interface{}
-	b.p.All(args.Parallel(depth), func(m masker, child node) bool {
+	b.p.All(packer{}, b.p.mask, args.Parallel(depth), func(m masker, child, _ node) bool {
 		results[m.index()] = child.Reduce(args, depth+1, r)
 		return true
 	})
@@ -148,10 +158,9 @@ func (b *branch) SubsetOf(args *EqArgs, n node, depth int) bool {
 	case leaf:
 		return false
 	case *branch:
-		return b.allPair(n, b.p.mask, args.Parallel(depth),
-			func(m masker, x, y node) bool {
-				return x.SubsetOf(args, y, depth+1)
-			})
+		return b.p.All(n.p, b.p.mask, args.Parallel(depth), func(m masker, a, b node) bool {
+			return a.SubsetOf(args, b, depth+1)
+		})
 	default:
 		panic(errors.WTF)
 	}
@@ -160,7 +169,7 @@ func (b *branch) SubsetOf(args *EqArgs, n node, depth int) bool {
 func (b *branch) Transform(args *CombineArgs, depth int, count *int, f func(v interface{}) interface{}) node {
 	var results [fanout]node
 	var counts [fanout]int
-	b.p.All(args.Parallel(depth), func(m masker, child node) bool {
+	b.p.All(packer{}, b.p.mask, args.Parallel(depth), func(m masker, child, _ node) bool {
 		i := m.index()
 		results[i] = child.Transform(args, depth+1, &counts[i], f)
 		return true
@@ -181,10 +190,17 @@ func (b *branch) Transform(args *CombineArgs, depth int, count *int, f func(v in
 }
 
 func (b *branch) Where(args *WhereArgs, depth int, matches *int) node {
-	return b.transformImpl(args.Parallel(depth), matches,
-		func(_ masker, n node, matches *int) node {
-			return n.Where(args, depth+1, matches)
-		}).Canonical(depth)
+	var allMatches [fanout]int
+	var nodes [fanout]node
+	b.p.All(packer{}, b.p.mask, args.Parallel(depth), func(m masker, a, _ node) bool {
+		nodes[m.index()] = a.Where(args, depth+1, &allMatches[m.index()])
+		return true
+	})
+
+	for _, m := range allMatches {
+		*matches += m
+	}
+	return (&branch{p: packerFromNodes(&nodes)}).Canonical(depth)
 }
 
 func (b *branch) With(args *CombineArgs, v interface{}, depth int, h hasher, matches *int) node {
@@ -196,50 +212,6 @@ func (b *branch) Without(args *EqArgs, v interface{}, depth int, h hasher, match
 	i := newMasker(h.hash())
 	child := b.p.Get(i).Without(args, v, depth+1, h.next(), matches)
 	return (&branch{p: b.p.With(i, child)}).Canonical(depth)
-}
-
-func (b *branch) allPair(
-	o *branch,
-	mask masker,
-	parallel bool,
-	op func(m masker, a, b node) bool,
-) bool {
-	ok := b.p.AllPair(o.p, mask, parallel, func(m masker, x, y node) bool {
-		return op(m, x, y)
-	})
-	return ok
-}
-
-func (b *branch) transformPair(
-	o *branch,
-	mask masker,
-	parallel bool,
-	matches *int,
-	op func(m masker, a, b node, matches *int) node,
-) node {
-	var allMatches [fanout]int
-	result := &branch{p: b.p.TransformPair(o.p, mask, parallel, func(m masker, x, y node) node {
-		return op(m, x, y, &allMatches[m.index()])
-	})}
-	for _, m := range allMatches {
-		*matches += m
-	}
-	return result
-}
-
-func (b *branch) transformImpl(
-	parallel bool,
-	matches *int,
-	op func(m masker, n node, matches *int) node,
-) node {
-	var allMatches [fanout]int
-	result := &branch{p: b.p.Transform(parallel, func(m masker, n node) node {
-		return op(m, n, &allMatches[m.index()])
-	})}
-	for _, m := range allMatches {
-		*matches += m
-	}
-	return result
 }
 
 func (b *branch) Format(f fmt.State, _ rune) {

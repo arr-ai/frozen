@@ -11,7 +11,7 @@ type node interface {
 
 	Canonical(depth int) node
 	Combine(args *CombineArgs, n node, depth int, matches *int) node
-	CopyTo(dest leaf) leaf
+	CopyTo(dest []interface{}) []interface{}
 	Defrost() unNode
 	Difference(args *EqArgs, n node, depth int, removed *int) node
 	Empty() bool
