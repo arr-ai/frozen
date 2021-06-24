@@ -111,7 +111,7 @@ func (l leaf) Intersection(args *EqArgs, n node, depth int, matches *int) node {
 	return result.Canonical(depth)
 }
 
-func (l leaf) Iterator([]packer) iterator.Iterator {
+func (l leaf) Iterator([][]node) iterator.Iterator {
 	return newLeafIterator(l)
 }
 
@@ -128,13 +128,13 @@ func (l leaf) SubsetOf(args *EqArgs, n node, depth int) bool {
 	return true
 }
 
-func (l leaf) Transform(args *CombineArgs, depth int, counts *int, f func(v interface{}) interface{}) node {
+func (l leaf) Transform(args *CombineArgs, depth int, counts *int, f func(e interface{}) interface{}) node {
 	var nb Builder
 	for _, e := range l {
 		nb.Add(args, f(e))
 	}
 	t := nb.Finish()
-	*counts = t.count
+	*counts += t.count
 	return t.root
 }
 

@@ -121,7 +121,7 @@ func (t Tree) Without(args *EqArgs, v interface{}) Tree {
 	return newTreeNeg(t.Root().Without(args, v, 0, newHasher(v, 0), &count), &count)
 }
 
-func packedIteratorBuf(count int) []packer {
+func packedIteratorBuf(count int) [][]node {
 	depth := (bits.Len64(uint64(count)) + 1) * 3 / 2 // 1.5 (log₈(count) + 1)
-	return make([]packer, 0, depth)
+	return make([][]node, 0, depth)
 }

@@ -252,6 +252,8 @@ func TestSetEqualLarge(t *testing.T) {
 	b := intSet(0, n)
 	c := intSet(n, n).Map(func(e interface{}) interface{} { return e.(int) - n })
 
+	require.Equal(t, n, a.Count())
+	require.Equal(t, n, b.Count())
 	require.Equal(t, n, c.Count())
 	for i := 0; i < n; i++ {
 		require.True(t, c.Has(i), i)
@@ -439,7 +441,7 @@ func TestSetReduceHuge(t *testing.T) {
 	assert.Equal(t, (n-1)*n/2, Iota(n).Reduce2(sum))
 }
 
-func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set) Set) {
+func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set) Set) { //nolint:cyclop
 	t.Helper()
 
 	m := map[uint64]struct{}{
@@ -482,8 +484,8 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 			bxy := bitop(x, y)
 			sxy := NewSetFromMask64(bxy)
 			sxsy := setop(sx, sy)
-			require.Equal(t, bits.OnesCount64(bxy), sxsy.Count())
-			if !assertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
+			if !assert.Equal(t, bits.OnesCount64(bxy), sxsy.Count()) ||
+				!assertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
 				setop(sx, sy)
 				break
 			}

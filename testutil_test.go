@@ -56,7 +56,7 @@ func memoizePrepop(prepare func(n int) interface{}) func(n int) interface{} {
 func assertSetEqual(t *testing.T, expected, actual Set, msgAndArgs ...interface{}) bool {
 	t.Helper()
 
-	format := "\nexpected: %v !=\nactual:   %v"
+	format := "\nexpected: %10v !=\nactual:   %10v"
 	args := []interface{}{}
 	if len(msgAndArgs) > 0 {
 		format = msgAndArgs[0].(string) + format

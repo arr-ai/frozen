@@ -40,11 +40,13 @@ func (b *unBranch) Freeze() node {
 			mask |= newMasker(i)
 		}
 	}
-	data := make([]node, 0, mask.count())
-	for m := mask; m != 0; m = m.next() {
-		data = append(data, b.p[m.index()].Freeze())
+	var data [fanout]node
+	for i, e := range b.p {
+		if e != nil {
+			data[i] = e.Freeze()
+		}
 	}
-	return &branch{p: packer{mask: mask, data: data}}
+	return &branch{p: data}
 }
 
 func (b *unBranch) Get(args *EqArgs, v interface{}, h hasher) *interface{} {

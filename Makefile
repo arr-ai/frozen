@@ -9,9 +9,6 @@ iterator.files = \
 tree.package = kvt
 tree.files = \
     branch.go \
-    branch16.go \
-    branch4.go \
-    branch8.go \
     builder.go \
     hasher.go \
     leaf.go \

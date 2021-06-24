@@ -10,12 +10,12 @@ import (
 type Less func(a, b interface{}) bool
 
 type packerIterator struct {
-	stack []packer
+	stack [][]node
 	i     iterator.Iterator
 }
 
-func newPackerIterator(buf []packer, p packer) *packerIterator {
-	buf = append(buf, p)
+func newPackerIterator(buf [][]node, p *packer) *packerIterator {
+	buf = append(buf, p[:])
 	return &packerIterator{stack: buf, i: iterator.Empty}
 }
 
@@ -24,12 +24,15 @@ func (i *packerIterator) Next() bool {
 		return true
 	}
 	p := &i.stack[0]
-	if len(p.data) == 0 {
-		return false
+	for len(*p) > 0 {
+		c := (*p)[0]
+		*p = (*p)[1:]
+		if c != nil {
+			i.i = c.Iterator(i.stack[1:])
+			return i.i.Next()
+		}
 	}
-	i.i = p.data[0].Iterator(i.stack[1:])
-	p.data = p.data[1:]
-	return i.i.Next()
+	return false
 }
 
 func (i *packerIterator) Value() interface{} {

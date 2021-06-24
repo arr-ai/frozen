@@ -138,8 +138,15 @@ func (s Set) Format(state fmt.State, _ rune) {
 			log.Print("wtf?")
 		}
 	}()
+
+	w, set := state.Width()
+
 	state.Write([]byte("{"))
 	for i, n := s.Range(), 0; i.Next(); n++ {
+		if set && n == w {
+			state.Write([]byte(fmt.Sprintf(", ...(+%d)...", s.Count()-n)))
+			break
+		}
 		if n > 0 {
 			state.Write([]byte(", "))
 		}
@@ -262,7 +269,9 @@ func (s Set) Difference(t Set) Set {
 // SymmetricDifference returns a Set with all elements that are s or t, but not
 // both.
 func (s Set) SymmetricDifference(t Set) Set {
-	return s.Difference(t).Union(t.Difference(s))
+	st := s.Difference(t)
+	ts := t.Difference(s)
+	return st.Union(ts)
 }
 
 func (s Set) Powerset() Set {

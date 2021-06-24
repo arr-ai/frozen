@@ -8,112 +8,46 @@ import (
 
 const maxLeafLen = 8
 
-type packer struct {
-	mask masker
-	data []node
-}
+type packer [fanout]node
 
-func packerFromNodes(nodes *[fanout]node) packer {
-	p := packer{}
-	for i, n := range nodes {
-		if n != nil && !n.Empty() {
-			p.mask |= masker(1) << i
-			p.data = append(p.data, n)
-		}
-	}
-	return p
-}
-
-func (p packer) Get(i masker) node {
-	if i.firstIsIn(p.mask) {
-		return p.data[p.mask.offset(i)]
+func (p *packer) Get(i int) node {
+	if n := p[i]; n != nil {
+		return n
 	}
 	return theEmptyNode
 }
 
-func (p packer) With(i masker, n node) packer {
-	i = i.first()
-	index := p.mask.offset(i)
-
-	empty := n.Empty()
-	if existing := i.subsetOf(p.mask); existing {
-		if empty {
-			result := p.update(i, index, -1)
-			switch index {
-			case 0:
-				result.data = p.data[1:]
-			case len(p.data) - 1:
-			default:
-				result.data = append(result.data, p.data[index+1:]...)
-			}
-			return result
-		}
-		result := p.update(0, len(p.data), 0)
-		result.data[index] = n
-		return result
+func (p packer) With(i int, n node) packer {
+	ret := p
+	if n.Empty() {
+		ret[i] = nil
+	} else {
+		ret[i] = n
 	}
-	if !empty {
-		result := p.update(i, index, 1)
-		result.data = append(result.data, n)
-		result.data = append(result.data, p.data[index:]...)
-		return result
-	}
-	return p
+	return ret
 }
 
-func (p packer) Iterator(buf []packer) iterator.Iterator {
+func (p *packer) Iterator(buf [][]node) iterator.Iterator {
 	return newPackerIterator(buf, p)
 }
 
-func (p packer) All(q packer, mask masker, parallel bool, f func(m masker, a, b node) bool) bool {
-	if parallel {
-		dones := make(chan bool, fanout)
-		for m := mask; m != 0; m = m.next() {
-			m := m
-			go func() {
-				dones <- f(m, p.Get(m), q.Get(m))
-			}()
-		}
-		for m := mask; m != 0; m = m.next() {
-			if !<-dones {
-				return false
-			}
-		}
-	} else {
-		for m := mask; m != 0; m = m.next() {
-			if !f(m, p.Get(m), q.Get(m)) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func (p packer) TransformPair(q packer, mask masker, parallel bool, f func(m masker, x, y node) node) packer {
+func (p *packer) TransformPair(q *packer, parallel bool, f func(i int, x, y node) node) packer {
 	var nodes [fanout]node
 	if parallel {
 		var wg sync.WaitGroup
-		for m := mask; m != 0; m = m.next() {
-			m := m
+		for i := range p {
+			i := i
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				nodes[m.index()] = f(m, p.Get(m), q.Get(m))
+				nodes[i] = f(i, p.Get(i), q.Get(i))
 			}()
 		}
 		wg.Wait()
 	} else {
-		for m := mask; m != 0; m = m.next() {
-			nodes[m.index()] = f(m, p.Get(m), q.Get(m))
+		for i := range p {
+			nodes[i] = f(i, p.Get(i), q.Get(i))
 		}
 	}
-	return packerFromNodes(&nodes)
-}
-
-func (p packer) update(flipper masker, prefix, delta int) packer {
-	result := packer{}
-	result.mask = p.mask ^ flipper
-	result.data = make([]node, 0, len(p.data)+delta)
-	result.data = append(result.data, p.data[:prefix]...)
-	return result
+	return nodes
 }
