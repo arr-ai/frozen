@@ -9,7 +9,6 @@ import (
 	"github.com/arr-ai/hash"
 
 	"github.com/arr-ai/frozen/internal/fmtutil"
-	"github.com/arr-ai/frozen/pkg/kv"
 )
 
 const (
@@ -20,7 +19,7 @@ const (
 
 type hasher uintptr
 
-func newHasher(key kv.KeyValue, depth int) hasher {
+func newHasher(key elementT, depth int) hasher {
 	return hasher(hash.Interface(key, 0)) << uint(depth*fanoutBits)
 }
 

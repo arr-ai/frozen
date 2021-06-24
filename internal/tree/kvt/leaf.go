@@ -7,12 +7,11 @@ import (
 
 	"github.com/arr-ai/frozen/errors"
 	"github.com/arr-ai/frozen/internal/iterator/kvi"
-	"github.com/arr-ai/frozen/pkg/kv"
 )
 
 var theEmptyNode leaf
 
-type leaf []kv.KeyValue
+type leaf []elementT
 
 func (l leaf) Canonical(depth int) node {
 	switch {
@@ -53,7 +52,7 @@ func (l leaf) Combine(args *CombineArgs, n node, depth int, matches *int) node {
 	}
 }
 
-func (l leaf) CopyTo(dest []kv.KeyValue) []kv.KeyValue {
+func (l leaf) CopyTo(dest []elementT) []elementT {
 	if len(dest)+len(l) > cap(dest) {
 		return nil
 	}
@@ -95,7 +94,7 @@ func (l leaf) Equal(args *EqArgs, n node, depth int) bool {
 	return false
 }
 
-func (l leaf) Get(args *EqArgs, v kv.KeyValue, h hasher) *kv.KeyValue {
+func (l leaf) Get(args *EqArgs, v elementT, h hasher) *elementT {
 	if i := l.find(v, args.eq); i != -1 {
 		return &l[i]
 	}
@@ -117,7 +116,7 @@ func (l leaf) Iterator([][]node) kvi.Iterator {
 	return newLeafIterator(l)
 }
 
-func (l leaf) Reduce(args NodeArgs, depth int, r func(values ...kv.KeyValue) kv.KeyValue) kv.KeyValue {
+func (l leaf) Reduce(args NodeArgs, depth int, r func(values ...elementT) elementT) elementT {
 	return r(l...)
 }
 
@@ -130,7 +129,7 @@ func (l leaf) SubsetOf(args *EqArgs, n node, depth int) bool {
 	return true
 }
 
-func (l leaf) Transform(args *CombineArgs, depth int, counts *int, f func(e kv.KeyValue) kv.KeyValue) node {
+func (l leaf) Transform(args *CombineArgs, depth int, counts *int, f func(e elementT) elementT) node {
 	var nb Builder
 	for _, e := range l {
 		nb.Add(args, f(e))
@@ -151,7 +150,7 @@ func (l leaf) Where(args *WhereArgs, depth int, matches *int) node {
 	return result.Canonical(depth)
 }
 
-func (l leaf) With(args *CombineArgs, v kv.KeyValue, depth int, h hasher, matches *int) node {
+func (l leaf) With(args *CombineArgs, v elementT, depth int, h hasher, matches *int) node {
 	if i := l.find(v, args.eq); i >= 0 {
 		*matches++
 		result := l.clone(0)
@@ -161,7 +160,7 @@ func (l leaf) With(args *CombineArgs, v kv.KeyValue, depth int, h hasher, matche
 	return append(l, v).Canonical(depth)
 }
 
-func (l leaf) Without(args *EqArgs, v kv.KeyValue, depth int, h hasher, matches *int) node {
+func (l leaf) Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) node {
 	if i := l.find(v, args.eq); i != -1 {
 		*matches++
 		result := l[:len(l)-1].clone(0)
@@ -177,7 +176,7 @@ func (l leaf) clone(extra int) leaf {
 	return append(make(leaf, 0, len(l)+extra), l...)
 }
 
-func (l leaf) find(v kv.KeyValue, eq func(a, b kv.KeyValue) bool) int { //nolint:gocritic
+func (l leaf) find(v elementT, eq func(a, b elementT) bool) int { //nolint:gocritic
 	for i, e := range l {
 		if eq(e, v) {
 			return i

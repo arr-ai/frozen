@@ -3,9 +3,9 @@ package tree
 import "github.com/arr-ai/hash"
 
 type (
-	actualInterface = interface{}
+	elementT = interface{}
 )
 
-func hashValue(i interface{}, seed uintptr) uintptr {
+func hashValue(i elementT, seed uintptr) uintptr {
 	return hash.Interface(i, seed)
 }

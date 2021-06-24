@@ -4,8 +4,8 @@ package tree
 
 // var keyHash = keyHasher(hash.Interface)
 
-// func keyHasher(hash func(v interface{}, seed uintptr) uintptr) func(v interface{}, seed uintptr) uintptr {
-// 	return func(v interface{}, seed uintptr) uintptr {
+// func keyHasher(hash func(v elementT, seed uintptr) uintptr) func(v elementT, seed uintptr) uintptr {
+// 	return func(v elementT, seed uintptr) uintptr {
 // 		return hash(v.(KeyValue).Key, seed)
 // 	}
 // }
@@ -14,6 +14,6 @@ package tree
 // 	return newEqArgs(gauge, KeyEqual, keyHash, keyHash)
 // }
 
-// func hashValue(i interface{}, seed uintptr) uintptr {
+// func hashValue(i elementT, seed uintptr) uintptr {
 // 	return hash.Interface(i, seed)
 // }

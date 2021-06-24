@@ -7,7 +7,6 @@ import (
 
 	"github.com/arr-ai/frozen/internal/depth"
 	"github.com/arr-ai/frozen/internal/iterator/kvi"
-	"github.com/arr-ai/frozen/pkg/kv"
 )
 
 type Tree struct {
@@ -62,7 +61,7 @@ func (t Tree) Equal(args *EqArgs, n Tree) bool {
 	return t.Root().Equal(args, n.Root(), 0)
 }
 
-func (t Tree) Get(args *EqArgs, v kv.KeyValue) *kv.KeyValue {
+func (t Tree) Get(args *EqArgs, v elementT) *elementT {
 	return t.Root().Get(args, v, newHasher(v, 0))
 }
 
@@ -87,7 +86,7 @@ func (t Tree) OrderedIterator(less Less, n int) kvi.Iterator {
 	if n == -1 {
 		n = t.count
 	}
-	o := &ordered{less: less, elements: make([]kv.KeyValue, 0, n)}
+	o := &ordered{less: less, elements: make([]elementT, 0, n)}
 	for i := t.Root().Iterator(packedIteratorBuf(t.count)); i.Next(); {
 		heap.Push(o, i.Value())
 		if o.Len() > n {
@@ -99,12 +98,12 @@ func (t Tree) OrderedIterator(less Less, n int) kvi.Iterator {
 	return r.(kvi.Iterator)
 }
 
-func (t Tree) Transform(args *CombineArgs, f func(v kv.KeyValue) kv.KeyValue) Tree {
+func (t Tree) Transform(args *CombineArgs, f func(v elementT) elementT) Tree {
 	count := 0
 	return newTree(t.Root().Transform(args, 0, &count, f), &count)
 }
 
-func (t Tree) Reduce(args NodeArgs, r func(values ...kv.KeyValue) kv.KeyValue) kv.KeyValue {
+func (t Tree) Reduce(args NodeArgs, r func(values ...elementT) elementT) elementT {
 	return t.Root().Reduce(args, 0, r)
 }
 
@@ -113,12 +112,12 @@ func (t Tree) Where(args *WhereArgs) Tree {
 	return newTree(t.Root().Where(args, 0, &count), &count)
 }
 
-func (t Tree) With(args *CombineArgs, v kv.KeyValue) Tree {
+func (t Tree) With(args *CombineArgs, v elementT) Tree {
 	count := -(t.count + 1)
 	return newTreeNeg(t.Root().With(args, v, 0, newHasher(v, 0), &count), &count)
 }
 
-func (t Tree) Without(args *EqArgs, v kv.KeyValue) Tree {
+func (t Tree) Without(args *EqArgs, v elementT) Tree {
 	count := -t.count
 	return newTreeNeg(t.Root().Without(args, v, 0, newHasher(v, 0), &count), &count)
 }

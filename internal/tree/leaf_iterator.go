@@ -17,6 +17,6 @@ func (i *leafIterator) Next() bool {
 	return i.index < len(i.l)
 }
 
-func (i *leafIterator) Value() interface{} {
+func (i *leafIterator) Value() elementT {
 	return i.l[i.index]
 }

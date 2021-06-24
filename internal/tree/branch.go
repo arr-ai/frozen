@@ -17,10 +17,10 @@ const (
 
 var (
 	// UseRHS returns its RHS arg.
-	UseRHS = func(_, b interface{}) interface{} { return b }
+	UseRHS = func(_, b elementT) elementT { return b }
 
 	// UseLHS returns its LHS arg.
-	UseLHS = func(a, _ interface{}) interface{} { return a }
+	UseLHS = func(a, _ elementT) elementT { return a }
 )
 
 type branch struct {
@@ -28,7 +28,7 @@ type branch struct {
 }
 
 func (b *branch) Canonical(_ int) node {
-	var buf [maxLeafLen]interface{}
+	var buf [maxLeafLen]elementT
 	if data := b.CopyTo(buf[:0]); data != nil {
 		return append(leaf(nil), data...)
 	}
@@ -55,7 +55,7 @@ func (b *branch) Combine(args *CombineArgs, n node, depth int, matches *int) nod
 	}
 }
 
-func (b *branch) CopyTo(dest []interface{}) []interface{} {
+func (b *branch) CopyTo(dest []elementT) []elementT {
 	for _, child := range b.p {
 		if child != nil {
 			if dest = child.CopyTo(dest); dest == nil {
@@ -109,7 +109,7 @@ func (b *branch) Equal(args *EqArgs, n node, depth int) bool {
 	return false
 }
 
-func (b *branch) Get(args *EqArgs, v interface{}, h hasher) *interface{} {
+func (b *branch) Get(args *EqArgs, v elementT, h hasher) *elementT {
 	return b.p.Get(h.hash()).Get(args, v, h.next())
 }
 
@@ -133,8 +133,8 @@ func (b *branch) Iterator(buf [][]node) iterator.Iterator {
 	return b.p.Iterator(buf)
 }
 
-func (b *branch) Reduce(args NodeArgs, depth int, r func(values ...interface{}) interface{}) interface{} {
-	var results [fanout]interface{}
+func (b *branch) Reduce(args NodeArgs, depth int, r func(values ...elementT) elementT) elementT {
+	var results [fanout]elementT
 	args.Parallel(depth, nil, func(i int, _ *int) bool {
 		if n := b.p.Get(i); !n.Empty() {
 			results[i] = n.Reduce(args, depth+1, r)
@@ -166,7 +166,7 @@ func (b *branch) SubsetOf(args *EqArgs, n node, depth int) bool {
 	}
 }
 
-func (b *branch) Transform(args *CombineArgs, depth int, count *int, f func(e interface{}) interface{}) node {
+func (b *branch) Transform(args *CombineArgs, depth int, count *int, f func(e elementT) elementT) node {
 	var nodes [fanout]node
 	args.Parallel(depth, count, func(i int, count *int) bool {
 		nodes[i] = b.p.Get(i).Transform(args, depth+1, count, f)
@@ -191,12 +191,12 @@ func (b *branch) Where(args *WhereArgs, depth int, matches *int) node {
 	return (&branch{p: nodes}).Canonical(depth)
 }
 
-func (b *branch) With(args *CombineArgs, v interface{}, depth int, h hasher, matches *int) node {
+func (b *branch) With(args *CombineArgs, v elementT, depth int, h hasher, matches *int) node {
 	i := h.hash()
 	return &branch{p: b.p.With(i, b.p.Get(i).With(args, v, depth+1, h.next(), matches))}
 }
 
-func (b *branch) Without(args *EqArgs, v interface{}, depth int, h hasher, matches *int) node {
+func (b *branch) Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) node {
 	i := h.hash()
 	child := b.p.Get(i).Without(args, v, depth+1, h.next(), matches)
 	return (&branch{p: b.p.With(i, child)}).Canonical(depth)
@@ -214,7 +214,7 @@ var branchStringIndices = []string{
 }
 
 func (b *branch) String() string {
-	var buf [20]interface{}
+	var buf [20]elementT
 	deep := b.CopyTo(buf[:]) != nil
 
 	var sb strings.Builder

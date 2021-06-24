@@ -20,6 +20,6 @@ func (i *flattener) Next() bool {
 	return false
 }
 
-func (i *flattener) Value() interface{} {
+func (i *flattener) Value() elementT {
 	return i.i.Value()
 }

@@ -3,7 +3,6 @@ package kvt
 
 import (
 	"github.com/arr-ai/frozen/internal/depth"
-	"github.com/arr-ai/frozen/pkg/kv"
 )
 
 var (
@@ -28,13 +27,13 @@ func NewNodeArgs(gauge depth.Gauge) NodeArgs {
 type CombineArgs struct {
 	*EqArgs
 
-	f func(a, b kv.KeyValue) kv.KeyValue
+	f func(a, b elementT) elementT
 
 	flip *CombineArgs
 }
 
-func NewCombineArgs(ea *EqArgs, combine func(a, b kv.KeyValue) kv.KeyValue) *CombineArgs {
-	flipped := func(a, b kv.KeyValue) kv.KeyValue { return combine(b, a) }
+func NewCombineArgs(ea *EqArgs, combine func(a, b elementT) elementT) *CombineArgs {
+	flipped := func(a, b elementT) elementT { return combine(b, a) }
 	ae := ea.flip
 	args := &[2]CombineArgs{
 		{EqArgs: ea, f: combine},
@@ -48,19 +47,19 @@ func NewCombineArgs(ea *EqArgs, combine func(a, b kv.KeyValue) kv.KeyValue) *Com
 type EqArgs struct {
 	NodeArgs
 
-	eq func(a, b kv.KeyValue) bool
+	eq func(a, b elementT) bool
 	// TODO
-	lhash, rhash func(a kv.KeyValue, seed uintptr) uintptr //nolint:structcheck
+	lhash, rhash func(a elementT, seed uintptr) uintptr //nolint:structcheck
 
 	flip *EqArgs
 }
 
 func NewEqArgs(
 	gauge depth.Gauge,
-	eq func(a, b kv.KeyValue) bool,
-	lhash, rhash func(a kv.KeyValue, seed uintptr) uintptr,
+	eq func(a, b elementT) bool,
+	lhash, rhash func(a elementT, seed uintptr) uintptr,
 ) *EqArgs {
-	qe := func(a, b kv.KeyValue) bool { return eq(b, a) }
+	qe := func(a, b elementT) bool { return eq(b, a) }
 	na := NewNodeArgs(gauge)
 	args := [2]EqArgs{
 		{NodeArgs: na, eq: eq, lhash: lhash, rhash: rhash},
@@ -78,5 +77,5 @@ func NewDefaultEqArgs(gauge depth.Gauge) *EqArgs {
 type WhereArgs struct {
 	NodeArgs
 
-	Pred func(elem kv.KeyValue) bool
+	Pred func(elem elementT) bool
 }

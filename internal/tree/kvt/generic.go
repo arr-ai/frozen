@@ -7,6 +7,10 @@ import (
 	"github.com/arr-ai/frozen/pkg/kv"
 )
 
+type (
+	elementT = kv.KeyValue
+)
+
 // KeyHash hashes using the KeyValue's own key.
 var KeyHash = keyHasher(func(kv kv.KeyValue, seed uintptr) uintptr { return kv.Hash(seed) })
 

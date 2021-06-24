@@ -7,7 +7,7 @@ type unTree struct {
 	count int
 }
 
-func (t *unTree) Add(args *CombineArgs, v interface{}) {
+func (t *unTree) Add(args *CombineArgs, v elementT) {
 	count := -(t.count + 1)
 	t.root = t.Root().Add(args, v, 0, newHasher(v, 0), &count)
 	t.count = -count
@@ -21,11 +21,11 @@ func (t *unTree) Gauge() depth.Gauge {
 	return depth.NewGauge(t.count)
 }
 
-func (t *unTree) Get(args *EqArgs, v interface{}) *interface{} {
+func (t *unTree) Get(args *EqArgs, v elementT) *elementT {
 	return t.Root().Get(args, v, newHasher(v, 0))
 }
 
-func (t *unTree) Remove(args *EqArgs, v interface{}) {
+func (t *unTree) Remove(args *EqArgs, v elementT) {
 	count := -t.count
 	t.root = t.Root().Remove(args, v, 0, newHasher(v, 0), &count)
 	t.count = -count

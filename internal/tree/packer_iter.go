@@ -7,7 +7,7 @@ import (
 )
 
 // Less dictates the order of two elements.
-type Less func(a, b interface{}) bool
+type Less func(a, b elementT) bool
 
 type packerIterator struct {
 	stack [][]node
@@ -35,14 +35,14 @@ func (i *packerIterator) Next() bool {
 	return false
 }
 
-func (i *packerIterator) Value() interface{} {
+func (i *packerIterator) Value() elementT {
 	return i.i.Value()
 }
 
 type ordered struct {
 	less     Less
-	elements []interface{}
-	val      interface{}
+	elements []elementT
+	val      elementT
 }
 
 func (o *ordered) Next() bool {
@@ -53,7 +53,7 @@ func (o *ordered) Next() bool {
 	return true
 }
 
-func (o *ordered) Value() interface{} {
+func (o *ordered) Value() elementT {
 	return o.val
 }
 
@@ -69,11 +69,11 @@ func (o *ordered) Swap(i, j int) {
 	o.elements[i], o.elements[j] = o.elements[j], o.elements[i]
 }
 
-func (o *ordered) Push(x actualInterface) {
+func (o *ordered) Push(x interface{}) {
 	o.elements = append(o.elements, x) // SUBST %: x => x.(%)
 }
 
-func (o *ordered) Pop() actualInterface {
+func (o *ordered) Pop() interface{} {
 	result := o.elements[len(o.elements)-1]
 	o.elements = o.elements[:len(o.elements)-1]
 	return result
@@ -83,7 +83,7 @@ type reverseOrdered struct {
 	// This embedded Interface permits Reverse to use the methods of
 	// another Interface implementation.
 	heap.Interface
-	val interface{}
+	val elementT
 }
 
 // Reverse returns the reverse order for data.
@@ -99,7 +99,7 @@ func (r *reverseOrdered) Next() bool {
 	return true
 }
 
-func (r *reverseOrdered) Value() interface{} {
+func (r *reverseOrdered) Value() elementT {
 	return r.val
 }
 

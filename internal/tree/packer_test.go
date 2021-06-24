@@ -35,7 +35,7 @@ func TestPackedWithMulti(t *testing.T) {
 }
 
 //nolint:unparam
-func assertEqualPacked(t *testing.T, expected, actual packer, msgAndArgs ...interface{}) bool {
+func assertEqualPacked(t *testing.T, expected, actual packer, msgAndArgs ...elementT) bool {
 	t.Helper()
 
 	return assert.Equal(t, expected, actual, msgAndArgs...)

@@ -13,6 +13,6 @@ func (empty) Next() bool {
 	return false
 }
 
-func (empty) Value() interface{} {
+func (empty) Value() elementT {
 	panic(errors.WTF)
 }

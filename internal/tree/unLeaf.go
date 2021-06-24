@@ -1,6 +1,6 @@
 package tree
 
-type unLeaf []interface{}
+type unLeaf []elementT
 
 var _ unNode = &unLeaf{}
 
@@ -8,7 +8,7 @@ func newUnLeaf() unLeaf {
 	return make(unLeaf, 0, maxLeafLen)
 }
 
-func (l *unLeaf) Add(args *CombineArgs, v interface{}, depth int, h hasher, matches *int) unNode {
+func (l *unLeaf) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) unNode {
 	for i, e := range *l {
 		if args.eq(e, v) {
 			*matches++
@@ -30,7 +30,7 @@ func (l *unLeaf) Add(args *CombineArgs, v interface{}, depth int, h hasher, matc
 	return b
 }
 
-func (l unLeaf) appendTo(dest []interface{}) []interface{} {
+func (l unLeaf) appendTo(dest []elementT) []elementT {
 	if len(dest)+len(l) > cap(dest) {
 		return nil
 	}
@@ -43,7 +43,7 @@ func (l unLeaf) Freeze() node {
 	return ret
 }
 
-func (l unLeaf) Get(args *EqArgs, v interface{}, h hasher) *interface{} {
+func (l unLeaf) Get(args *EqArgs, v elementT, h hasher) *elementT {
 	for i, e := range l {
 		if args.eq(e, v) {
 			return &(l)[i]
@@ -52,7 +52,7 @@ func (l unLeaf) Get(args *EqArgs, v interface{}, h hasher) *interface{} {
 	return nil
 }
 
-func (l *unLeaf) Remove(args *EqArgs, v interface{}, depth int, h hasher, matches *int) unNode {
+func (l *unLeaf) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) unNode {
 	for i, e := range *l {
 		if args.eq(e, v) {
 			*matches++
