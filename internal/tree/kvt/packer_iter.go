@@ -3,9 +3,6 @@ package kvt
 
 import (
 	"container/heap"
-
-	"github.com/arr-ai/frozen/internal/iterator/kvi"
-	"github.com/arr-ai/frozen/pkg/kv"
 )
 
 // Less dictates the order of two elements.
@@ -13,12 +10,12 @@ type Less func(a, b elementT) bool
 
 type packerIterator struct {
 	stack [][]node
-	i     kvi.Iterator
+	i     Iterator
 }
 
 func newPackerIterator(buf [][]node, p *packer) *packerIterator {
 	buf = append(buf, p[:])
-	return &packerIterator{stack: buf, i: kvi.Empty}
+	return &packerIterator{stack: buf, i: emptyIterator}
 }
 
 func (i *packerIterator) Next() bool {
@@ -51,7 +48,7 @@ func (o *ordered) Next() bool {
 	if o.Len() == 0 {
 		return false
 	}
-	o.val = heap.Pop(o).(kv.KeyValue)
+	o.val = interfaceAsElement(heap.Pop(o))
 	return true
 }
 
@@ -72,7 +69,7 @@ func (o *ordered) Swap(i, j int) {
 }
 
 func (o *ordered) Push(x interface{}) {
-	o.elements = append(o.elements, x.(kv.KeyValue))
+	o.elements = append(o.elements, interfaceAsElement(x))
 }
 
 func (o *ordered) Pop() interface{} {
@@ -97,7 +94,7 @@ func (r *reverseOrdered) Next() bool {
 	if r.Len() == 0 {
 		return false
 	}
-	r.val = heap.Pop(r).(kv.KeyValue)
+	r.val = interfaceAsElement(heap.Pop(r))
 	return true
 }
 

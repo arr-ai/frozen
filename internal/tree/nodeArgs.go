@@ -2,7 +2,6 @@ package tree
 
 import (
 	"github.com/arr-ai/frozen/internal/depth"
-	"github.com/arr-ai/frozen/internal/value"
 )
 
 var (
@@ -71,7 +70,7 @@ func NewEqArgs(
 }
 
 func NewDefaultEqArgs(gauge depth.Gauge) *EqArgs {
-	return NewEqArgs(gauge, value.Equal, hashValue, hashValue)
+	return NewEqArgs(gauge, elementEqual, hashValue, hashValue)
 }
 
 type WhereArgs struct {

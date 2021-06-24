@@ -2,8 +2,6 @@ package tree
 
 import (
 	"sync"
-
-	"github.com/arr-ai/frozen/internal/iterator"
 )
 
 const maxLeafLen = 8
@@ -27,7 +25,7 @@ func (p packer) With(i int, n node) packer {
 	return ret
 }
 
-func (p *packer) Iterator(buf [][]node) iterator.Iterator {
+func (p *packer) Iterator(buf [][]node) Iterator {
 	return newPackerIterator(buf, p)
 }
 

@@ -71,7 +71,7 @@ func NewEqArgs(
 }
 
 func NewDefaultEqArgs(gauge depth.Gauge) *EqArgs {
-	return NewEqArgs(gauge, KeyEqual, hashValue, hashValue)
+	return NewEqArgs(gauge, elementEqual, hashValue, hashValue)
 }
 
 type WhereArgs struct {

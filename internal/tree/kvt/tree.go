@@ -6,7 +6,6 @@ import (
 	"math/bits"
 
 	"github.com/arr-ai/frozen/internal/depth"
-	"github.com/arr-ai/frozen/internal/iterator/kvi"
 )
 
 type Tree struct {
@@ -78,11 +77,11 @@ func (t Tree) Intersection(args *EqArgs, u Tree) Tree {
 	return newTree(t.Root().Intersection(args, u.Root(), 0, &count), &count)
 }
 
-func (t Tree) Iterator() kvi.Iterator {
+func (t Tree) Iterator() Iterator {
 	return t.Root().Iterator(packedIteratorBuf(t.count))
 }
 
-func (t Tree) OrderedIterator(less Less, n int) kvi.Iterator {
+func (t Tree) OrderedIterator(less Less, n int) Iterator {
 	if n == -1 {
 		n = t.count
 	}
@@ -95,7 +94,7 @@ func (t Tree) OrderedIterator(less Less, n int) kvi.Iterator {
 	}
 	r := reverseO(o)
 	heap.Init(r)
-	return r.(kvi.Iterator)
+	return r.(Iterator)
 }
 
 func (t Tree) Transform(args *CombineArgs, f func(v elementT) elementT) Tree {

@@ -12,17 +12,17 @@ func newMasker(i int) masker {
 	return masker(1) << i
 }
 
-// first returns a masker with only the low bit of m.
-func (m masker) first() masker {
+// First returns a masker with only the low bit of m.
+func (m masker) First() masker {
 	return m &^ (m - 1)
 }
 
-// firstIsIn returns true if, and only if, the low bit of m is also in n.
-func (m masker) firstIsIn(n masker) bool {
-	return m.first().subsetOf(n)
+// FirstIsIn returns true if, and only if, the low bit of m is also in n.
+func (m masker) FirstIsIn(n masker) bool {
+	return m.First().SubsetOf(n)
 }
 
-func (m masker) subsetOf(mask masker) bool {
+func (m masker) SubsetOf(mask masker) bool {
 	return m&^mask == 0
 }
 

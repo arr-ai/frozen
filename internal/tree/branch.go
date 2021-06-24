@@ -7,7 +7,6 @@ import (
 	"github.com/arr-ai/frozen/errors"
 	"github.com/arr-ai/frozen/internal/depth"
 	"github.com/arr-ai/frozen/internal/fmtutil"
-	"github.com/arr-ai/frozen/internal/iterator"
 )
 
 const (
@@ -129,7 +128,7 @@ func (b *branch) Intersection(args *EqArgs, n node, depth int, matches *int) nod
 	}
 }
 
-func (b *branch) Iterator(buf [][]node) iterator.Iterator {
+func (b *branch) Iterator(buf [][]node) Iterator {
 	return b.p.Iterator(buf)
 }
 
@@ -144,9 +143,7 @@ func (b *branch) Reduce(args NodeArgs, depth int, r func(values ...elementT) ele
 
 	results2 := results[:0]
 	for _, r := range results {
-		// SUBST kv.KeyValue: r => r.Key
-		if r != nil {
-			// !SUBST
+		if !isBlank(r) {
 			results2 = append(results2, r)
 		}
 	}

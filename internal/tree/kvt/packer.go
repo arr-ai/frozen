@@ -3,8 +3,6 @@ package kvt
 
 import (
 	"sync"
-
-	"github.com/arr-ai/frozen/internal/iterator/kvi"
 )
 
 const maxLeafLen = 8
@@ -28,7 +26,7 @@ func (p packer) With(i int, n node) packer {
 	return ret
 }
 
-func (p *packer) Iterator(buf [][]node) kvi.Iterator {
+func (p *packer) Iterator(buf [][]node) Iterator {
 	return newPackerIterator(buf, p)
 }
 

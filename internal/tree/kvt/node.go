@@ -3,8 +3,6 @@ package kvt
 
 import (
 	"fmt"
-
-	"github.com/arr-ai/frozen/internal/iterator/kvi"
 )
 
 type node interface {
@@ -19,7 +17,7 @@ type node interface {
 	Equal(args *EqArgs, n node, depth int) bool
 	Get(args *EqArgs, v elementT, h hasher) *elementT
 	Intersection(args *EqArgs, n node, depth int, matches *int) node
-	Iterator(buf [][]node) kvi.Iterator
+	Iterator(buf [][]node) Iterator
 	Reduce(args NodeArgs, depth int, r func(values ...elementT) elementT) elementT
 	SubsetOf(args *EqArgs, n node, depth int) bool
 	Transform(args *CombineArgs, depth int, count *int, f func(v elementT) elementT) node

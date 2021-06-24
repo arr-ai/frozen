@@ -3,13 +3,29 @@ package kvt
 import (
 	"github.com/arr-ai/hash"
 
+	"github.com/arr-ai/frozen/internal/iterator/kvi"
 	"github.com/arr-ai/frozen/internal/value"
 	"github.com/arr-ai/frozen/pkg/kv"
 )
 
 type (
 	elementT = kv.KeyValue
+	Iterator = kvi.Iterator
 )
+
+var emptyIterator = kvi.Empty
+
+func isBlank(kv kv.KeyValue) bool {
+	return kv.Key == nil
+}
+
+func interfaceAsElement(i interface{}) elementT {
+	return i.(kv.KeyValue)
+}
+
+func elementEqual(a, b kv.KeyValue) bool {
+	return value.Equal(a.Key, b.Key)
+}
 
 // KeyHash hashes using the KeyValue's own key.
 var KeyHash = keyHasher(func(kv kv.KeyValue, seed uintptr) uintptr { return kv.Hash(seed) })
@@ -30,7 +46,7 @@ func keyHasher(hash func(v kv.KeyValue, seed uintptr) uintptr) func(v kv.KeyValu
 }
 
 func KeyEqual(a, b kv.KeyValue) bool {
-	return Equal(a, b)
+	return elementEqual(a, b)
 }
 
 // Equatable represents a type that can be compared for equality with another
@@ -43,10 +59,4 @@ type Equatable interface {
 type Key interface {
 	Equatable
 	hash.Hashable
-}
-
-// Equal returns true iff a == b. If a or b implements Equatable, that is used
-// to perform the test.
-func Equal(a, b kv.KeyValue) bool {
-	return value.Equal(a.Key, b.Key)
 }

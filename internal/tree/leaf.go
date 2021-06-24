@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/arr-ai/frozen/errors"
-	"github.com/arr-ai/frozen/internal/iterator"
 )
 
 var theEmptyNode leaf
@@ -111,7 +110,7 @@ func (l leaf) Intersection(args *EqArgs, n node, depth int, matches *int) node {
 	return result.Canonical(depth)
 }
 
-func (l leaf) Iterator([][]node) iterator.Iterator {
+func (l leaf) Iterator([][]node) Iterator {
 	return newLeafIterator(l)
 }
 
