@@ -27,14 +27,8 @@ type branch struct {
 }
 
 func (b *branch) Canonical(_ int) node {
-	if b.p.mask.count() == 0 {
-		return theEmptyNode
-	}
-	if n := b.CountUpTo(9); n < 9 {
-		l := make(leaf, 0, n)
-		for i := b.Iterator(make([]packer, 0, 8)); i.Next(); {
-			l = append(l, i.Value())
-		}
+	var buf [maxLeafLen]kv.KeyValue
+	if l := b.CopyTo(buf[:0]); l != nil {
 		return l
 	}
 	return b
@@ -66,15 +60,13 @@ func (b *branch) Combine(args *CombineArgs, n node, depth int, matches *int) nod
 	}
 }
 
-func (b *branch) CountUpTo(max int) int {
-	total := 0
+func (b *branch) CopyTo(dest leaf) leaf {
 	for _, child := range b.p.data {
-		total += child.CountUpTo(max)
-		if total >= max {
+		if dest = child.CopyTo(dest); dest == nil {
 			break
 		}
 	}
-	return total
+	return dest
 }
 
 func (b *branch) Defrost() unNode {
@@ -264,8 +256,11 @@ var branchStringIndices = []string{
 }
 
 func (b *branch) String() string {
+	var buf [20]kv.KeyValue
+	deep := b.CopyTo(buf[:]) != nil
+
 	var sb strings.Builder
-	deep := b.CountUpTo(20) >= 20
+
 	sb.WriteRune('⁅')
 	if deep {
 		sb.WriteString("\n")

@@ -51,8 +51,11 @@ func (l leaf) Combine(args *CombineArgs, n node, depth int, matches *int) node {
 	}
 }
 
-func (l leaf) CountUpTo(int) int {
-	return len(l)
+func (l leaf) CopyTo(dest leaf) leaf {
+	if len(dest)+len(l) > cap(dest) {
+		return nil
+	}
+	return append(dest, l...)
 }
 
 func (l leaf) Defrost() unNode {
