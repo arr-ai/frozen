@@ -2,7 +2,6 @@ package tree
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/arr-ai/frozen/errors"
 	"github.com/arr-ai/frozen/internal/depth"
@@ -29,16 +28,16 @@ type branch struct {
 func (b *branch) Canonical(_ int) node {
 	var buf [maxLeafLen]elementT
 	if data := b.CopyTo(buf[:0]); data != nil {
-		return append(leaf(nil), data...)
+		return newLeaf(append([]elementT{}, data...)...)
 	}
 	return b
 }
 
 func (b *branch) Combine(args *CombineArgs, n node, depth int, matches *int) node {
 	switch n := n.(type) {
-	case leaf:
+	case *leaf:
 		ret := node(b)
-		for _, e := range n {
+		for _, e := range n.data {
 			ret = ret.With(args, e, depth, newHasher(e, depth), matches)
 		}
 		return ret
@@ -77,9 +76,9 @@ func (b *branch) Defrost() unNode {
 
 func (b *branch) Difference(args *EqArgs, n node, depth int, removed *int) node {
 	switch n := n.(type) {
-	case leaf:
+	case *leaf:
 		result := node(b)
-		for _, e := range n {
+		for _, e := range n.data {
 			result = result.Without(args, e, depth, newHasher(e, depth), removed)
 		}
 		return result
@@ -114,7 +113,7 @@ func (b *branch) Get(args *EqArgs, v elementT, h hasher) *elementT {
 
 func (b *branch) Intersection(args *EqArgs, n node, depth int, matches *int) node {
 	switch n := n.(type) {
-	case leaf:
+	case *leaf:
 		return n.Intersection(args.flip, b, depth, matches)
 	case *branch:
 		var ret branch
@@ -152,7 +151,7 @@ func (b *branch) Reduce(args NodeArgs, depth int, r func(values ...elementT) ele
 
 func (b *branch) SubsetOf(args *EqArgs, n node, depth int) bool {
 	switch n := n.(type) {
-	case leaf:
+	case *leaf:
 		return false
 	case *branch:
 		return args.Parallel(depth, nil, func(i int, _ *int) bool {
@@ -170,10 +169,12 @@ func (b *branch) Transform(args *CombineArgs, depth int, count *int, f func(e el
 		return true
 	})
 
+	// log.Printf("%*s%v", 4*depth, "", nodes[0])
 	acc := nodes[0]
 	var duplicates int
 	for _, n := range nodes[1:] {
 		acc = acc.Combine(args, n, 0, &duplicates)
+		// log.Printf("%*s%v -> %v", 4*depth, "", n, acc)
 	}
 	*count -= duplicates
 	return acc
@@ -199,26 +200,34 @@ func (b *branch) Without(args *EqArgs, v elementT, depth int, h hasher, matches 
 	return (&branch{p: b.p.With(i, child)}).Canonical(depth)
 }
 
-func (b *branch) Format(f fmt.State, _ rune) {
-	s := b.String()
-	fmt.Fprint(f, s)
-	fmtutil.PadFormat(f, len(s))
-}
-
 var branchStringIndices = []string{
 	"⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹",
 	"¹⁰", "¹¹", "¹²", "¹³", "¹⁴", "¹⁵",
 }
 
-func (b *branch) String() string {
+func (b *branch) Format(f fmt.State, _ rune) {
+	total := 0
+	printf := func(format string, args ...interface{}) {
+		n, err := fmt.Fprintf(f, format, args...)
+		if err != nil {
+			panic(err)
+		}
+		total += n
+	}
+	write := func(b []byte) {
+		n, err := f.Write(b)
+		if err != nil {
+			panic(err)
+		}
+		total += n
+	}
+	write([]byte("⁅"))
+
 	var buf [20]elementT
 	deep := b.CopyTo(buf[:]) != nil
 
-	var sb strings.Builder
-
-	sb.WriteRune('⁅')
 	if deep {
-		sb.WriteString("\n")
+		write([]byte("\n"))
 	}
 
 	for i, child := range b.p {
@@ -227,14 +236,19 @@ func (b *branch) String() string {
 		}
 		index := branchStringIndices[i]
 		if deep {
-			fmt.Fprintf(&sb, "   %s%s\n", index, fmtutil.IndentBlock(child.String()))
+			printf("   %s%s\n", index, fmtutil.IndentBlock(child.String()))
 		} else {
 			if i > 0 {
-				sb.WriteByte(' ')
+				write([]byte(" "))
 			}
-			fmt.Fprintf(&sb, "%s%v", index, child)
+			printf("%s%v", index, child)
 		}
 	}
-	sb.WriteRune('⁆')
-	return sb.String()
+	write([]byte("⁆"))
+
+	fmtutil.PadFormat(f, total)
+}
+
+func (b *branch) String() string {
+	return fmt.Sprintf("%s", b)
 }

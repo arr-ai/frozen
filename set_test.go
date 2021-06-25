@@ -1,6 +1,7 @@
 package frozen_test
 
 import (
+	"log"
 	"math/bits"
 	"testing"
 
@@ -408,8 +409,16 @@ func TestSetMapLarge(t *testing.T) {
 	t.Parallel()
 
 	s := intSet(0, 50)
-	assertSetEqual(t, NewSet(42), s.Map(func(e interface{}) interface{} { return 42 }))
-	assertSetEqual(t, Iota3(0, 2*s.Count(), 2), s.Map(func(e interface{}) interface{} { return 2 * e.(int) }))
+	// assertSetEqual(t, NewSet(42), s.Map(func(e interface{}) interface{} { return 42 }))
+	if !assertSetEqual(t, Iota3(0, 2*s.Count(), 2), s.Map(func(e interface{}) interface{} { return 2 * e.(int) })) {
+		expected := Iota3(0, 2*s.Count(), 2)
+		actual := s.Map(func(e interface{}) interface{} { return 2 * e.(int) })
+		log.Print(expected)
+		log.Print(actual)
+		for {
+			s.Map(func(e interface{}) interface{} { return 2 * e.(int) })
+		}
+	}
 	assertSetEqual(t, Iota(s.Count()/10), s.Map(func(e interface{}) interface{} { return e.(int) / 10 }))
 }
 

@@ -309,7 +309,9 @@ func TestMapUpdate(t *testing.T) {
 				}
 				return key
 			})
-			assertMapEqual(t, expected, actual)
+			if !assertMapEqual(t, expected, actual) {
+				return
+			}
 		}
 	}
 }

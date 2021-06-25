@@ -27,6 +27,10 @@ func elementEqual(a, b kv.KeyValue) bool {
 	return value.Equal(a.Key, b.Key)
 }
 
+func newSliceIterator(slice []kv.KeyValue) Iterator {
+	return kvi.NewSliceIterator(slice)
+}
+
 // KeyHash hashes using the KeyValue's own key.
 var KeyHash = keyHasher(func(kv kv.KeyValue, seed uintptr) uintptr { return kv.Hash(seed) })
 

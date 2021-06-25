@@ -29,3 +29,7 @@ func isBlank(i interface{}) bool {
 func interfaceAsElement(i interface{}) elementT {
 	return i
 }
+
+func newSliceIterator(slice []interface{}) Iterator {
+	return iterator.NewSliceIterator(slice)
+}

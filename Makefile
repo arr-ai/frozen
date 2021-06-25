@@ -4,7 +4,8 @@ all: lint test
 iterator.package = kvi
 iterator.files = \
 	empty.go \
-	iterator.go
+	iterator.go \
+    slice.go
 
 tree.package = kvt
 tree.files = \
@@ -12,7 +13,6 @@ tree.files = \
     builder.go \
     hasher.go \
     leaf.go \
-    leaf_iterator.go \
     masker.go \
     node.go \
     nodeArgs.go \

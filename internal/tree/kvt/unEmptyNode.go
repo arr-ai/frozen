@@ -15,7 +15,7 @@ func (unEmptyNode) appendTo(dest []elementT) []elementT {
 }
 
 func (unEmptyNode) Freeze() node {
-	return leaf(nil)
+	return newLeaf()
 }
 
 func (e unEmptyNode) Get(args *EqArgs, v elementT, h hasher) *elementT {
