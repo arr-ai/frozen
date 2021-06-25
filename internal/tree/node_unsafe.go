@@ -1,22 +1,22 @@
-// +build !unsafe
+// +build unsafe
 
 package tree
 
+import "unsafe"
+
 type node struct {
-	b      branch
-	l      leaf
-	isLeaf bool
+	b branch
 }
 
 func (n *node) Leaf() *leaf {
-	if n.isLeaf {
-		return &n.l
+	if n.b.isLeaf {
+		return (*leaf)(unsafe.Pointer(n))
 	}
 	return nil
 }
 
 func (n *node) Branch() *branch {
-	if !n.isLeaf {
+	if !n.b.isLeaf {
 		return &n.b
 	}
 	return nil
@@ -142,28 +142,26 @@ func (n *node) Without(args *EqArgs, v elementT, depth int, h hasher, matches *i
 }
 
 type leafBase struct {
-	data []elementT
+	isLeaf bool
+	data   []elementT
 }
 
 type leaf struct {
 	leafBase
-	n *node
+	_ [unsafe.Sizeof(branch{}) - unsafe.Sizeof(leafBase{})]byte
 }
 
 func newLeaf(data ...elementT) *leaf {
-	n := &node{isLeaf: true}
-	n.l.leafBase = leafBase{data: data}
-	n.l.n = n
-	return &n.l
+	return &leaf{leafBase: leafBase{isLeaf: true, data: data}}
 }
 
 func (l *leaf) Node() *node {
-	return l.n
+	return (*node)(unsafe.Pointer(l))
 }
 
 type branch struct {
-	p packer
-	n *node
+	isLeaf bool
+	p      packer
 }
 
 func newBranch(p *packer) *branch {
@@ -171,10 +169,9 @@ func newBranch(p *packer) *branch {
 	if p != nil {
 		n.b.p = *p
 	}
-	n.b.n = n
 	return &n.b
 }
 
 func (b *branch) Node() *node {
-	return b.n
+	return (*node)(unsafe.Pointer(b))
 }
