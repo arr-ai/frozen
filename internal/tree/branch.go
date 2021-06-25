@@ -2,7 +2,6 @@ package tree
 
 import (
 	"fmt"
-	"unsafe"
 
 	"github.com/arr-ai/frozen/internal/depth"
 	"github.com/arr-ai/frozen/internal/fmtutil"
@@ -20,23 +19,6 @@ var (
 	// UseLHS returns its LHS arg.
 	UseLHS = func(a, _ elementT) elementT { return a }
 )
-
-type branch struct {
-	isLeaf bool
-	p      packer
-}
-
-func newBranch(p *packer) *branch {
-	b := &branch{}
-	if p != nil {
-		b.p = *p
-	}
-	return b
-}
-
-func (b *branch) Node() *node {
-	return (*node)(unsafe.Pointer(b))
-}
 
 func (b *branch) Canonical(_ int) *node {
 	var buf [maxLeafLen]elementT

@@ -1,21 +1,21 @@
 package tree
 
-import "unsafe"
-
 type node struct {
-	b branch
+	b      branch
+	l      leaf
+	isLeaf bool
 }
 
 func (n *node) Leaf() *leaf {
-	if n.b.isLeaf {
-		return (*leaf)(unsafe.Pointer(n))
+	if n.isLeaf {
+		return &n.l
 	}
 	return nil
 }
 
 func (n *node) Branch() *branch {
-	if !n.b.isLeaf {
-		return (*branch)(unsafe.Pointer(n))
+	if !n.isLeaf {
+		return &n.b
 	}
 	return nil
 }
@@ -137,4 +137,42 @@ func (n *node) Without(args *EqArgs, v elementT, depth int, h hasher, matches *i
 		return l.Without(args, v, depth, h, matches)
 	}
 	return n.b.Without(args, v, depth, h, matches)
+}
+
+type leafBase struct {
+	data []elementT
+}
+
+type leaf struct {
+	leafBase
+	n *node
+}
+
+func newLeaf(data ...elementT) *leaf {
+	n := &node{isLeaf: true}
+	n.l.leafBase = leafBase{data: data}
+	n.l.n = n
+	return &n.l
+}
+
+func (l *leaf) Node() *node {
+	return l.n
+}
+
+type branch struct {
+	p packer
+	n *node
+}
+
+func newBranch(p *packer) *branch {
+	n := &node{}
+	if p != nil {
+		n.b.p = *p
+	}
+	n.b.n = n
+	return &n.b
+}
+
+func (b *branch) Node() *node {
+	return b.n
 }
