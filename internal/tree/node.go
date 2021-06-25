@@ -7,6 +7,20 @@ func (n *node) String() string {
 	return n.b.String()
 }
 
+func (n *node) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) *node {
+	if l := n.Leaf(); l != nil {
+		return l.Add(args, v, depth, h, matches)
+	}
+	return n.b.Add(args, v, depth, h, matches)
+}
+
+func (n *node) AppendTo(dest []elementT) []elementT {
+	if l := n.Leaf(); l != nil {
+		return l.AppendTo(dest)
+	}
+	return n.b.AppendTo(dest)
+}
+
 func (n *node) Canonical(depth int) *node {
 	if l := n.Leaf(); l != nil {
 		return l.Canonical(depth)
@@ -19,20 +33,6 @@ func (n *node) Combine(args *CombineArgs, n2 *node, depth int, matches *int) *no
 		return l.Combine(args, n2, depth, matches)
 	}
 	return n.b.Combine(args, n2, depth, matches)
-}
-
-func (n *node) CopyTo(dest []elementT) []elementT {
-	if l := n.Leaf(); l != nil {
-		return l.CopyTo(dest)
-	}
-	return n.b.CopyTo(dest)
-}
-
-func (n *node) Defrost() unNode {
-	if l := n.Leaf(); l != nil {
-		return l.Defrost()
-	}
-	return n.b.Defrost()
 }
 
 func (n *node) Difference(args *EqArgs, n2 *node, depth int, removed *int) *node {
@@ -117,4 +117,11 @@ func (n *node) Without(args *EqArgs, v elementT, depth int, h hasher, matches *i
 		return l.Without(args, v, depth, h, matches)
 	}
 	return n.b.Without(args, v, depth, h, matches)
+}
+
+func (n *node) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) *node {
+	if l := n.Leaf(); l != nil {
+		return l.Remove(args, v, depth, h, matches)
+	}
+	return n.b.Remove(args, v, depth, h, matches)
 }

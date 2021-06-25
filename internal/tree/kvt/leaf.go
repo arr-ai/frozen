@@ -14,6 +14,28 @@ func newMutableLeaf(data ...elementT) *leaf {
 	return newLeaf(append(make([]elementT, 0, maxLeafLen), data...)...)
 }
 
+func (l *leaf) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) *node {
+	for i, e := range l.data {
+		if args.eq(e, v) {
+			*matches++
+			l.data[i] = args.f(e, v)
+			return l.Node()
+		}
+	}
+	if len(l.data) < cap(l.data) || depth >= maxTreeDepth {
+		l.data = append(l.data, v)
+		return l.Node()
+	}
+
+	b := newBranch(nil)
+	for _, e := range l.data {
+		b.Add(args, e, depth, newHasher(e, depth), matches)
+	}
+	b.Add(args, v, depth, h, matches)
+
+	return b.Node()
+}
+
 func (l *leaf) Canonical(depth int) *node {
 	if len(l.data) <= maxLeafLen || depth*fanoutBits >= 64 {
 		return l.Node()
@@ -60,15 +82,11 @@ scanning:
 	return l.Canonical(depth)
 }
 
-func (l *leaf) CopyTo(dest []elementT) []elementT {
+func (l *leaf) AppendTo(dest []elementT) []elementT {
 	if len(dest)+len(l.data) > cap(dest) {
 		return nil
 	}
 	return append(dest, l.data...)
-}
-
-func (l *leaf) Defrost() unNode {
-	panic(errors.Unimplemented)
 }
 
 func (l *leaf) Difference(args *EqArgs, n *node, depth int, removed *int) *node {
@@ -128,6 +146,24 @@ func (l *leaf) Iterator([][]*node) Iterator {
 
 func (l *leaf) Reduce(_ NodeArgs, _ int, r func(values ...elementT) elementT) elementT {
 	return r(l.data...)
+}
+
+func (l *leaf) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) *node {
+	for i, e := range l.data {
+		if args.eq(e, v) {
+			*matches++
+			last := len(l.data) - 1
+			if last == 0 {
+				return newMutableLeaf().Node()
+			}
+			if i < last {
+				l.data[i] = l.data[last]
+			}
+			l.data = l.data[:last]
+			return l.Node()
+		}
+	}
+	return l.Node()
 }
 
 func (l *leaf) SubsetOf(args *EqArgs, n *node, _ int) bool {

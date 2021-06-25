@@ -22,9 +22,22 @@ func newTreeNeg(n *node, count *int) Tree {
 
 func (t Tree) Root() *node {
 	if t.root == nil {
-		return theEmptyNode
+		t.root = theEmptyNode
 	}
 	return t.root
+}
+
+func (t Tree) MutableRoot() *node {
+	if t.root == nil {
+		t.root = newMutableLeaf().Node()
+	}
+	return t.root
+}
+
+func (t *Tree) Add(args *CombineArgs, v elementT) {
+	count := -(t.count + 1)
+	t.root = t.MutableRoot().Add(args, v, 0, newHasher(v, 0), &count)
+	t.count = -count
 }
 
 func (t Tree) Count() int {
@@ -37,10 +50,6 @@ func (t Tree) Gauge() depth.Gauge {
 
 func (t Tree) String() string {
 	return t.Root().String()
-}
-
-func (t Tree) Builder() *Builder {
-	return &Builder{t: unTree{root: unDefroster{n: t.root}}}
 }
 
 func (t Tree) Combine(args *CombineArgs, u Tree) Tree {
@@ -61,10 +70,6 @@ func (t Tree) Equal(args *EqArgs, n Tree) bool {
 
 func (t Tree) Get(args *EqArgs, v elementT) *elementT {
 	return t.Root().Get(args, v, newHasher(v, 0))
-}
-
-func (t Tree) SubsetOf(args *EqArgs, u Tree) bool {
-	return t.Root().SubsetOf(args, u.Root(), 0)
 }
 
 func (t Tree) Intersection(args *EqArgs, u Tree) Tree {
@@ -94,6 +99,16 @@ func (t Tree) OrderedIterator(less Less, n int) Iterator {
 	r := reverseO(o)
 	heap.Init(r)
 	return r.(Iterator)
+}
+
+func (t *Tree) Remove(args *EqArgs, v elementT) {
+	count := -t.count
+	t.root = t.MutableRoot().Remove(args, v, 0, newHasher(v, 0), &count)
+	t.count = -count
+}
+
+func (t Tree) SubsetOf(args *EqArgs, u Tree) bool {
+	return t.Root().SubsetOf(args, u.Root(), 0)
 }
 
 func (t Tree) Transform(args *CombineArgs, f func(v elementT) elementT) Tree {

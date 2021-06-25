@@ -7,10 +7,6 @@ import (
 // masker represents a set of one-bits and the ability to enumerate them.
 type masker uint16
 
-func newMasker(i int) masker {
-	return masker(1) << i
-}
-
 // First returns a masker with only the low bit of m.
 func (m masker) First() masker {
 	return m &^ (m - 1)

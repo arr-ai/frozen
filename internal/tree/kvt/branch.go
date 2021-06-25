@@ -21,9 +21,30 @@ var (
 	UseLHS = func(a, _ elementT) elementT { return a }
 )
 
+func (b *branch) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) *node {
+	i := h.hash()
+	n := b.p[i]
+	if n == nil {
+		n = newMutableLeaf().Node()
+	}
+	b.p[i] = n.Add(args, v, depth+1, h.next(), matches)
+	return b.Node()
+}
+
+func (b *branch) AppendTo(dest []elementT) []elementT {
+	for _, child := range b.p {
+		if child != nil {
+			if dest = child.AppendTo(dest); dest == nil {
+				break
+			}
+		}
+	}
+	return dest
+}
+
 func (b *branch) Canonical(_ int) *node {
 	var buf [maxLeafLen]elementT
-	if data := b.CopyTo(buf[:0]); data != nil {
+	if data := b.AppendTo(buf[:0]); data != nil {
 		return newLeaf(append([]elementT{}, data...)...).Node()
 	}
 	return b.Node()
@@ -43,27 +64,6 @@ func (b *branch) Combine(args *CombineArgs, n *node, depth int, matches *int) *n
 		return true
 	})
 	return ret.Node()
-}
-
-func (b *branch) CopyTo(dest []elementT) []elementT {
-	for _, child := range b.p {
-		if child != nil {
-			if dest = child.CopyTo(dest); dest == nil {
-				break
-			}
-		}
-	}
-	return dest
-}
-
-func (b *branch) Defrost() unNode {
-	u := newUnBranch()
-	for i, e := range b.p {
-		if e != nil {
-			u.p[i] = e.Defrost()
-		}
-	}
-	return u
 }
 
 func (b *branch) Difference(args *EqArgs, n *node, depth int, removed *int) *node {
@@ -131,6 +131,20 @@ func (b *branch) Reduce(args NodeArgs, depth int, r func(values ...elementT) ele
 		}
 	}
 	return r(results2...)
+}
+
+func (b *branch) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) *node {
+	i := h.hash()
+	if n := b.p[i]; n != nil {
+		b.p[i] = b.p[i].Remove(args, v, depth+1, h.next(), matches)
+		if b.p[i].Branch() == nil {
+			var buf [maxLeafLen]elementT
+			if b := b.AppendTo(buf[:]); b != nil {
+				return newMutableLeaf(b...).Node()
+			}
+		}
+	}
+	return b.Node()
 }
 
 func (b *branch) SubsetOf(args *EqArgs, n *node, depth int) bool {
@@ -206,7 +220,7 @@ func (b *branch) Format(f fmt.State, c rune) {
 	write([]byte("⁅"))
 
 	var buf [20]elementT
-	deep := b.CopyTo(buf[:]) != nil
+	deep := b.AppendTo(buf[:]) != nil
 
 	if deep {
 		write([]byte("\n"))

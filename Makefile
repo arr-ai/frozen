@@ -21,12 +21,6 @@ tree.files = \
     packer.go \
     packer_iter.go \
     tree.go \
-    unBranch.go \
-    unDefroster.go \
-    unEmptyNode.go \
-    unLeaf.go \
-    unNode.go \
-    unTree.go
 
 .PHONY: gen
 gen: gen-kv
