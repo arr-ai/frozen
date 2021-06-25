@@ -4,7 +4,7 @@ package kvt
 import "github.com/arr-ai/frozen/errors"
 
 type unDefroster struct {
-	n node
+	n *node
 }
 
 var _ unNode = unDefroster{}
@@ -21,7 +21,7 @@ func (d unDefroster) Empty() bool {
 	return d.n.Empty()
 }
 
-func (d unDefroster) Freeze() node {
+func (d unDefroster) Freeze() *node {
 	return d.n
 }
 

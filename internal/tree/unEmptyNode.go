@@ -13,8 +13,8 @@ func (unEmptyNode) appendTo(dest []elementT) []elementT {
 	return dest
 }
 
-func (unEmptyNode) Freeze() node {
-	return newLeaf()
+func (unEmptyNode) Freeze() *node {
+	return newLeaf().Node()
 }
 
 func (e unEmptyNode) Get(args *EqArgs, v elementT, h hasher) *elementT {

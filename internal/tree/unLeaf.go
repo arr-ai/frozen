@@ -37,8 +37,8 @@ func (l unLeaf) appendTo(dest []elementT) []elementT {
 	return append(dest, l...)
 }
 
-func (l unLeaf) Freeze() node {
-	return newLeaf(append(make([]elementT, 0, len(l)), l...)...)
+func (l unLeaf) Freeze() *node {
+	return newLeaf(append(make([]elementT, 0, len(l)), l...)...).Node()
 }
 
 func (l unLeaf) Get(args *EqArgs, v elementT, h hasher) *elementT {

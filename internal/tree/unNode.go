@@ -2,7 +2,7 @@ package tree
 
 type unNode interface {
 	Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) unNode
-	Freeze() node
+	Freeze() *node
 	Get(args *EqArgs, v elementT, h hasher) *elementT
 	Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) unNode
 

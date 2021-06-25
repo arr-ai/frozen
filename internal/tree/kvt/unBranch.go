@@ -32,7 +32,7 @@ func (b *unBranch) appendTo(dest []elementT) []elementT {
 	return dest
 }
 
-func (b *unBranch) Freeze() node {
+func (b *unBranch) Freeze() *node {
 	var mask masker
 	for i, n := range b.p {
 		switch n.(type) {
@@ -41,13 +41,13 @@ func (b *unBranch) Freeze() node {
 			mask |= newMasker(i)
 		}
 	}
-	var data [fanout]node
+	var p packer
 	for i, e := range b.p {
 		if e != nil {
-			data[i] = e.Freeze()
+			p[i] = e.Freeze()
 		}
 	}
-	return &branch{p: data}
+	return newBranch(&p).Node()
 }
 
 func (b *unBranch) Get(args *EqArgs, v elementT, h hasher) *elementT {
