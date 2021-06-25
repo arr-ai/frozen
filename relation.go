@@ -1,7 +1,5 @@
 package frozen
 
-import "log"
-
 var trueSet = NewSet(NewMap())
 
 // Join returns the n-ary join of a Set of Sets.
@@ -149,15 +147,10 @@ func (s Set) Unnest(attrs Set) Set {
 	var b SetBuilder
 	for i := s.Range(); i.Next(); {
 		t := i.Value().(Map)
-		log.Print("t:            ", t)
 		key := t.Without(attrs)
-		log.Print("key:          ", key)
 		nestedValues := t.Project(attrs).Values()
-		log.Print("nestedValues: ", nestedValues)
 		all := nestedValues.With(NewSet(key))
-		log.Print("all:          ", all)
 		joined := Join(all)
-		log.Print("joined:       ", joined)
 		for j := joined.Range(); j.Next(); {
 			b.Add(j.Value())
 		}
