@@ -1,4 +1,4 @@
-// +build !unsafe
+// +build !frozen_unsafe_ptr
 
 package tree
 

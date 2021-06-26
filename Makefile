@@ -14,9 +14,9 @@ tree.files = \
     hasher.go \
     leaf.go \
     masker.go \
-    node.go \
-    node_safe.go \
-    node_unsafe.go \
+    node_ptr.go \
+    node_ptr_safe.go \
+    node_ptr_unsafe.go \
     nodeArgs.go \
     packer.go \
     packer_iter.go \
@@ -34,6 +34,7 @@ gen-kv-%:
 .PHONY: test
 test:
 	go test $(TESTFLAGS) ./...
+	go test -tags frozen_ptr_unsafe $(TESTFLAGS) ./...
 
 .PHONY: lint
 lint: gen
