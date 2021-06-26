@@ -49,12 +49,15 @@ func (t Tree) Gauge() depth.Gauge {
 }
 
 func (t Tree) String() string {
-	return t.Root().String()
+	a := t.Root()
+	return a.String()
 }
 
 func (t Tree) Combine(args *CombineArgs, u Tree) Tree {
 	count := -(t.count + u.count)
-	return newTreeNeg(t.Root().Combine(args, u.Root(), 0, &count), &count)
+	a := t.Root()
+	b := u.Root()
+	return newTreeNeg(a.Combine(args, b, 0, &count), &count)
 }
 
 func (t Tree) Difference(args *EqArgs, u Tree) Tree {
@@ -64,12 +67,16 @@ func (t Tree) Difference(args *EqArgs, u Tree) Tree {
 	return newTreeNeg(a.Difference(args, b, 0, &count), &count)
 }
 
-func (t Tree) Equal(args *EqArgs, n Tree) bool {
-	return t.Root().Equal(args, n.Root(), 0)
+func (t Tree) Equal(args *EqArgs, u Tree) bool {
+	a := t.Root()
+	b := u.Root()
+	return a.Equal(args, b, 0)
 }
 
 func (t Tree) Get(args *EqArgs, v elementT) *elementT {
-	return t.Root().Get(args, v, newHasher(v, 0))
+	a := t.Root()
+	h := newHasher(v, 0)
+	return a.Get(args, v, h)
 }
 
 func (t Tree) Intersection(args *EqArgs, u Tree) Tree {
@@ -78,11 +85,15 @@ func (t Tree) Intersection(args *EqArgs, u Tree) Tree {
 		args = args.flip
 	}
 	count := 0
-	return newTree(t.Root().Intersection(args, u.Root(), 0, &count), &count)
+	a := t.Root()
+	b := u.Root()
+	return newTree(a.Intersection(args, b, 0, &count), &count)
 }
 
 func (t Tree) Iterator() Iterator {
-	return t.Root().Iterator(packedIteratorBuf(t.count))
+	a := t.Root()
+	buf := packedIteratorBuf(t.count)
+	return a.Iterator(buf)
 }
 
 func (t Tree) OrderedIterator(less Less, n int) Iterator {
@@ -90,7 +101,8 @@ func (t Tree) OrderedIterator(less Less, n int) Iterator {
 		n = t.count
 	}
 	o := &ordered{less: less, elements: make([]elementT, 0, n)}
-	for i := t.Root().Iterator(packedIteratorBuf(t.count)); i.Next(); {
+	a := t.MutableRoot()
+	for i := a.Iterator(packedIteratorBuf(t.count)); i.Next(); {
 		heap.Push(o, i.Value())
 		if o.Len() > n {
 			heap.Pop(o)
@@ -103,36 +115,46 @@ func (t Tree) OrderedIterator(less Less, n int) Iterator {
 
 func (t *Tree) Remove(args *EqArgs, v elementT) {
 	count := -t.count
-	t.root = t.MutableRoot().Remove(args, v, 0, newHasher(v, 0), &count)
+	a := t.MutableRoot()
+	h := newHasher(v, 0)
+	t.root = a.Remove(args, v, 0, h, &count)
 	t.count = -count
 }
 
 func (t Tree) SubsetOf(args *EqArgs, u Tree) bool {
-	return t.Root().SubsetOf(args, u.Root(), 0)
+	a := t.Root()
+	return a.SubsetOf(args, u.Root(), 0)
 }
 
 func (t Tree) Map(args *CombineArgs, f func(v elementT) elementT) Tree {
 	count := 0
-	return newTree(t.Root().Map(args, 0, &count, f), &count)
+	a := t.Root()
+	return newTree(a.Map(args, 0, &count, f), &count)
 }
 
 func (t Tree) Reduce(args NodeArgs, r func(values ...elementT) elementT) elementT {
-	return t.Root().Reduce(args, 0, r)
+	a := t.Root()
+	return a.Reduce(args, 0, r)
 }
 
 func (t Tree) Where(args *WhereArgs) Tree {
 	count := 0
-	return newTree(t.Root().Where(args, 0, &count), &count)
+	a := t.Root()
+	return newTree(a.Where(args, 0, &count), &count)
 }
 
 func (t Tree) With(args *CombineArgs, v elementT) Tree {
 	count := -(t.count + 1)
-	return newTreeNeg(t.Root().With(args, v, 0, newHasher(v, 0), &count), &count)
+	a := t.Root()
+	h := newHasher(v, 0)
+	return newTreeNeg(a.With(args, v, 0, h, &count), &count)
 }
 
 func (t Tree) Without(args *EqArgs, v elementT) Tree {
 	count := -t.count
-	return newTreeNeg(t.Root().Without(args, v, 0, newHasher(v, 0), &count), &count)
+	a := t.Root()
+	h := newHasher(v, 0)
+	return newTreeNeg(a.Without(args, v, 0, h, &count), &count)
 }
 
 func packedIteratorBuf(count int) [][]noderef {
