@@ -32,13 +32,18 @@ gen-kv: gen-kv-iterator gen-kv-tree
 gen-kv-%:
 	./gen-kv.sh internal/$* internal/$*/$($*.package) $($*.files)
 
+LENGTHS = "" -short
+TAGSES = "" frozen_ptr_safe frozen_intf
+
 .PHONY: test
 test:
-	for length in "-short" ""; do \
-		for tags in "" "frozen_ptr_safe" "frozen_intf"; do \
-			printf "go test \e[32m$$length \e[35m$${tags:+-tags=$$tags}\e[0m $(TESTFLAGS) ./...\n"; \
-			go test $$length $${tags:+-tags=$$tags} $(TESTFLAGS) ./...; \
-		done; \
+	@set -e; \
+	for length in $(LENGTHS); do \
+		for tags in $(TAGSES); do \
+			printf "\e[1mgo test \e[32m$$length \e[35m$${tags:+-tags=$$tags}\e[0;1m $(TESTFLAGS) ./...\e[0m\n"; \
+			go test $$length $${tags:+-tags=$$tags} $(TESTFLAGS) ./... \
+				| (fgrep -v '[no test files]' || true); \
+		done \
 	done
 
 .PHONY: lint
