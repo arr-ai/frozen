@@ -9,6 +9,10 @@ import (
 
 var theEmptyNode = newLeaf().Node()
 
+func newMutableLeaf(data ...elementT) *leaf {
+	return newLeaf(append(make([]elementT, 0, maxLeafLen), data...)...)
+}
+
 func (l *leaf) Canonical(depth int) *node {
 	if len(l.data) <= maxLeafLen || depth*fanoutBits >= 64 {
 		return l.Node()

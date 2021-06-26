@@ -15,6 +15,8 @@ tree.files = \
     leaf.go \
     masker.go \
     node.go \
+    node_safe.go \
+    node_unsafe.go \
     nodeArgs.go \
     packer.go \
     packer_iter.go \

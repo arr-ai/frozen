@@ -4,29 +4,14 @@ package kvt
 import (
 	"fmt"
 	"strings"
-	"unsafe"
 
 	"github.com/arr-ai/frozen/errors"
 )
 
 var theEmptyNode = newLeaf().Node()
 
-type leafBase struct {
-	isLeaf bool
-	data   []elementT
-}
-
-type leaf struct {
-	leafBase
-	_ [unsafe.Sizeof(branch{}) - unsafe.Sizeof(leafBase{})]byte
-}
-
-func newLeaf(data ...elementT) *leaf {
-	return &leaf{leafBase: leafBase{isLeaf: true, data: data}}
-}
-
-func (l *leaf) Node() *node {
-	return (*node)(unsafe.Pointer(l))
+func newMutableLeaf(data ...elementT) *leaf {
+	return newLeaf(append(make([]elementT, 0, maxLeafLen), data...)...)
 }
 
 func (l *leaf) Canonical(depth int) *node {

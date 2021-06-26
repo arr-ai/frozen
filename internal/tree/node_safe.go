@@ -1,48 +1,45 @@
-// +build unsafe
+// +build !unsafe
 
 package tree
 
-import "unsafe"
-
 type node struct {
-	b branch
+	b      branch
+	l      leaf
+	isLeaf bool
 }
 
 func (n *node) Leaf() *leaf {
-	if n.b.isLeaf {
-		return (*leaf)(unsafe.Pointer(n))
+	if n.isLeaf {
+		return &n.l
 	}
 	return nil
 }
 
 func (n *node) Branch() *branch {
-	if !n.b.isLeaf {
+	if !n.isLeaf {
 		return &n.b
 	}
 	return nil
 }
 
-type leafBase struct {
-	isLeaf bool
-	data   []elementT
-}
-
 type leaf struct {
-	leafBase
-	_ [unsafe.Sizeof(branch{}) - unsafe.Sizeof(leafBase{})]byte
+	data []elementT
+	n    *node
 }
 
 func newLeaf(data ...elementT) *leaf {
-	return &leaf{leafBase: leafBase{isLeaf: true, data: data}}
+	n := &node{isLeaf: true, l: leaf{data: data}}
+	n.l.n = n
+	return &n.l
 }
 
 func (l *leaf) Node() *node {
-	return (*node)(unsafe.Pointer(l))
+	return l.n
 }
 
 type branch struct {
-	isLeaf bool
-	p      packer
+	p packer
+	n *node
 }
 
 func newBranch(p *packer) *branch {
@@ -50,9 +47,10 @@ func newBranch(p *packer) *branch {
 	if p != nil {
 		n.b.p = *p
 	}
+	n.b.n = n
 	return &n.b
 }
 
 func (b *branch) Node() *node {
-	return (*node)(unsafe.Pointer(b))
+	return b.n
 }
