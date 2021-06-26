@@ -214,7 +214,7 @@ func (s Set) Where(pred func(elem interface{}) bool) Set {
 // Map returns a Set with all the results of applying f to all elements in s.
 func (s Set) Map(f func(elem interface{}) interface{}) Set {
 	args := tree.NewCombineArgs(s.eqArgs(), tree.UseRHS)
-	return Set{tree: s.tree.Transform(args, f)}
+	return Set{tree: s.tree.Map(args, f)}
 }
 
 // Reduce returns the result of applying `reduce` to the elements of `s` or

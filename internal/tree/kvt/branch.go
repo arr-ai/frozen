@@ -156,10 +156,10 @@ func (b *branch) SubsetOf(args *EqArgs, n noderef, depth int) bool {
 	})
 }
 
-func (b *branch) Transform(args *CombineArgs, depth int, count *int, f func(e elementT) elementT) noderef {
+func (b *branch) Map(args *CombineArgs, depth int, count *int, f func(e elementT) elementT) noderef {
 	var nodes [fanout]noderef
 	args.Parallel(depth, count, func(i int, count *int) bool {
-		nodes[i] = b.p.Get(i).Transform(args, depth+1, count, f)
+		nodes[i] = b.p.Get(i).Map(args, depth+1, count, f)
 		return true
 	})
 

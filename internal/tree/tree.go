@@ -111,9 +111,9 @@ func (t Tree) SubsetOf(args *EqArgs, u Tree) bool {
 	return t.Root().SubsetOf(args, u.Root(), 0)
 }
 
-func (t Tree) Transform(args *CombineArgs, f func(v elementT) elementT) Tree {
+func (t Tree) Map(args *CombineArgs, f func(v elementT) elementT) Tree {
 	count := 0
-	return newTree(t.Root().Transform(args, 0, &count, f), &count)
+	return newTree(t.Root().Map(args, 0, &count, f), &count)
 }
 
 func (t Tree) Reduce(args NodeArgs, r func(values ...elementT) elementT) elementT {

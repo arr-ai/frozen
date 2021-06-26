@@ -25,7 +25,7 @@ type node interface {
 	Iterator(buf [][]noderef) Iterator
 	Reduce(args NodeArgs, depth int, r func(values ...elementT) elementT) elementT
 	SubsetOf(args *EqArgs, n2 noderef, depth int) bool
-	Transform(args *CombineArgs, depth int, count *int, f func(v elementT) elementT) noderef
+	Map(args *CombineArgs, depth int, count *int, f func(v elementT) elementT) noderef
 	Where(args *WhereArgs, depth int, matches *int) noderef
 	With(args *CombineArgs, v elementT, depth int, h hasher, matches *int) noderef
 	Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) noderef

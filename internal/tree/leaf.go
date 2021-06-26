@@ -174,7 +174,7 @@ func (l *leaf) SubsetOf(args *EqArgs, n noderef, _ int) bool {
 	return true
 }
 
-func (l *leaf) Transform(args *CombineArgs, _ int, counts *int, f func(e elementT) elementT) noderef {
+func (l *leaf) Map(args *CombineArgs, _ int, counts *int, f func(e elementT) elementT) noderef {
 	var nb Builder
 	for _, e := range l.data {
 		nb.Add(args, f(e))

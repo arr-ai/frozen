@@ -95,11 +95,11 @@ func (n noderef) SubsetOf(args *EqArgs, n2 noderef, depth int) bool {
 	return n.b.SubsetOf(args, n2, depth)
 }
 
-func (n noderef) Transform(args *CombineArgs, depth int, count *int, f func(v elementT) elementT) noderef {
+func (n noderef) Map(args *CombineArgs, depth int, count *int, f func(v elementT) elementT) noderef {
 	if l := n.Leaf(); l != nil {
-		return l.Transform(args, depth, count, f)
+		return l.Map(args, depth, count, f)
 	}
-	return n.b.Transform(args, depth, count, f)
+	return n.b.Map(args, depth, count, f)
 }
 
 func (n noderef) Where(args *WhereArgs, depth int, matches *int) noderef {
