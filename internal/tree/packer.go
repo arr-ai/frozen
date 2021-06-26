@@ -2,7 +2,7 @@ package tree
 
 const maxLeafLen = 8
 
-type packer [fanout]*node
+type packer [fanout]noderef
 
 func (p *packer) EqualPacker(q *packer) bool {
 	for i, a := range p {
@@ -14,14 +14,14 @@ func (p *packer) EqualPacker(q *packer) bool {
 	return true
 }
 
-func (p *packer) Get(i int) *node {
+func (p *packer) Get(i int) noderef {
 	if n := p[i]; n != nil {
 		return n
 	}
 	return theEmptyNode
 }
 
-func (p *packer) With(i int, n *node) *packer {
+func (p *packer) With(i int, n noderef) *packer {
 	ret := *p
 	if n.Empty() {
 		ret[i] = nil
@@ -31,6 +31,6 @@ func (p *packer) With(i int, n *node) *packer {
 	return &ret
 }
 
-func (p *packer) Iterator(buf [][]*node) Iterator {
+func (p *packer) Iterator(buf [][]noderef) Iterator {
 	return newPackerIterator(buf, p)
 }

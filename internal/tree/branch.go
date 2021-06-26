@@ -20,7 +20,7 @@ var (
 	UseLHS = func(a, _ elementT) elementT { return a }
 )
 
-func (b *branch) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) *node {
+func (b *branch) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	i := h.hash()
 	n := b.p[i]
 	if n == nil {
@@ -41,7 +41,7 @@ func (b *branch) AppendTo(dest []elementT) []elementT {
 	return dest
 }
 
-func (b *branch) Canonical(_ int) *node {
+func (b *branch) Canonical(_ int) noderef {
 	var buf [maxLeafLen]elementT
 	if data := b.AppendTo(buf[:0]); data != nil {
 		return newLeaf(append([]elementT{}, data...)...).Node()
@@ -49,7 +49,7 @@ func (b *branch) Canonical(_ int) *node {
 	return b.Node()
 }
 
-func (b *branch) Combine(args *CombineArgs, n *node, depth int, matches *int) *node {
+func (b *branch) Combine(args *CombineArgs, n noderef, depth int, matches *int) noderef {
 	if l := n.Leaf(); l != nil {
 		ret := b.Node()
 		for _, e := range l.data {
@@ -65,7 +65,7 @@ func (b *branch) Combine(args *CombineArgs, n *node, depth int, matches *int) *n
 	return ret.Node()
 }
 
-func (b *branch) Difference(args *EqArgs, n *node, depth int, removed *int) *node {
+func (b *branch) Difference(args *EqArgs, n noderef, depth int, removed *int) noderef {
 	if l := n.Leaf(); l != nil {
 		result := b.Node()
 		for _, e := range l.data {
@@ -85,7 +85,7 @@ func (b *branch) Empty() bool {
 	return false
 }
 
-func (b *branch) Equal(args *EqArgs, n *node, depth int) bool {
+func (b *branch) Equal(args *EqArgs, n noderef, depth int) bool {
 	if n := n.Branch(); n != nil {
 		return args.Parallel(depth, nil, func(i int, _ *int) bool {
 			return b.p.Get(i).Equal(args, n.p.Get(i), depth+1)
@@ -98,7 +98,7 @@ func (b *branch) Get(args *EqArgs, v elementT, h hasher) *elementT {
 	return b.p.Get(h.hash()).Get(args, v, h.next())
 }
 
-func (b *branch) Intersection(args *EqArgs, n *node, depth int, matches *int) *node {
+func (b *branch) Intersection(args *EqArgs, n noderef, depth int, matches *int) noderef {
 	if l := n.Leaf(); l != nil {
 		return l.Intersection(args.flip, b.Node(), depth, matches)
 	}
@@ -110,7 +110,7 @@ func (b *branch) Intersection(args *EqArgs, n *node, depth int, matches *int) *n
 	return ret.Canonical(depth)
 }
 
-func (b *branch) Iterator(buf [][]*node) Iterator {
+func (b *branch) Iterator(buf [][]noderef) Iterator {
 	return b.p.Iterator(buf)
 }
 
@@ -132,7 +132,7 @@ func (b *branch) Reduce(args NodeArgs, depth int, r func(values ...elementT) ele
 	return r(results2...)
 }
 
-func (b *branch) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) *node {
+func (b *branch) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	i := h.hash()
 	if n := b.p[i]; n != nil {
 		b.p[i] = b.p[i].Remove(args, v, depth+1, h.next(), matches)
@@ -146,7 +146,7 @@ func (b *branch) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *
 	return b.Node()
 }
 
-func (b *branch) SubsetOf(args *EqArgs, n *node, depth int) bool {
+func (b *branch) SubsetOf(args *EqArgs, n noderef, depth int) bool {
 	if n.Leaf() != nil {
 		return false
 	}
@@ -155,8 +155,8 @@ func (b *branch) SubsetOf(args *EqArgs, n *node, depth int) bool {
 	})
 }
 
-func (b *branch) Transform(args *CombineArgs, depth int, count *int, f func(e elementT) elementT) *node {
-	var nodes [fanout]*node
+func (b *branch) Transform(args *CombineArgs, depth int, count *int, f func(e elementT) elementT) noderef {
+	var nodes [fanout]noderef
 	args.Parallel(depth, count, func(i int, count *int) bool {
 		nodes[i] = b.p.Get(i).Transform(args, depth+1, count, f)
 		return true
@@ -173,7 +173,7 @@ func (b *branch) Transform(args *CombineArgs, depth int, count *int, f func(e el
 	return acc
 }
 
-func (b *branch) Where(args *WhereArgs, depth int, matches *int) *node {
+func (b *branch) Where(args *WhereArgs, depth int, matches *int) noderef {
 	var nodes packer
 	args.Parallel(depth, matches, func(i int, matches *int) bool {
 		nodes[i] = b.p.Get(i).Where(args, depth+1, matches)
@@ -182,12 +182,12 @@ func (b *branch) Where(args *WhereArgs, depth int, matches *int) *node {
 	return (newBranch(&nodes)).Canonical(depth)
 }
 
-func (b *branch) With(args *CombineArgs, v elementT, depth int, h hasher, matches *int) *node {
+func (b *branch) With(args *CombineArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	i := h.hash()
 	return newBranch(b.p.With(i, b.p.Get(i).With(args, v, depth+1, h.next(), matches))).Node()
 }
 
-func (b *branch) Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) *node {
+func (b *branch) Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	i := h.hash()
 	child := b.p.Get(i).Without(args, v, depth+1, h.next(), matches)
 	return newBranch(b.p.With(i, child)).Canonical(depth)

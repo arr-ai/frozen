@@ -1,4 +1,4 @@
-// +build !frozen_unsafe_ptr
+// +build frozen_safe_ptr
 
 package tree
 
@@ -8,14 +8,14 @@ type node struct {
 	isLeaf bool
 }
 
-func (n *node) Leaf() *leaf {
+func (n noderef) Leaf() *leaf {
 	if n.isLeaf {
 		return &n.l
 	}
 	return nil
 }
 
-func (n *node) Branch() *branch {
+func (n noderef) Branch() *branch {
 	if !n.isLeaf {
 		return &n.b
 	}
@@ -24,7 +24,7 @@ func (n *node) Branch() *branch {
 
 type leaf struct {
 	data []elementT
-	n    *node
+	n    noderef
 }
 
 func newLeaf(data ...elementT) *leaf {
@@ -33,13 +33,13 @@ func newLeaf(data ...elementT) *leaf {
 	return &n.l
 }
 
-func (l *leaf) Node() *node {
+func (l *leaf) Node() noderef {
 	return l.n
 }
 
 type branch struct {
 	p packer
-	n *node
+	n noderef
 }
 
 func newBranch(p *packer) *branch {
@@ -51,6 +51,6 @@ func newBranch(p *packer) *branch {
 	return &n.b
 }
 
-func (b *branch) Node() *node {
+func (b *branch) Node() noderef {
 	return b.n
 }

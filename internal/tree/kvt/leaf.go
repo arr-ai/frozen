@@ -14,7 +14,7 @@ func newMutableLeaf(data ...elementT) *leaf {
 	return newLeaf(append(make([]elementT, 0, maxLeafLen), data...)...)
 }
 
-func (l *leaf) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) *node {
+func (l *leaf) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	for i, e := range l.data {
 		if args.eq(e, v) {
 			*matches++
@@ -36,7 +36,7 @@ func (l *leaf) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *
 	return b.Node()
 }
 
-func (l *leaf) Canonical(depth int) *node {
+func (l *leaf) Canonical(depth int) noderef {
 	if len(l.data) <= maxLeafLen || depth*fanoutBits >= 64 {
 		return l.Node()
 	}
@@ -44,7 +44,7 @@ func (l *leaf) Canonical(depth int) *node {
 	return newBranch(nil).Combine(DefaultNPCombineArgs, l.Node(), depth, &matches)
 }
 
-func (l *leaf) Combine(args *CombineArgs, n *node, depth int, matches *int) *node {
+func (l *leaf) Combine(args *CombineArgs, n noderef, depth int, matches *int) noderef {
 	if l.Empty() {
 		return n
 	}
@@ -89,7 +89,7 @@ func (l *leaf) AppendTo(dest []elementT) []elementT {
 	return append(dest, l.data...)
 }
 
-func (l *leaf) Difference(args *EqArgs, n *node, depth int, removed *int) *node {
+func (l *leaf) Difference(args *EqArgs, n noderef, depth int, removed *int) noderef {
 	ret := newLeaf()
 	for _, e := range l.data {
 		if n.Get(args.flip, e, newHasher(e, depth)) == nil {
@@ -105,7 +105,7 @@ func (l *leaf) Empty() bool {
 	return len(l.data) == 0
 }
 
-func (l *leaf) Equal(args *EqArgs, n *node, depth int) bool {
+func (l *leaf) Equal(args *EqArgs, n noderef, depth int) bool {
 	if m := n.Leaf(); m != nil {
 		if len(l.data) != len(m.data) {
 			return false
@@ -129,7 +129,7 @@ func (l *leaf) Get(args *EqArgs, v elementT, h hasher) *elementT {
 	return nil
 }
 
-func (l *leaf) Intersection(args *EqArgs, n *node, depth int, matches *int) *node {
+func (l *leaf) Intersection(args *EqArgs, n noderef, depth int, matches *int) noderef {
 	ret := newLeaf()
 	for _, e := range l.data {
 		if n.Get(args, e, newHasher(e, depth)) != nil {
@@ -140,7 +140,7 @@ func (l *leaf) Intersection(args *EqArgs, n *node, depth int, matches *int) *nod
 	return ret.Canonical(depth)
 }
 
-func (l *leaf) Iterator([][]*node) Iterator {
+func (l *leaf) Iterator([][]noderef) Iterator {
 	return newSliceIterator(l.data)
 }
 
@@ -148,7 +148,7 @@ func (l *leaf) Reduce(_ NodeArgs, _ int, r func(values ...elementT) elementT) el
 	return r(l.data...)
 }
 
-func (l *leaf) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) *node {
+func (l *leaf) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	for i, e := range l.data {
 		if args.eq(e, v) {
 			*matches++
@@ -166,7 +166,7 @@ func (l *leaf) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *in
 	return l.Node()
 }
 
-func (l *leaf) SubsetOf(args *EqArgs, n *node, _ int) bool {
+func (l *leaf) SubsetOf(args *EqArgs, n noderef, _ int) bool {
 	for _, e := range l.data {
 		if n.Get(args, e, 0) == nil {
 			return false
@@ -175,7 +175,7 @@ func (l *leaf) SubsetOf(args *EqArgs, n *node, _ int) bool {
 	return true
 }
 
-func (l *leaf) Transform(args *CombineArgs, _ int, counts *int, f func(e elementT) elementT) *node {
+func (l *leaf) Transform(args *CombineArgs, _ int, counts *int, f func(e elementT) elementT) noderef {
 	var nb Builder
 	for _, e := range l.data {
 		nb.Add(args, f(e))
@@ -185,7 +185,7 @@ func (l *leaf) Transform(args *CombineArgs, _ int, counts *int, f func(e element
 	return t.root
 }
 
-func (l *leaf) Where(args *WhereArgs, depth int, matches *int) *node {
+func (l *leaf) Where(args *WhereArgs, depth int, matches *int) noderef {
 	ret := newLeaf()
 	for _, e := range l.data {
 		if args.Pred(e) {
@@ -196,7 +196,7 @@ func (l *leaf) Where(args *WhereArgs, depth int, matches *int) *node {
 	return ret.Canonical(depth)
 }
 
-func (l *leaf) With(args *CombineArgs, v elementT, depth int, h hasher, matches *int) *node {
+func (l *leaf) With(args *CombineArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	for i, e := range l.data {
 		if args.eq(e, v) {
 			*matches++
@@ -208,7 +208,7 @@ func (l *leaf) With(args *CombineArgs, v elementT, depth int, h hasher, matches 
 	return newLeaf(append(l.data, v)...).Canonical(depth)
 }
 
-func (l *leaf) Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) *node {
+func (l *leaf) Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	for i, e := range l.data {
 		if args.eq(e, v) {
 			*matches++

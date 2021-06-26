@@ -8,26 +8,26 @@ import (
 )
 
 type Tree struct {
-	root  *node
+	root  noderef
 	count int
 }
 
-func newTree(n *node, count *int) Tree {
+func newTree(n noderef, count *int) Tree {
 	return Tree{root: n, count: *count}
 }
 
-func newTreeNeg(n *node, count *int) Tree {
+func newTreeNeg(n noderef, count *int) Tree {
 	return Tree{root: n, count: -*count}
 }
 
-func (t Tree) Root() *node {
+func (t Tree) Root() noderef {
 	if t.root == nil {
 		t.root = theEmptyNode
 	}
 	return t.root
 }
 
-func (t Tree) MutableRoot() *node {
+func (t Tree) MutableRoot() noderef {
 	if t.root == nil {
 		t.root = newMutableLeaf().Node()
 	}
@@ -135,7 +135,7 @@ func (t Tree) Without(args *EqArgs, v elementT) Tree {
 	return newTreeNeg(t.Root().Without(args, v, 0, newHasher(v, 0), &count), &count)
 }
 
-func packedIteratorBuf(count int) [][]*node {
+func packedIteratorBuf(count int) [][]noderef {
 	depth := (bits.Len64(uint64(count)) + 1) * 3 / 2 // 1.5 (log₈(count) + 1)
-	return make([][]*node, 0, depth)
+	return make([][]noderef, 0, depth)
 }
