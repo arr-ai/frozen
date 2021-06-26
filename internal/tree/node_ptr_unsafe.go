@@ -4,6 +4,12 @@ package tree
 
 import "unsafe"
 
+var (
+	// assert(sizeof leaf == sizeof node && alignof leaf == alignof node).
+	_ = [-(unsafe.Sizeof(leaf{}) ^ unsafe.Sizeof(node{}))]struct{}{}
+	_ = [-(unsafe.Alignof(leaf{}) ^ unsafe.Alignof(node{}))]struct{}{}
+)
+
 type node struct {
 	b branch
 }
