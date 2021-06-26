@@ -5,23 +5,23 @@ iterator.package = kvi
 iterator.files = \
 	empty.go \
 	iterator.go \
-    slice.go
+	slice.go
 
 tree.package = kvt
 tree.files = \
-    branch.go \
-    builder.go \
-    hasher.go \
-    leaf.go \
-    masker.go \
-    node_intf.go \
-    node_ptr.go \
-    node_ptr_safe.go \
-    node_ptr_unsafe.go \
-    nodeArgs.go \
-    packer.go \
-    packer_iter.go \
-    tree.go \
+	branch.go \
+	builder.go \
+	hasher.go \
+	leaf.go \
+	masker.go \
+	node_intf.go \
+	node_ptr.go \
+	node_ptr_safe.go \
+	node_ptr_unsafe.go \
+	nodeArgs.go \
+	packer.go \
+	packer_iter.go \
+	tree.go \
 
 .PHONY: gen
 gen: gen-kv
@@ -34,9 +34,12 @@ gen-kv-%:
 
 .PHONY: test
 test:
-	go test $(TESTFLAGS) ./...
-	go test -tags frozen_ptr_unsafe $(TESTFLAGS) ./...
-	go test -tags frozen_intf $(TESTFLAGS) ./...
+	for length in "-short" ""; do \
+		for tags in "" "frozen_ptr_safe" "frozen_intf"; do \
+			printf "go test \e[32m$$length \e[35m$${tags:+-tags=$$tags}\e[0m $(TESTFLAGS) ./...\n"; \
+			go test $$length $${tags:+-tags=$$tags} $(TESTFLAGS) ./...; \
+		done; \
+	done
 
 .PHONY: lint
 lint: gen
