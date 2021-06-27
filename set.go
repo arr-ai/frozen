@@ -128,7 +128,12 @@ func (s Set) String() string {
 }
 
 // Format writes a string representation of the Set into state.
-func (s Set) Format(state fmt.State, _ rune) {
+func (s Set) Format(state fmt.State, verb rune) {
+	if verb == 'v' && state.Flag('+') {
+		fmt.Fprint(state, s.tree.String())
+		return
+	}
+
 	defer func() {
 		if recover() != nil {
 			log.Print("wtf?")

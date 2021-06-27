@@ -1,4 +1,4 @@
-package frozen_test
+package test
 
 import (
 	"reflect"
@@ -11,29 +11,41 @@ type markerKey struct {
 	args []interface{}
 }
 
-type marker struct {
+type Marker struct {
 	key      *markerKey
 	isTarget bool
 }
 
-type replayer struct {
-	mark     func(args ...interface{}) *marker
-	replayTo func(m *marker)
+func (m *Marker) IsTarget() bool {
+	return m.isTarget
 }
 
-func replayable(enabled bool, f func(r replayer)) {
+type Replayer struct {
+	mark     func(args ...interface{}) *Marker
+	replayTo func(m *Marker)
+}
+
+func (r *Replayer) Mark(args ...interface{}) *Marker {
+	return r.mark(args...)
+}
+
+func (r *Replayer) ReplayTo(m *Marker) {
+	r.replayTo(m)
+}
+
+func Replayable(enabled bool, f func(r *Replayer)) {
 	if !enabled {
-		m := &marker{}
-		f(replayer{
-			mark:     func(_ ...interface{}) *marker { return m },
-			replayTo: func(_ *marker) {},
+		m := &Marker{}
+		f(&Replayer{
+			mark:     func(_ ...interface{}) *Marker { return m },
+			replayTo: func(_ *Marker) {},
 		})
 		return
 	}
 	var latest *markerKey
 	var target *markerKey
 
-	mark := func(args ...interface{}) *marker {
+	mark := func(args ...interface{}) *Marker {
 		var pc [1]uintptr
 		if runtime.Callers(2, pc[:]) != 1 {
 			panic("unable to set mark.")
@@ -46,13 +58,13 @@ func replayable(enabled bool, f func(r replayer)) {
 			line: frame.Line,
 			args: args,
 		}
-		return &marker{
+		return &Marker{
 			key:      latest,
 			isTarget: target != nil && reflect.DeepEqual(*latest, *target),
 		}
 	}
 
-	replayTo := func(m *marker) {
+	replayTo := func(m *Marker) {
 		if m == nil {
 			panic(latest)
 		}
@@ -70,7 +82,7 @@ func replayable(enabled bool, f func(r replayer)) {
 				}
 			}
 		}()
-		f(replayer{mark: mark, replayTo: replayTo})
+		f(&Replayer{mark: mark, replayTo: replayTo})
 		return false
 	}() {
 	}

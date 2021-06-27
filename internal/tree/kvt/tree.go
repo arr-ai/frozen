@@ -3,6 +3,7 @@ package kvt
 
 import (
 	"container/heap"
+	"fmt"
 	"math/bits"
 
 	"github.com/arr-ai/frozen/internal/depth"
@@ -35,12 +36,6 @@ func (t Tree) MutableRoot() noderef {
 	return t.root
 }
 
-func (t *Tree) Add(args *CombineArgs, v elementT) {
-	count := -(t.count + 1)
-	t.root = t.MutableRoot().Add(args, v, 0, newHasher(v, 0), &count)
-	t.count = -count
-}
-
 func (t Tree) Count() int {
 	return t.count
 }
@@ -52,6 +47,11 @@ func (t Tree) Gauge() depth.Gauge {
 func (t Tree) String() string {
 	a := t.Root()
 	return a.String()
+}
+
+func (t Tree) Format(state fmt.State, verb rune) {
+	a := t.Root()
+	a.Format(state, verb)
 }
 
 func (t Tree) Combine(args *CombineArgs, u Tree) Tree {
@@ -114,17 +114,10 @@ func (t Tree) OrderedIterator(less Less, n int) Iterator {
 	return r.(Iterator)
 }
 
-func (t *Tree) Remove(args *EqArgs, v elementT) {
-	count := -t.count
-	a := t.MutableRoot()
-	h := newHasher(v, 0)
-	t.root = a.Remove(args, v, 0, h, &count)
-	t.count = -count
-}
-
 func (t Tree) SubsetOf(args *EqArgs, u Tree) bool {
 	a := t.Root()
-	return a.SubsetOf(args, u.Root(), 0)
+	b := u.Root()
+	return a.SubsetOf(args, b, 0)
 }
 
 func (t Tree) Map(args *CombineArgs, f func(v elementT) elementT) Tree {

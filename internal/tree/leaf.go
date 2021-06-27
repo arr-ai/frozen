@@ -2,7 +2,6 @@ package tree
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/arr-ai/frozen/errors"
 )
@@ -12,6 +11,27 @@ var theEmptyNode = newLeaf().Node()
 func newMutableLeaf(data ...elementT) *leaf {
 	return newLeaf(append(make([]elementT, 0, maxLeafLen), data...)...)
 }
+
+// fmt.Formatter
+
+func (l *leaf) Format(f fmt.State, verb rune) {
+	f.Write([]byte{'('})
+	for i, e := range l.data {
+		if i > 0 {
+			f.Write([]byte{','})
+		}
+		formatElement(f, verb, e)
+	}
+	f.Write([]byte{')'})
+}
+
+// fmt.Stringer
+
+func (l *leaf) String() string {
+	return fmt.Sprintf("%s", l)
+}
+
+// node
 
 func (l *leaf) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	for i, e := range l.data {
@@ -91,7 +111,8 @@ func (l *leaf) AppendTo(dest []elementT) []elementT {
 func (l *leaf) Difference(args *EqArgs, n noderef, depth int, removed *int) noderef {
 	ret := newLeaf()
 	for _, e := range l.data {
-		if n.Get(args.flip, e, newHasher(e, depth)) == nil {
+		h := newHasher(e, depth)
+		if n.Get(args.flip, e, h) == nil {
 			ret.data = append(ret.data, e)
 		} else {
 			*removed++
@@ -119,7 +140,7 @@ func (l *leaf) Equal(args *EqArgs, n noderef, depth int) bool {
 	return false
 }
 
-func (l *leaf) Get(args *EqArgs, v elementT, h hasher) *elementT {
+func (l *leaf) Get(args *EqArgs, v elementT, _ hasher) *elementT {
 	for i, e := range l.data {
 		if args.eq(e, v) {
 			return &l.data[i]
@@ -131,7 +152,8 @@ func (l *leaf) Get(args *EqArgs, v elementT, h hasher) *elementT {
 func (l *leaf) Intersection(args *EqArgs, n noderef, depth int, matches *int) noderef {
 	ret := newLeaf()
 	for _, e := range l.data {
-		if n.Get(args, e, newHasher(e, depth)) != nil {
+		h := newHasher(e, depth)
+		if n.Get(args, e, h) != nil {
 			*matches++
 			ret.data = append(ret.data, e)
 		}
@@ -165,9 +187,10 @@ func (l *leaf) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *in
 	return l.Node()
 }
 
-func (l *leaf) SubsetOf(args *EqArgs, n noderef, _ int) bool {
+func (l *leaf) SubsetOf(args *EqArgs, n noderef, depth int) bool {
 	for _, e := range l.data {
-		if n.Get(args, e, 0) == nil {
+		h := newHasher(e, depth)
+		if n.Get(args, e, h) == nil {
 			return false
 		}
 	}
@@ -223,17 +246,4 @@ func (l *leaf) Without(args *EqArgs, v elementT, depth int, h hasher, matches *i
 
 func (l *leaf) clone(extra int) *leaf {
 	return newLeaf(append(make([]elementT, 0, len(l.data)+extra), l.data...)...)
-}
-
-func (l *leaf) String() string {
-	var b strings.Builder
-	b.WriteByte('(')
-	for i, e := range l.data {
-		if i > 0 {
-			b.WriteByte(',')
-		}
-		fmt.Fprint(&b, e)
-	}
-	b.WriteByte(')')
-	return b.String()
 }

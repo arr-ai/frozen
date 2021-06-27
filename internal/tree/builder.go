@@ -1,5 +1,7 @@
 package tree
 
+import "fmt"
+
 // Builder provides a more efficient way to build nodes incrementally.
 type Builder struct {
 	t Tree
@@ -15,7 +17,9 @@ func (b *Builder) Count() int {
 
 func (b *Builder) Add(args *CombineArgs, v elementT) {
 	matches := 0
-	b.t.root = b.t.MutableRoot().Add(args, v, 0, newHasher(v, 0), &matches)
+	root := b.t.MutableRoot()
+	h := newHasher(v, 0)
+	b.t.root = root.Add(args, v, 0, h, &matches)
 	b.t.count += 1 - matches
 }
 
@@ -32,7 +36,19 @@ func (b *Builder) Get(args *EqArgs, el elementT) *elementT {
 }
 
 func (b *Builder) Finish() Tree {
-	t := Tree{root: b.t.Root(), count: b.t.count}
+	t := b.Borrow()
 	*b = Builder{}
 	return t
+}
+
+func (b *Builder) Borrow() Tree {
+	return Tree{root: b.t.Root(), count: b.t.count}
+}
+
+func (b Builder) String() string {
+	return b.Borrow().String()
+}
+
+func (b Builder) Format(state fmt.State, verb rune) {
+	b.Borrow().Format(state, verb)
 }

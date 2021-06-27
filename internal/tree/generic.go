@@ -1,6 +1,8 @@
 package tree
 
 import (
+	"fmt"
+
 	"github.com/arr-ai/hash"
 
 	"github.com/arr-ai/frozen/internal/iterator"
@@ -16,6 +18,10 @@ var emptyIterator = iterator.Empty
 
 func elementEqual(a, b interface{}) bool {
 	return value.Equal(a, b)
+}
+
+func formatElement(f fmt.State, verb rune, e elementT) {
+	value.FormatValue(f, verb, e)
 }
 
 func hashValue(i elementT, seed uintptr) uintptr {

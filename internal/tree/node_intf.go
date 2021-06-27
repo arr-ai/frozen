@@ -7,6 +7,7 @@ import "fmt"
 type noderef node
 
 type node interface {
+	fmt.Formatter
 	fmt.Stringer
 
 	Leaf() *leaf

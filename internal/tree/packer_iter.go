@@ -25,7 +25,7 @@ func (i *packerIterator) Next() bool {
 	for len(*p) > 0 {
 		c := (*p)[0]
 		*p = (*p)[1:]
-		if c != nil {
+		if c != nil && !c.Empty() {
 			i.i = c.Iterator(i.stack[1:])
 			return i.i.Next()
 		}

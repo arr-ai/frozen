@@ -54,13 +54,17 @@ func (b *branch) Combine(args *CombineArgs, n noderef, depth int, matches *int) 
 	if l := n.Leaf(); l != nil {
 		ret := b.Node()
 		for _, e := range l.data {
-			ret = ret.With(args, e, depth, newHasher(e, depth), matches)
+			h := newHasher(e, depth)
+			ret = ret.With(args, e, depth, h, matches)
 		}
 		return ret
 	}
+	b2 := n.Branch()
 	ret := newBranch(nil)
 	args.Parallel(depth, matches, func(i int, matches *int) bool {
-		ret.p[i] = b.p.Get(i).Combine(args, n.Branch().p.Get(i), depth+1, matches)
+		x := b.p.Get(i)
+		y := b2.p.Get(i)
+		ret.p[i] = x.Combine(args, y, depth+1, matches)
 		return true
 	})
 	return ret.Node()
@@ -68,11 +72,12 @@ func (b *branch) Combine(args *CombineArgs, n noderef, depth int, matches *int) 
 
 func (b *branch) Difference(args *EqArgs, n noderef, depth int, removed *int) noderef {
 	if l := n.Leaf(); l != nil {
-		result := b.Node()
+		ret := b.Node()
 		for _, e := range l.data {
-			result = result.Without(args, e, depth, newHasher(e, depth), removed)
+			h := newHasher(e, depth)
+			ret = ret.Without(args, e, depth, h, removed)
 		}
-		return result
+		return ret
 	}
 	ret := newBranch(nil)
 	args.Parallel(depth, removed, func(i int, removed *int) bool {
@@ -96,7 +101,9 @@ func (b *branch) Equal(args *EqArgs, n noderef, depth int) bool {
 }
 
 func (b *branch) Get(args *EqArgs, v elementT, h hasher) *elementT {
-	return b.p.Get(h.hash()).Get(args, v, h.next())
+	child := b.p.Get(h.hash())
+	h2 := h.next()
+	return child.Get(args, v, h2)
 }
 
 func (b *branch) Intersection(args *EqArgs, n noderef, depth int, matches *int) noderef {
@@ -136,11 +143,12 @@ func (b *branch) Reduce(args NodeArgs, depth int, r func(values ...elementT) ele
 func (b *branch) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	i := h.hash()
 	if n := b.p[i]; n != nil {
-		b.p[i] = b.p[i].Remove(args, v, depth+1, h.next(), matches)
-		if b.p[i].Branch() == nil {
+		child := b.p[i].Remove(args, v, depth+1, h.next(), matches)
+		b.p[i] = child
+		if child.Branch() == nil {
 			var buf [maxLeafLen]elementT
-			if b := b.AppendTo(buf[:]); b != nil {
-				return newMutableLeaf(b...).Node()
+			if data := b.AppendTo(buf[:0]); data != nil {
+				return newMutableLeaf(data...).Node()
 			}
 		}
 	}
@@ -185,13 +193,16 @@ func (b *branch) Where(args *WhereArgs, depth int, matches *int) noderef {
 
 func (b *branch) With(args *CombineArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	i := h.hash()
-	return newBranch(b.p.With(i, b.p.Get(i).With(args, v, depth+1, h.next(), matches))).Node()
+	g := h.next()
+	child := b.p.Get(i)
+	return newBranch(b.p.With(i, child.With(args, v, depth+1, g, matches))).Node()
 }
 
 func (b *branch) Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) noderef {
 	i := h.hash()
-	child := b.p.Get(i).Without(args, v, depth+1, h.next(), matches)
-	return newBranch(b.p.With(i, child)).Canonical(depth)
+	g := h.next()
+	child := b.p.Get(i)
+	return newBranch(b.p.With(i, child.Without(args, v, depth+1, g, matches))).Canonical(depth)
 }
 
 var branchStringIndices = []string{
@@ -199,7 +210,7 @@ var branchStringIndices = []string{
 	"¹⁰", "¹¹", "¹²", "¹³", "¹⁴", "¹⁵",
 }
 
-func (b *branch) Format(f fmt.State, c rune) {
+func (b *branch) Format(f fmt.State, verb rune) {
 	total := 0
 
 	printf := func(format string, args ...interface{}) {
@@ -220,9 +231,9 @@ func (b *branch) Format(f fmt.State, c rune) {
 	write([]byte("⁅"))
 
 	var buf [20]elementT
-	deep := b.AppendTo(buf[:]) != nil
+	shallow := b.AppendTo(buf[:]) != nil
 
-	if deep {
+	if shallow {
 		write([]byte("\n"))
 	}
 
@@ -231,13 +242,14 @@ func (b *branch) Format(f fmt.State, c rune) {
 			continue
 		}
 		index := branchStringIndices[i]
-		if deep {
+		if shallow {
 			printf("   %s%s\n", index, fmtutil.IndentBlock(child.String()))
 		} else {
 			if i > 0 {
 				write([]byte(" "))
 			}
-			printf("%s%v", index, child)
+			printf("%s", index)
+			child.Format(f, verb)
 		}
 	}
 	write([]byte("⁆"))

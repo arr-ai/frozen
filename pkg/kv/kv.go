@@ -25,7 +25,14 @@ func (kv KeyValue) Hash(seed uintptr) uintptr {
 
 // String returns a string representation of a KeyValue.
 func (kv KeyValue) String() string {
-	return fmt.Sprintf("%#v:%#v", kv.Key, kv.Value)
+	return fmt.Sprintf("%s", kv)
+}
+
+// String returns a string representation of a KeyValue.
+func (kv KeyValue) Format(f fmt.State, verb rune) {
+	value.FormatValue(f, verb, kv.Key)
+	f.Write([]byte{':'})
+	value.FormatValue(f, verb, kv.Value)
 }
 
 func KeyEqual(a, b KeyValue) bool {

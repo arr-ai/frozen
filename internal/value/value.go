@@ -1,6 +1,10 @@
 package value
 
-import "github.com/arr-ai/hash"
+import (
+	"fmt"
+
+	"github.com/arr-ai/hash"
+)
 
 // Equatable represents a type that can be compared for equality with another
 // value.
@@ -24,4 +28,12 @@ func Equal(a, b interface{}) bool {
 		return b.Equal(a)
 	}
 	return a == b
+}
+
+func FormatValue(f fmt.State, verb rune, v interface{}) {
+	if formatter, is := v.(fmt.Formatter); is {
+		formatter.Format(f, verb)
+	} else {
+		fmt.Fprint(f, v)
+	}
 }

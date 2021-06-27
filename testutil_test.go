@@ -53,24 +53,6 @@ func memoizePrepop(prepare func(n int) interface{}) func(n int) interface{} {
 // 	return
 // }
 
-func assertSetEqual(t *testing.T, expected, actual Set, msgAndArgs ...interface{}) bool {
-	t.Helper()
-
-	format := "\nexpected: %10v !=\nactual:   %10v"
-	args := []interface{}{}
-	if len(msgAndArgs) > 0 {
-		format = msgAndArgs[0].(string) + format
-		args = append(args, msgAndArgs[1:]...)
-	}
-
-	args = append(args, expected, actual)
-	if !expected.Equal(actual) {
-		t.Errorf(format, args...)
-		return false
-	}
-	return true
-}
-
 func assertSetHas(t *testing.T, s Set, i interface{}) bool { //nolint:unparam
 	t.Helper()
 

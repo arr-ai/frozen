@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
 func TestKeyValueString(t *testing.T) {
@@ -194,30 +195,30 @@ func TestMapKeys(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	var m Map
-	assertSetEqual(t, Set{}, m.Keys())
+	test.AssertSetEqual(t, Set{}, m.Keys())
 	m = m.With(1, 2)
-	assertSetEqual(t, NewSet(1), m.Keys())
+	test.AssertSetEqual(t, NewSet(1), m.Keys())
 	m = m.With(3, 4)
-	assertSetEqual(t, NewSet(1, 3), m.Keys())
+	test.AssertSetEqual(t, NewSet(1, 3), m.Keys())
 	m = m.Without(NewSet(1))
-	assertSetEqual(t, NewSet(3), m.Keys())
+	test.AssertSetEqual(t, NewSet(3), m.Keys())
 	m = m.Without(NewSet(3))
-	assertSetEqual(t, Set{}, m.Keys())
+	test.AssertSetEqual(t, Set{}, m.Keys())
 }
 
 func TestMapValues(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	var m Map
-	assertSetEqual(t, Set{}, m.Values())
+	test.AssertSetEqual(t, Set{}, m.Values())
 	m = m.With(1, 2)
-	assertSetEqual(t, NewSet(2), m.Values())
+	test.AssertSetEqual(t, NewSet(2), m.Values())
 	m = m.With(3, 4)
-	assertSetEqual(t, NewSet(2, 4), m.Values())
+	test.AssertSetEqual(t, NewSet(2, 4), m.Values())
 	m = m.Without(NewSet(1))
-	assertSetEqual(t, NewSet(4), m.Values())
+	test.AssertSetEqual(t, NewSet(4), m.Values())
 	m = m.Without(NewSet(3))
-	assertSetEqual(t, Set{}, m.Values())
+	test.AssertSetEqual(t, Set{}, m.Values())
 }
 
 func TestMapProject(t *testing.T) {
@@ -310,6 +311,13 @@ func TestMapUpdate(t *testing.T) {
 				return key
 			})
 			if !assertMapEqual(t, expected, actual) {
+				// log.Print("a:           ", a)
+				// log.Print("b:           ", b)
+				// log.Print("a.Update(b): ", actual)
+				// a = NewMapFromKeys(s, plus(0))
+				// b = NewMapFromKeys(u, plus(10))
+				// actual = a.Update(b)
+				// a.Update(b)
 				return
 			}
 		}

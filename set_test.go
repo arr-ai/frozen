@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/internal/pkg/test"
 	"github.com/arr-ai/frozen/internal/tree"
 )
 
@@ -25,7 +26,7 @@ func TestSetEmpty(t *testing.T) {
 
 	var s Set
 	assert.True(t, s.IsEmpty())
-	assertSetEqual(t, Set{}, s)
+	test.AssertSetEqual(t, Set{}, s)
 }
 
 func compareElements(a, b []interface{}) (aOnly, bOnly []interface{}) {
@@ -124,7 +125,7 @@ func TestSetWith(t *testing.T) {
 		n /= 10
 	}
 	for i := 0; i < n; i++ {
-		assertSetEqual(t, NewSet(arr...), s, "i=%v", i)
+		test.AssertSetEqual(t, NewSet(arr...), s, "i=%v", i)
 		assert.Equal(t, i, s.Count(), "i=%v", i)
 		assert.False(t, s.Has(i), "i=%v", i)
 		s = s.With(i)
@@ -150,7 +151,7 @@ func TestSetWithout(t *testing.T) {
 	for i := 0; i < N; i++ {
 		u := NewSet(arr...)
 		requireSameElements(t, arr, u.Elements(), i)
-		assertSetEqual(t, u, s, "i=%v", i)
+		test.AssertSetEqual(t, u, s, "i=%v", i)
 		assert.False(t, s.IsEmpty(), "i=%v", i)
 		assert.True(t, s.Has(i), "i=%v", i)
 		s = s.Without(i)
@@ -260,8 +261,8 @@ func TestSetEqualLarge(t *testing.T) {
 		require.True(t, c.Has(i), i)
 	}
 
-	assertSetEqual(t, a, b)
-	assertSetEqual(t, a, c)
+	test.AssertSetEqual(t, a, b)
+	test.AssertSetEqual(t, a, c)
 }
 
 func TestSetFirst(t *testing.T) {
@@ -324,7 +325,14 @@ func TestSetIsSubsetOf(t *testing.T) {
 		a := NewSetFromMask64(uint64(i))
 		for j := BitIterator(0); j < N; j++ {
 			b := NewSetFromMask64(uint64(j))
-			assert.Equal(t, i&^j == 0, a.IsSubsetOf(b))
+			if !assert.Equal(t, i&^j == 0, a.IsSubsetOf(b)) {
+				log.Print("a: ", a)
+				log.Print("b: ", b)
+				a = NewSetFromMask64(uint64(i))
+				b = NewSetFromMask64(uint64(j))
+				a.IsSubsetOf(b)
+				return
+			}
 		}
 	}
 }
@@ -358,8 +366,8 @@ func TestSetString(t *testing.T) {
 func TestSetWhereEmpty(t *testing.T) {
 	t.Parallel()
 
-	assertSetEqual(t, NewSet(), NewSet().Where(func(interface{}) bool { return false }))
-	assertSetEqual(t, NewSet(), NewSet().Where(func(interface{}) bool { return true }))
+	test.AssertSetEqual(t, NewSet(), NewSet().Where(func(interface{}) bool { return false }))
+	test.AssertSetEqual(t, NewSet(), NewSet().Where(func(interface{}) bool { return true }))
 }
 
 func TestSetWhere(t *testing.T) {
@@ -372,18 +380,18 @@ func TestSetWhere(t *testing.T) {
 	not := func(f func(e interface{}) bool) func(e interface{}) bool {
 		return func(e interface{}) bool { return !f(e) }
 	}
-	assertSetEqual(t, Iota3(2, 10, 2), s.Where(multipleOf(2)))
-	assertSetEqual(t, Iota3(1, 10, 2), s.Where(not(multipleOf(2))))
-	assertSetEqual(t, Iota3(3, 10, 3), s.Where(multipleOf(3)))
-	assertSetEqual(t, NewSet(1, 2, 4, 5, 7, 8), s.Where(not(multipleOf(3))))
-	assertSetEqual(t, NewSet(6), s.Where(multipleOf(2)).Where(multipleOf(3)))
-	assertSetEqual(t, NewSet(6), s.Where(multipleOf(3)).Where(multipleOf(2)))
-	assertSetEqual(t, NewSet(3, 9), s.Where(not(multipleOf(2))).Where(multipleOf(3)))
-	assertSetEqual(t, NewSet(3, 9), s.Where(multipleOf(3)).Where(not(multipleOf(2))))
-	assertSetEqual(t, NewSet(2, 4, 8), s.Where(multipleOf(2)).Where(not(multipleOf(3))))
-	assertSetEqual(t, NewSet(2, 4, 8), s.Where(not(multipleOf(3))).Where(multipleOf(2)))
-	assertSetEqual(t, NewSet(1, 5, 7), s.Where(not(multipleOf(2))).Where(not(multipleOf(3))))
-	assertSetEqual(t, NewSet(1, 5, 7), s.Where(not(multipleOf(3))).Where(not(multipleOf(2))))
+	test.AssertSetEqual(t, Iota3(2, 10, 2), s.Where(multipleOf(2)))
+	test.AssertSetEqual(t, Iota3(1, 10, 2), s.Where(not(multipleOf(2))))
+	test.AssertSetEqual(t, Iota3(3, 10, 3), s.Where(multipleOf(3)))
+	test.AssertSetEqual(t, NewSet(1, 2, 4, 5, 7, 8), s.Where(not(multipleOf(3))))
+	test.AssertSetEqual(t, NewSet(6), s.Where(multipleOf(2)).Where(multipleOf(3)))
+	test.AssertSetEqual(t, NewSet(6), s.Where(multipleOf(3)).Where(multipleOf(2)))
+	test.AssertSetEqual(t, NewSet(3, 9), s.Where(not(multipleOf(2))).Where(multipleOf(3)))
+	test.AssertSetEqual(t, NewSet(3, 9), s.Where(multipleOf(3)).Where(not(multipleOf(2))))
+	test.AssertSetEqual(t, NewSet(2, 4, 8), s.Where(multipleOf(2)).Where(not(multipleOf(3))))
+	test.AssertSetEqual(t, NewSet(2, 4, 8), s.Where(not(multipleOf(3))).Where(multipleOf(2)))
+	test.AssertSetEqual(t, NewSet(1, 5, 7), s.Where(not(multipleOf(2))).Where(not(multipleOf(3))))
+	test.AssertSetEqual(t, NewSet(1, 5, 7), s.Where(not(multipleOf(3))).Where(not(multipleOf(2))))
 }
 
 func TestSetMap(t *testing.T) {
@@ -391,9 +399,9 @@ func TestSetMap(t *testing.T) {
 
 	square := func(e interface{}) interface{} { return e.(int) * e.(int) }
 	div2 := func(e interface{}) interface{} { return e.(int) / 2 }
-	assertSetEqual(t, Set{}, Set{}.Map(square))
-	assertSetEqual(t, NewSet(1, 4, 9, 16, 25), NewSet(1, 2, 3, 4, 5).Map(square))
-	assertSetEqual(t, NewSet(0, 1, 3), NewSet(1, 2, 3, 6).Map(div2))
+	test.AssertSetEqual(t, Set{}, Set{}.Map(square))
+	test.AssertSetEqual(t, NewSet(1, 4, 9, 16, 25), NewSet(1, 2, 3, 4, 5).Map(square))
+	test.AssertSetEqual(t, NewSet(0, 1, 3), NewSet(1, 2, 3, 6).Map(div2))
 }
 
 func TestSetMapShrunk(t *testing.T) {
@@ -410,7 +418,7 @@ func TestSetMapLarge(t *testing.T) {
 
 	s := intSet(0, 50)
 	// assertSetEqual(t, NewSet(42), s.Map(func(e interface{}) interface{} { return 42 }))
-	if !assertSetEqual(t, Iota3(0, 2*s.Count(), 2), s.Map(func(e interface{}) interface{} { return 2 * e.(int) })) {
+	if !test.AssertSetEqual(t, Iota3(0, 2*s.Count(), 2), s.Map(func(e interface{}) interface{} { return 2 * e.(int) })) {
 		expected := Iota3(0, 2*s.Count(), 2)
 		actual := s.Map(func(e interface{}) interface{} { return 2 * e.(int) })
 		log.Print(expected)
@@ -419,7 +427,7 @@ func TestSetMapLarge(t *testing.T) {
 			s.Map(func(e interface{}) interface{} { return 2 * e.(int) })
 		}
 	}
-	assertSetEqual(t, Iota(s.Count()/10), s.Map(func(e interface{}) interface{} { return e.(int) / 10 }))
+	test.AssertSetEqual(t, Iota(s.Count()/10), s.Map(func(e interface{}) interface{} { return e.(int) / 10 }))
 }
 
 func TestSetReduce(t *testing.T) {
@@ -494,7 +502,7 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 			sxy := NewSetFromMask64(bxy)
 			sxsy := setop(sx, sy)
 			if !assert.Equal(t, bits.OnesCount64(bxy), sxsy.Count()) ||
-				!assertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
+				!test.AssertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
 				// log.Print("sx:   ", sx)
 				// log.Print("sy:   ", sy)
 				// log.Print("bxy:  ", bxy)
@@ -516,7 +524,7 @@ func TestSetIntersection(t *testing.T) {
 	expected := NewSet(3, 5, 6, 10, 11)
 	a := NewSet(3, 5, 6, 7, 10, 11, 12)
 	b := NewSet(3, 5, 6, 8, 9, 10, 11, 15, 19)
-	assertSetEqual(t, expected, a.Intersection(b))
+	test.AssertSetEqual(t, expected, a.Intersection(b))
 
 	testSetBinaryOperator(t,
 		func(a, b uint64) uint64 { return a & b },
@@ -534,7 +542,7 @@ func TestSetIntersectionLarge(t *testing.T) {
 	for i := 0; i <= bits; i++ {
 		a := Iota2(1<<uint(i), 9<<uint(i))
 		b := Iota(9 << uint(i)).Intersection(Iota2(1<<uint(i), 10<<uint(i)))
-		if !assertSetEqual(t, a, b, "%d", i) {
+		if !test.AssertSetEqual(t, a, b, "%d", i) {
 			assert.ElementsMatch(t, a.Elements(), b.Elements())
 			t.FailNow()
 		}
@@ -582,7 +590,7 @@ func TestSetPowerset(t *testing.T) {
 		NewSet(1, 2, 3),
 	)
 	actual := NewSet(1, 2, 3).Powerset()
-	assertSetEqual(t, expected, actual, "%v", mapOfSet{"expected": expected, "actual": actual})
+	test.AssertSetEqual(t, expected, actual, "%v", mapOfSet{"expected": expected, "actual": actual})
 }
 
 func TestSetPowersetLarge(t *testing.T) {
@@ -597,7 +605,7 @@ func TestSetPowersetLarge(t *testing.T) {
 	for i := BitIterator(0); i <= 1<<bits; i++ {
 		if i.Count() == 1 {
 			expected = expected.Union(b.Finish())
-			assertSetEqual(t, expected, NewSetFromMask64(uint64(i-1)).Powerset(), "i=%v", i)
+			test.AssertSetEqual(t, expected, NewSetFromMask64(uint64(i-1)).Powerset(), "i=%v", i)
 		}
 		b.Add(NewSetFromMask64(uint64(i)))
 	}
@@ -651,15 +659,15 @@ func TestSetWhere_Big(t *testing.T) {
 
 	s := largeIntSet()
 	s2 := s.Where(func(e interface{}) bool { return true })
-	assertSetEqual(t, s, s2)
+	test.AssertSetEqual(t, s, s2)
 
 	s = hugeIntSet()
 	s2 = s.Where(func(e interface{}) bool { return true })
-	assertSetEqual(t, s, s2)
+	test.AssertSetEqual(t, s, s2)
 
 	s = largeIntSet()
 	s2 = s.Where(func(e interface{}) bool { return false })
-	assertSetEqual(t, NewSet(), s2)
+	test.AssertSetEqual(t, NewSet(), s2)
 }
 
 func TestSetIntersection_Big(t *testing.T) {
@@ -667,12 +675,12 @@ func TestSetIntersection_Big(t *testing.T) {
 
 	s := largeIntSet()
 	s2 := s.Intersection(s)
-	assertSetEqual(t, s, s2)
+	test.AssertSetEqual(t, s, s2)
 
 	if !testing.Short() {
 		s = hugeIntSet()
 		s2 = s.Intersection(s)
-		assertSetEqual(t, s, s2)
+		test.AssertSetEqual(t, s, s2)
 	}
 }
 
@@ -681,11 +689,11 @@ func TestSetDifference_Big(t *testing.T) {
 
 	s := largeIntSet()
 	s2 := s.Difference(s)
-	assertSetEqual(t, NewSet(), s2)
+	test.AssertSetEqual(t, NewSet(), s2)
 
 	s = hugeIntSet()
 	s2 = s.Difference(s)
-	assertSetEqual(t, NewSet(), s2)
+	test.AssertSetEqual(t, NewSet(), s2)
 }
 
 func TestSetUnion_Big(t *testing.T) {
@@ -693,7 +701,7 @@ func TestSetUnion_Big(t *testing.T) {
 
 	s := largeIntSet()
 	s2 := s.Union(s)
-	assertSetEqual(t, s, s2)
+	test.AssertSetEqual(t, s, s2)
 
 	n := 100_000
 	if testing.Short() {
@@ -701,11 +709,11 @@ func TestSetUnion_Big(t *testing.T) {
 	}
 	s = intSet(0, n)
 	s2 = intSet(n/2, n)
-	assertSetEqual(t, intSet(0, n*3/2), s.Union(s2))
+	test.AssertSetEqual(t, intSet(0, n*3/2), s.Union(s2))
 
 	s = hugeIntSet()
 	s2 = s.Union(s)
-	assertSetEqual(t, s, s2)
+	test.AssertSetEqual(t, s, s2)
 }
 
 func intSet(offset, size int) Set {

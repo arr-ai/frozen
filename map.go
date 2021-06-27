@@ -229,7 +229,8 @@ func (m Map) Update(n Map) Map {
 		m, n = n, m
 		f = kvt.UseLHS
 	}
-	return newMap(m.tree.Combine(kvt.NewCombineArgs(m.EqArgs(), f), n.tree))
+	args := kvt.NewCombineArgs(m.EqArgs(), f)
+	return newMap(m.tree.Combine(args, n.tree))
 }
 
 // Hash computes a hash val for s.

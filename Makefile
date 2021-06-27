@@ -32,7 +32,7 @@ gen-kv: gen-kv-iterator gen-kv-tree
 gen-kv-%:
 	./gen-kv.sh internal/$* internal/$*/$($*.package) $($*.files)
 
-LENGTHS = "" -short
+LENGTHS = -short ""
 TAGSES = "" frozen_ptr_safe frozen_intf
 
 .PHONY: test

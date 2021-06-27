@@ -1,6 +1,10 @@
 package frozen
 
-import "github.com/arr-ai/frozen/internal/tree"
+import (
+	"fmt"
+
+	"github.com/arr-ai/frozen/internal/tree"
+)
 
 // SetBuilder provides a more efficient way to build sets incrementally.
 type SetBuilder struct {
@@ -34,4 +38,16 @@ func (b *SetBuilder) Has(v interface{}) bool {
 // initialised or the last call to Finish.
 func (b *SetBuilder) Finish() Set {
 	return newSet(b.b.Finish())
+}
+
+func (b *SetBuilder) borrow() Set {
+	return newSet(b.b.Borrow())
+}
+
+func (b SetBuilder) String() string {
+	return b.borrow().String()
+}
+
+func (b SetBuilder) Format(state fmt.State, c rune) {
+	b.borrow().Format(state, c)
 }

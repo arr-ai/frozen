@@ -1,18 +1,20 @@
 package frozen_test
 
 import (
+	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
 func TestSetBuilderEmpty(t *testing.T) {
 	t.Parallel()
 
 	var b SetBuilder
-	assertSetEqual(t, Set{}, b.Finish())
+	test.AssertSetEqual(t, Set{}, b.Finish())
 }
 
 func TestSetBuilder(t *testing.T) {
@@ -32,7 +34,7 @@ func TestSetBuilder(t *testing.T) {
 func TestSetBuilderIncremental(t *testing.T) {
 	t.Parallel()
 
-	replayable(true, func(r replayer) {
+	test.Replayable(false, func(r *test.Replayer) {
 		N := 1_000
 		if testing.Short() {
 			N /= 10
@@ -75,10 +77,10 @@ func TestSetBuilderRemove(t *testing.T) {
 	}
 }
 
-func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop
+func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop,funlen,gocognit
 	t.Parallel()
 
-	replayable(true, func(r replayer) {
+	test.Replayable(false, func(r *test.Replayer) {
 		var b SetBuilder
 
 		s := uint64(0)
@@ -105,23 +107,35 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop
 		assertMatch("")
 		for i := 0; i < 60; i++ {
 			add(i)
-			assertMatch("i=%v", i)
+			if !assertMatch("i=%v", i) {
+				return
+			}
 		}
+		mark := r.Mark()
 		for i := 20; i < 50; i++ {
-			m := r.mark(i)
+			if mark.IsTarget() {
+				log.Printf("%+v", b)
+			}
 			remove(i)
 			if !assertMatch("i=%v", i) {
-				r.replayTo(m)
+				return
 			}
+		}
+		if mark.IsTarget() {
+			log.Printf("%+v", b)
 		}
 
 		for i := 10; i < 30; i++ {
 			add(i)
-			assertMatch("i=%v", i)
+			if !assertMatch("i=%v", i) {
+				r.ReplayTo(mark)
+			}
 		}
 		for i := 40; i < 55; i++ {
 			remove(i)
-			assertMatch("i=%v", i)
+			if !assertMatch("i=%v", i) {
+				return
+			}
 		}
 		m := b.Finish()
 
