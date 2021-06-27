@@ -1,6 +1,6 @@
 package tree
 
-const maxLeafLen = 8
+const maxLeafLen = 2
 
 type packer [fanout]noderef
 
