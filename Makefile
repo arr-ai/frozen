@@ -45,3 +45,7 @@ test:
 .PHONY: lint
 lint: gen
 	golangci-lint run
+
+.PHONY: bench
+bench:
+	go test -run=^$$ -bench=. -cpuprofile=cpu.prof -memprofile=mem.prof -benchmem | perl -pe 's/[ \t]+/\t/g if m{allocs/op$$}'
