@@ -16,7 +16,6 @@ func (b *Builder) Count() int {
 }
 
 func (b *Builder) Add(args *CombineArgs, v elementT) {
-	matches := 0
 	if b.t.root == nil {
 		b.t.root = newLeaf1(v)
 		b.t.count = 1
@@ -25,20 +24,21 @@ func (b *Builder) Add(args *CombineArgs, v elementT) {
 		if vetting {
 			defer vet(func() { b.Add(args, v) }, b.t.root)(nil)
 		}
-		b.t.root = b.t.root.Add(args, v, 0, h, &matches)
+		var matches int
+		b.t.root, matches = b.t.root.Add(args, v, 0, h)
 		b.t.count += 1 - matches
 	}
 }
 
 func (b *Builder) Remove(args *EqArgs, v elementT) {
-	removed := 0
 	if b.t.root != nil {
 		h := newHasher(v, 0)
 		if vetting {
 			defer vet(func() { b.Remove(args, v) }, b.t.root)(nil)
 		}
-		b.t.root = b.t.root.Remove(args, v, 0, h, &removed)
-		b.t.count -= removed
+		var matches int
+		b.t.root, matches = b.t.root.Remove(args, v, 0, h)
+		b.t.count -= matches
 	}
 }
 

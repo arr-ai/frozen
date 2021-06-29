@@ -40,9 +40,7 @@ func NewGauge(count int) Gauge {
 	return Gauge((bits.Len64(uint64(count)) - maxConcurrency) / 3)
 }
 
-func (pd Gauge) Parallel(depth int, mask masker.Masker, matches *int, f func(i int, matches *int) bool) bool {
-	totalMatches := 0
-
+func (pd Gauge) Parallel(depth int, mask masker.Masker, f func(i int) (bool, int)) (_ bool, matches int) {
 	if depth < int(pd) {
 		type outcome struct {
 			matches int
@@ -52,29 +50,27 @@ func (pd Gauge) Parallel(depth int, mask masker.Masker, matches *int, f func(i i
 		for m := mask; m != 0; m = m.Next() {
 			i := m.FirstIndex()
 			go func() {
-				var matches int
-				ok := f(i, &matches)
-				outcomes <- outcome{matches: matches, ok: ok}
+				ok, m := f(i)
+				outcomes <- outcome{matches: m, ok: ok}
 			}()
 		}
 		for m := mask; m != 0; m = m.Next() {
 			if o := <-outcomes; o.ok {
-				totalMatches += o.matches
+				matches += o.matches
 			} else {
-				return false
+				return false, matches
 			}
 		}
 	} else {
 		for m := mask; m != 0; m = m.Next() {
 			i := m.FirstIndex()
-			if !f(i, &totalMatches) {
-				return false
+			ok, m := f(i)
+			if !ok {
+				return false, matches
 			}
+			matches += m
 		}
 	}
 
-	if matches != nil {
-		*matches += totalMatches
-	}
-	return true
+	return true, matches
 }

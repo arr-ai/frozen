@@ -19,11 +19,11 @@ func (p *packer) EqualPacker(q *packer) bool {
 	return true
 }
 
-func (p *packer) Get(m masker.Masker) node {
+func (p *packer) GetChild(m masker.Masker) node {
 	return p.data[m.FirstIndex()]
 }
 
-func (p *packer) Set(i int, n node) {
+func (p *packer) SetChild(i int, n node) {
 	m := masker.NewMasker(i)
 	if n == nil {
 		p.mask &^= m
@@ -33,14 +33,14 @@ func (p *packer) Set(i int, n node) {
 	p.data[i] = n
 }
 
-func (p *packer) SetNonNil(i int, n node) {
+func (p *packer) SetNonNilChild(i int, n node) {
 	p.mask |= masker.NewMasker(i)
 	p.data[i] = n
 }
 
-func (p *packer) With(i int, n node) *packer {
+func (p *packer) WithChild(i int, n node) *packer {
 	ret := *p
-	ret.Set(i, n)
+	ret.SetChild(i, n)
 	return &ret
 }
 

@@ -56,32 +56,32 @@ func (l *leaf) String() string {
 
 // node
 
-func (l *leaf) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) node {
+func (l *leaf) Add(args *CombineArgs, v elementT, depth int, h hasher) (_ node, matches int) {
 	switch {
 	case args.eq(l.data[0], v):
 		l.data[0] = args.f(l.data[0], v)
-		*matches++
+		matches++
 	case l.data[1] == zero:
 		l.data[1] = v
 	case args.eq(l.data[1], v):
 		l.data[1] = args.f(l.data[1], v)
-		*matches++
+		matches++
 	case depth >= maxTreeDepth:
-		return newTwig(l.data[0], l.data[1], v)
+		return newTwig(l.data[0], l.data[1], v), 0
 	default:
-		return newBranchFrom(depth, l.data[0], l.data[1], v)
+		return newBranchFrom(depth, l.data[0], l.data[1], v), 0
 	}
-	return l
+	return l, matches
 }
 
 func (l *leaf) Canonical(depth int) node {
 	return l
 }
 
-func (l *leaf) Combine(args *CombineArgs, n node, depth int, matches *int) node { //nolint:cyclop
+func (l *leaf) Combine(args *CombineArgs, n node, depth int) (_ node, matches int) { //nolint:cyclop
 	switch n := n.(type) {
 	case *branch:
-		return n.Combine(args.flip, l, depth, matches)
+		return n.Combine(args.flip, l, depth)
 	case *leaf:
 		lr := func(a, b int) int { return a<<2 | b }
 		masks := lr(l.mask(), n.mask())
@@ -91,50 +91,50 @@ func (l *leaf) Combine(args *CombineArgs, n node, depth int, matches *int) node 
 		l0, l1 := l.data[0], l.data[1]
 		n0, n1 := n.data[0], n.data[1]
 		if args.eq(l0, n0) { //nolint:nestif
-			*matches++
+			matches++
 			switch masks {
 			case lr(1, 1):
-				return newLeaf1(args.f(l0, n0))
+				return newLeaf1(args.f(l0, n0)), matches
 			case lr(1, 3):
-				return newLeaf2(args.f(l0, n0), n1)
+				return newLeaf2(args.f(l0, n0), n1), matches
 			default:
 				if args.eq(l1, n1) {
-					*matches++
-					return newLeaf2(args.f(l0, n0), args.f(l1, n1))
+					matches++
+					return newLeaf2(args.f(l0, n0), args.f(l1, n1)), matches
 				}
 			}
 		} else {
 			switch masks {
 			case lr(1, 1):
-				return newLeaf2(l0, n0)
+				return newLeaf2(l0, n0), matches
 			case lr(1, 3):
 				if args.eq(l0, n1) {
-					*matches++
-					return newLeaf2(n0, args.f(l0, n1))
+					matches++
+					return newLeaf2(n0, args.f(l0, n1)), matches
 				}
-				return newBranchFrom(depth, l0, n0, n1)
+				return newBranchFrom(depth, l0, n0, n1), matches
 			default:
 				if args.eq(l1, n1) {
-					*matches++
-					return newBranchFrom(depth, l0, n0, args.f(l1, n1))
+					matches++
+					return newBranchFrom(depth, l0, n0, args.f(l1, n1)), matches
 				}
 				if args.eq(l0, n1) {
-					*matches++
+					matches++
 					if args.eq(l1, n0) {
-						*matches++
-						return newLeaf2(args.f(l0, n1), args.f(l1, n0))
+						matches++
+						return newLeaf2(args.f(l0, n1), args.f(l1, n0)), matches
 					}
-					return newBranchFrom(depth, args.f(l0, n1), l1, n0)
+					return newBranchFrom(depth, args.f(l0, n1), l1, n0), matches
 				}
 				if args.eq(l1, n0) {
-					*matches++
-					return newBranchFrom(depth, l0, n1, args.f(l1, n0))
+					matches++
+					return newBranchFrom(depth, l0, n1, args.f(l1, n0)), matches
 				}
 			}
 		}
-		return newBranchFrom(depth, l0, l1, n0, n1)
+		return newBranchFrom(depth, l0, l1, n0, n1), matches
 	case *twig:
-		return n.Combine(args.flip, l, depth, matches)
+		return n.Combine(args.flip, l, depth)
 	default:
 		panic(errors.WTF)
 	}
@@ -148,20 +148,20 @@ func (l *leaf) AppendTo(dest []elementT) []elementT {
 	return append(dest, data...)
 }
 
-func (l *leaf) Difference(args *EqArgs, n node, depth int, removed *int) node {
+func (l *leaf) Difference(args *EqArgs, n node, depth int) (_ node, matches int) {
 	mask := l.mask()
 	if n.Get(args, l.data[0], newHasher(l.data[0], depth)) != nil {
-		*removed++
+		matches++
 		mask &^= 0b01
 	}
 
 	if l.data[1] != zero {
 		if n.Get(args, l.data[1], newHasher(l.data[1], depth)) != nil {
-			*removed++
+			matches++
 			mask &^= 0b10
 		}
 	}
-	return l.where(mask)
+	return l.where(mask), matches
 }
 
 func (l *leaf) Empty() bool {
@@ -194,20 +194,20 @@ func (l *leaf) Get(args *EqArgs, v elementT, _ hasher) *elementT {
 	return nil
 }
 
-func (l *leaf) Intersection(args *EqArgs, n node, depth int, matches *int) node {
+func (l *leaf) Intersection(args *EqArgs, n node, depth int) (_ node, matches int) {
 	mask := 0
 	if n.Get(args, l.data[0], newHasher(l.data[0], depth)) != nil {
-		*matches++
+		matches++
 		mask |= 0b01
 	}
 
 	if l.data[1] != zero {
 		if n.Get(args, l.data[1], newHasher(l.data[1], depth)) != nil {
-			*matches++
+			matches++
 			mask |= 0b10
 		}
 	}
-	return l.where(mask)
+	return l.where(mask), matches
 }
 
 func (l *leaf) Iterator([][]node) Iterator {
@@ -218,20 +218,20 @@ func (l *leaf) Reduce(_ NodeArgs, _ int, r func(values ...elementT) elementT) el
 	return r(l.slice()...)
 }
 
-func (l *leaf) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) node {
+func (l *leaf) Remove(args *EqArgs, v elementT, depth int, h hasher) (_ node, matches int) {
 	if args.eq(l.data[0], v) {
-		*matches++
+		matches++
 		if l.data[1] == zero {
-			return nil
+			return nil, matches
 		}
 		l.data = [2]elementT{l.data[1], zero}
 	} else if l.data[1] != zero {
 		if args.eq(l.data[1], v) {
-			*matches++
+			matches++
 			l.data[1] = zero
 		}
 	}
-	return l
+	return l, matches
 }
 
 func (l *leaf) SubsetOf(args *EqArgs, n node, depth int) bool {
@@ -249,14 +249,14 @@ func (l *leaf) SubsetOf(args *EqArgs, n node, depth int) bool {
 	return true
 }
 
-func (l *leaf) Map(args *CombineArgs, _ int, counts *int, f func(e elementT) elementT) node {
+func (l *leaf) Map(args *CombineArgs, _ int, f func(e elementT) elementT) (_ node, matches int) {
 	var nb Builder
 	for _, e := range l.slice() {
 		nb.Add(args, f(e))
 	}
 	t := nb.Finish()
-	*counts += t.count
-	return t.root
+	matches += t.count
+	return t.root, matches
 }
 
 func (l *leaf) Vet() {
@@ -268,19 +268,19 @@ func (l *leaf) Vet() {
 	}
 }
 
-func (l *leaf) Where(args *WhereArgs, depth int, matches *int) node {
+func (l *leaf) Where(args *WhereArgs, depth int) (_ node, matches int) {
 	var mask int
 	if args.Pred(l.data[0]) {
-		*matches++
+		matches++
 		mask ^= 0b01
 	}
 	if l.data[1] != zero {
 		if args.Pred(l.data[1]) {
-			*matches++
+			matches++
 			mask ^= 0b10
 		}
 	}
-	return l.where(mask)
+	return l.where(mask), matches
 }
 
 func (l *leaf) where(mask int) node {
@@ -299,35 +299,35 @@ func (l *leaf) where(mask int) node {
 	}
 }
 
-func (l *leaf) With(args *CombineArgs, v elementT, depth int, h hasher, matches *int) node {
+func (l *leaf) With(args *CombineArgs, v elementT, depth int, h hasher) (_ node, matches int) {
 	switch {
 	case args.eq(l.data[0], v):
-		*matches++
-		return newLeaf2(args.f(l.data[0], v), l.data[1])
+		matches++
+		return newLeaf2(args.f(l.data[0], v), l.data[1]), matches
 	case l.data[1] == zero:
-		return newLeaf2(l.data[0], v)
+		return newLeaf2(l.data[0], v), 0
 	case args.eq(l.data[1], v):
-		*matches++
-		return newLeaf2(l.data[0], args.f(l.data[1], v))
+		matches++
+		return newLeaf2(l.data[0], args.f(l.data[1], v)), matches
 	case depth >= maxTreeDepth:
-		return newTwig(append(l.data[:], v)...)
+		return newTwig(append(l.data[:], v)...), matches
 	default:
-		return newBranchFrom(depth, l.data[0], l.data[1], v)
+		return newBranchFrom(depth, l.data[0], l.data[1], v), matches
 	}
 }
 
-func (l *leaf) Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) node {
+func (l *leaf) Without(args *EqArgs, v elementT, depth int, h hasher) (_ node, matches int) {
 	mask := l.mask()
 	if args.eq(l.data[0], v) {
-		*matches++
+		matches++
 		mask ^= 0b01
 	} else if l.data[1] != zero {
 		if args.eq(l.data[1], v) {
-			*matches++
+			matches++
 			mask ^= 0b10
 		}
 	}
-	return l.where(mask)
+	return l.where(mask), matches
 }
 
 func (l *leaf) count() int {

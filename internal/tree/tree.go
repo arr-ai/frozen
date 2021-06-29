@@ -13,12 +13,8 @@ type Tree struct {
 	count int
 }
 
-func newTree(n node, count *int) (out Tree) {
-	return Tree{root: n, count: *count}
-}
-
-func newTreeNeg(n node, count *int) (out Tree) {
-	return Tree{root: n, count: -*count}
+func newTree(n node, count int) (out Tree) {
+	return Tree{root: n, count: count}
 }
 
 func (t Tree) Count() int {
@@ -53,8 +49,8 @@ func (t Tree) Combine(args *CombineArgs, u Tree) (out Tree) {
 	if u.root == nil {
 		return t
 	}
-	count := -(t.count + u.count)
-	return newTreeNeg(t.root.Combine(args, u.root, 0, &count), &count)
+	root, matches := t.root.Combine(args, u.root, 0)
+	return newTree(root, t.count+u.count-matches)
 }
 
 func (t Tree) Difference(args *EqArgs, u Tree) (out Tree) {
@@ -64,8 +60,8 @@ func (t Tree) Difference(args *EqArgs, u Tree) (out Tree) {
 	if t.root == nil || u.root == nil {
 		return t
 	}
-	count := -t.count
-	return newTreeNeg(t.root.Difference(args, u.root, 0, &count), &count)
+	root, matches := t.root.Difference(args, u.root, 0)
+	return newTree(root, t.count-matches)
 }
 
 func (t Tree) Equal(args *EqArgs, u Tree) bool {
@@ -100,8 +96,8 @@ func (t Tree) Intersection(args *EqArgs, u Tree) (out Tree) {
 		t, u = u, t
 		args = args.flip
 	}
-	count := 0
-	return newTree(t.root.Intersection(args, u.root, 0, &count), &count)
+
+	return newTree(t.root.Intersection(args, u.root, 0))
 }
 
 func (t Tree) Iterator() Iterator {
@@ -148,8 +144,7 @@ func (t Tree) Map(args *CombineArgs, f func(v elementT) elementT) (out Tree) {
 	if t.root == nil {
 		return t
 	}
-	count := 0
-	return newTree(t.root.Map(args, 0, &count, f), &count)
+	return newTree(t.root.Map(args, 0, f))
 }
 
 func (t Tree) Reduce(args NodeArgs, r func(values ...elementT) elementT) elementT {
@@ -166,8 +161,7 @@ func (t Tree) Where(args *WhereArgs) (out Tree) {
 	if t.root == nil {
 		return t
 	}
-	count := 0
-	return newTree(t.root.Where(args, 0, &count), &count)
+	return newTree(t.root.Where(args, 0))
 }
 
 func (t Tree) With(args *CombineArgs, v elementT) (out Tree) {
@@ -177,9 +171,9 @@ func (t Tree) With(args *CombineArgs, v elementT) (out Tree) {
 	if t.root == nil {
 		return Tree{root: newLeaf1(v), count: 1}
 	}
-	count := -(t.count + 1)
 	h := newHasher(v, 0)
-	return newTreeNeg(t.root.With(args, v, 0, h, &count), &count)
+	root, matches := t.root.With(args, v, 0, h)
+	return newTree(root, t.count+1-matches)
 }
 
 func (t Tree) Without(args *EqArgs, v elementT) (out Tree) {
@@ -189,7 +183,7 @@ func (t Tree) Without(args *EqArgs, v elementT) (out Tree) {
 	if t.root == nil {
 		return t
 	}
-	count := -t.count
 	h := newHasher(v, 0)
-	return newTreeNeg(t.root.Without(args, v, 0, h, &count), &count)
+	root, matches := t.root.Without(args, v, 0, h)
+	return newTree(root, t.count-matches)
 }

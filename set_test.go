@@ -125,12 +125,26 @@ func TestSetWith(t *testing.T) {
 		n /= 10
 	}
 	for i := 0; i < n; i++ {
-		test.AssertSetEqual(t, NewSet(arr...), s, "i=%v", i)
-		assert.Equal(t, i, s.Count(), "i=%v", i)
-		assert.False(t, s.Has(i), "i=%v", i)
+		expected := NewSet(arr...)
+		if !test.AssertSetEqual(t, expected, s, "i=%v", i) {
+			// log.Print("expected: ", expected)
+			// log.Print("actual:   ", s)
+			// expected.Equal(s)
+			break
+		}
+		if !assert.Equal(t, i, s.Count(), "i=%v", i) {
+			break
+		}
+		if !assert.False(t, s.Has(i), "i=%v", i) {
+			break
+		}
 		s = s.With(i)
-		assert.True(t, s.Has(i), "i=%v", i)
-		assert.False(t, s.IsEmpty(), "i=%v", i)
+		if !assert.True(t, s.Has(i), "i=%v", i) {
+			break
+		}
+		if !assert.False(t, s.IsEmpty(), "i=%v", i) {
+			break
+		}
 		arr = append(arr, i)
 	}
 }
@@ -515,7 +529,7 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 					setop(sx, sy)
 					sxy.Equal(sxsy)
 				}
-				// return
+				return
 			}
 		}
 	}

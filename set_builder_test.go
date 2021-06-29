@@ -61,17 +61,13 @@ func TestSetBuilderRemove(t *testing.T) {
 			b.Add(i)
 		}
 		for i := 5; i < 10; i++ {
-			m := r.Mark(i)
-			if m.IsTarget() {
-				log.Print(i)
-			}
-			if !assert.NotPanics(t, func() { b.Remove(i) }) {
-				r.ReplayTo(m)
-			}
+			b.Remove(i)
 		}
 		m := b.Finish()
 
-		assert.Equal(t, 10, m.Count())
+		if !assert.Equal(t, 10, m.Count()) {
+			log.Print(m)
+		}
 		for i := 0; i < 15; i++ {
 			switch {
 			case i < 5:
