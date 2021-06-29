@@ -49,7 +49,7 @@ func (l *twig) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *
 		return l
 	}
 
-	b := newBranch(nil)
+	b := &branch{}
 	for _, e := range l.data {
 		b.Add(args, e, depth, newHasher(e, depth), matches)
 	}
@@ -70,8 +70,7 @@ func (l *twig) Canonical(depth int) node {
 		if n <= maxLeafLen || depth*fanoutBits >= 64 {
 			return l
 		}
-		var matches int
-		return newBranch(nil).Combine(DefaultNPCombineArgs, l, depth, &matches)
+		return newBranchFrom(depth, l.data...)
 	}
 }
 
@@ -105,9 +104,13 @@ scanning:
 		if len(l.data) < maxLeafLen {
 			l = newTwig(append(l.data, e)...)
 		} else {
-			return newBranch(nil).
-				Combine(args, l, depth, matches).
-				Combine(args, newTwig(ndata[i:]...), depth, matches)
+			b := &branch{}
+			for _, e := range l.data {
+				b.Add(args, e, depth, newHasher(e, depth), matches)
+			}
+			for _, e := range ndata[i:] {
+				b.Add(args, e, depth, newHasher(e, depth), matches)
+			}
 		}
 	}
 	if len(l.data) > maxLeafLen {

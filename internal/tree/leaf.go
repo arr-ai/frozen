@@ -65,6 +65,8 @@ func (l *leaf) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *
 	case args.eq(l.data[1], v):
 		l.data[1] = args.f(l.data[1], v)
 		*matches++
+	case depth >= maxTreeDepth:
+		return newTwig(l.data[0], l.data[1], v)
 	default:
 		return newBranchFrom(depth, l.data[0], l.data[1], v)
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/arr-ai/frozen/errors"
 	"github.com/arr-ai/frozen/internal/depth"
 	"github.com/arr-ai/frozen/internal/fu"
+	"github.com/arr-ai/frozen/internal/pkg/masker"
 )
 
 const (
@@ -39,23 +40,23 @@ func newBranchFrom(depth int, data ...elementT) *branch {
 	for _, e := range data {
 		h := newHasher(e, depth)
 		var matches int
-		b = b.with(DefaultNPCombineArgs, e, depth, h, &matches)
+		b.Add(DefaultNPCombineArgs, e, depth, h, &matches)
 	}
 	return b
 }
 
 func (b *branch) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) node {
 	i := h.hash()
-	if b.p[i] == nil {
-		b.p[i] = newLeaf1(v)
+	if b.p.data[i] == nil {
+		b.p.SetNonNil(i, newLeaf1(v))
 	} else {
-		b.p[i] = b.p[i].Add(args, v, depth+1, h.next(), matches)
+		b.p.SetNonNil(i, b.p.data[i].Add(args, v, depth+1, h.next(), matches))
 	}
 	return b
 }
 
 func (b *branch) AppendTo(dest []elementT) []elementT {
-	for _, child := range b.p {
+	for _, child := range b.p.data {
 		if child != nil {
 			if dest = child.AppendTo(dest); dest == nil {
 				break
@@ -77,17 +78,18 @@ func (b *branch) Combine(args *CombineArgs, n node, depth int, matches *int) nod
 	switch n := n.(type) {
 	case *branch:
 		ret := newBranch(nil)
-		args.Parallel(depth, matches, func(i int, matches *int) bool {
-			x, y := b.p[i], n.p[i]
+		args.Parallel(depth, b.p.mask|n.p.mask, matches, func(i int, matches *int) bool {
+			x, y := b.p.data[i], n.p.data[i]
 			if x == nil {
-				ret.p[i] = y
+				ret.p.SetNonNil(i, y)
 			} else if y == nil {
-				ret.p[i] = x
+				ret.p.SetNonNil(i, x)
 			} else {
-				ret.p[i] = x.Combine(args, y, depth+1, matches)
+				ret.p.Set(i, x.Combine(args, y, depth+1, matches))
 			}
 			return true
 		})
+		ret.p.updateMask()
 		return ret
 	case *leaf:
 		for _, e := range n.slice() {
@@ -110,15 +112,16 @@ func (b *branch) Difference(args *EqArgs, n node, depth int, removed *int) node 
 	switch n := n.(type) {
 	case *branch:
 		ret := newBranch(nil)
-		args.Parallel(depth, removed, func(i int, removed *int) bool {
-			x, y := b.p[i], n.p[i]
-			if x == nil || y == nil {
-				ret.p[i] = x
+		args.Parallel(depth, b.p.mask, removed, func(i int, removed *int) bool {
+			x, y := b.p.data[i], n.p.data[i]
+			if y == nil {
+				ret.p.Set(i, x)
 			} else {
-				ret.p[i] = x.Difference(args, y, depth+1, removed)
+				ret.p.Set(i, x.Difference(args, y, depth+1, removed))
 			}
 			return true
 		})
+		ret.p.updateMask()
 		return ret.Canonical(depth)
 	case *leaf:
 		ret := node(b)
@@ -145,17 +148,19 @@ func (b *branch) Empty() bool {
 
 func (b *branch) Equal(args *EqArgs, n node, depth int) bool {
 	if n, is := n.(*branch); is {
-		return args.Parallel(depth, nil, func(i int, _ *int) bool {
-			x, y := b.p[i], n.p[i]
-			return (x == nil) && (y == nil) ||
-				(x != nil) && (y != nil) && x.Equal(args, y, depth+1)
+		if b.p.mask != n.p.mask {
+			return false
+		}
+		return args.Parallel(depth, b.p.mask, nil, func(i int, _ *int) bool {
+			x, y := b.p.data[i], n.p.data[i]
+			return x.Equal(args, y, depth+1)
 		})
 	}
 	return false
 }
 
 func (b *branch) Get(args *EqArgs, v elementT, h hasher) *elementT {
-	if x := b.p[h.hash()]; x != nil {
+	if x := b.p.data[h.hash()]; x != nil {
 		h2 := h.next()
 		return x.Get(args, v, h2)
 	}
@@ -166,15 +171,12 @@ func (b *branch) Intersection(args *EqArgs, n node, depth int, matches *int) nod
 	switch n := n.(type) {
 	case *branch:
 		ret := newBranch(nil)
-		args.Parallel(depth, matches, func(i int, matches *int) bool {
-			x, y := b.p[i], n.p[i]
-			if x == nil || y == nil {
-				ret.p[i] = nil
-			} else {
-				ret.p[i] = x.Intersection(args, y, depth+1, matches)
-			}
+		args.Parallel(depth, b.p.mask&n.p.mask, matches, func(i int, matches *int) bool {
+			x, y := b.p.data[i], n.p.data[i]
+			ret.p.Set(i, x.Intersection(args, y, depth+1, matches))
 			return true
 		})
+		ret.p.updateMask()
 		return ret.Canonical(depth)
 	case *leaf:
 		return n.Intersection(args.flip, b, depth, matches)
@@ -191,10 +193,9 @@ func (b *branch) Iterator(buf [][]node) Iterator {
 
 func (b *branch) Reduce(args NodeArgs, depth int, r func(values ...elementT) elementT) elementT {
 	var results [fanout]elementT
-	args.Parallel(depth, nil, func(i int, _ *int) bool {
-		if x := b.p[i]; x != nil {
-			results[i] = x.Reduce(args, depth+1, r)
-		}
+	args.Parallel(depth, b.p.mask, nil, func(i int, _ *int) bool {
+		x := b.p.data[i]
+		results[i] = x.Reduce(args, depth+1, r)
 		return true
 	})
 
@@ -209,9 +210,9 @@ func (b *branch) Reduce(args NodeArgs, depth int, r func(values ...elementT) ele
 
 func (b *branch) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) node {
 	i := h.hash()
-	if n := b.p[i]; n != nil {
-		child := b.p[i].Remove(args, v, depth+1, h.next(), matches)
-		b.p[i] = child
+	if n := b.p.data[i]; n != nil {
+		child := b.p.data[i].Remove(args, v, depth+1, h.next(), matches)
+		b.p.Set(i, child)
 		if _, is := child.(*branch); !is {
 			var buf [maxLeafLen]elementT
 			if data := b.AppendTo(buf[:0]); data != nil {
@@ -225,8 +226,8 @@ func (b *branch) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *
 func (b *branch) SubsetOf(args *EqArgs, n node, depth int) bool {
 	switch n := n.(type) {
 	case *branch:
-		return args.Parallel(depth, nil, func(i int, _ *int) bool {
-			x, y := b.p[i], n.p[i]
+		return args.Parallel(depth, b.p.mask|n.p.mask, nil, func(i int, _ *int) bool {
+			x, y := b.p.data[i], n.p.data[i]
 			if x == nil {
 				return true
 			} else if y == nil {
@@ -241,26 +242,22 @@ func (b *branch) SubsetOf(args *EqArgs, n node, depth int) bool {
 }
 
 func (b *branch) Map(args *CombineArgs, depth int, count *int, f func(e elementT) elementT) node {
-	var nodes [fanout]node
-	args.Parallel(depth, count, func(i int, count *int) bool {
-		if x := b.p[i]; x != nil {
-			nodes[i] = x.Map(args, depth+1, count, f)
+	var p packer
+	args.Parallel(depth, b.p.mask, count, func(i int, count *int) bool {
+		if x := b.p.data[i]; x != nil {
+			p.Set(i, x.Map(args, depth+1, count, f))
 		}
 		return true
 	})
-
-	i := 0
-	for ; i < len(nodes); i++ {
-		if nodes[i] != nil {
-			break
-		}
+	p.updateMask()
+	if p.mask == 0 {
+		return nil
 	}
-	acc := nodes[i]
+
+	acc := p.Get(p.mask)
 	var duplicates int
-	for _, n := range nodes[i+1:] {
-		if n != nil {
-			acc = acc.Combine(args, n, 0, &duplicates)
-		}
+	for m := p.mask.Next(); m != 0; m = m.Next() {
+		acc = acc.Combine(args, p.Get(m), 0, &duplicates)
 	}
 	*count -= duplicates
 	return acc
@@ -268,12 +265,12 @@ func (b *branch) Map(args *CombineArgs, depth int, count *int, f func(e elementT
 
 func (b *branch) Where(args *WhereArgs, depth int, matches *int) node {
 	var nodes packer
-	args.Parallel(depth, matches, func(i int, matches *int) bool {
-		if x := b.p[i]; x != nil {
-			nodes[i] = x.Where(args, depth+1, matches)
-		}
+	args.Parallel(depth, b.p.mask, matches, func(i int, matches *int) bool {
+		x := b.p.data[i]
+		nodes.Set(i, x.Where(args, depth+1, matches))
 		return true
 	})
+	nodes.updateMask()
 	if nodes != b.p {
 		return newBranch(&nodes).Canonical(depth)
 	}
@@ -281,15 +278,22 @@ func (b *branch) Where(args *WhereArgs, depth int, matches *int) node {
 }
 
 func (b *branch) Vet() {
-	for i, x := range b.p {
+	p := b.p
+	p.updateMask()
+	if p.mask != b.p.mask {
+		panic("stale mask")
+	}
+	for m := b.p.mask; m != 0; m = m.Next() {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					panic(errors.WrapPrefix(r, fmt.Sprintf("branch[%d]", i), 0))
+					panic(errors.WrapPrefix(r, fmt.Sprintf("branch[%d]", m.FirstIndex()), 0))
 				}
 			}()
-			if x != nil {
-				x.Vet()
+			if n := p.Get(m); n != nil {
+				p.Get(m).Vet()
+			} else {
+				panic(errors.Errorf("nil node for mask %b", b.p.mask))
 			}
 		}()
 	}
@@ -302,7 +306,7 @@ func (b *branch) With(args *CombineArgs, v elementT, depth int, h hasher, matche
 func (b *branch) with(args *CombineArgs, v elementT, depth int, h hasher, matches *int) *branch {
 	i := h.hash()
 	g := h.next()
-	if x := b.p[i]; x != nil {
+	if x := b.p.data[i]; x != nil {
 		if x2 := x.With(args, v, depth+1, g, matches); x2 != x {
 			return newBranch(b.p.With(i, x2))
 		}
@@ -314,8 +318,9 @@ func (b *branch) with(args *CombineArgs, v elementT, depth int, h hasher, matche
 func (b *branch) Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) node {
 	i := h.hash()
 	g := h.next()
-	if x := b.p[i]; x != nil {
+	if x := b.p.data[i]; x != nil {
 		if x2 := x.Without(args, v, depth+1, g, matches); x2 != x {
+			b.p.updateMaskBit(masker.NewMasker(i))
 			return newBranch(b.p.With(i, x2)).Canonical(depth)
 		}
 	}
@@ -354,7 +359,7 @@ func (b *branch) Format(f fmt.State, verb rune) {
 		write([]byte("\n"))
 	}
 
-	for i, x := range b.p {
+	for i, x := range b.p.data {
 		if x == nil {
 			continue
 		}

@@ -14,7 +14,8 @@ type packerIterator struct {
 }
 
 func newPackerIterator(buf [][]node, p *packer) *packerIterator {
-	buf = append(buf, p[:])
+	buf = append(buf, p.data[:])
+	// TODO: Speed up with mask.
 	return &packerIterator{stack: buf, i: emptyIterator}
 }
 

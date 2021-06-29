@@ -593,7 +593,11 @@ func TestSetPowerset(t *testing.T) {
 		NewSet(1, 2, 3),
 	)
 	actual := NewSet(1, 2, 3).Powerset()
-	test.AssertSetEqual(t, expected, actual, "%v", mapOfSet{"expected": expected, "actual": actual})
+	if !test.AssertSetEqual(t, expected, actual, "%v", mapOfSet{"expected": expected, "actual": actual}) {
+		log.Print("expected: ", expected)
+		log.Print("actual:   ", actual)
+		expected.Equal(actual)
+	}
 }
 
 func TestSetPowersetLarge(t *testing.T) {

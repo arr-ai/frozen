@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/arr-ai/frozen/internal/pkg/masker"
 )
 
 const (
@@ -38,7 +40,7 @@ func NewGauge(count int) Gauge {
 	return Gauge((bits.Len64(uint64(count)) - maxConcurrency) / 3)
 }
 
-func (pd Gauge) Parallel(depth int, matches *int, f func(i int, matches *int) bool) bool {
+func (pd Gauge) Parallel(depth int, mask masker.Masker, matches *int, f func(i int, matches *int) bool) bool {
 	totalMatches := 0
 
 	if depth < int(pd) {
@@ -47,15 +49,15 @@ func (pd Gauge) Parallel(depth int, matches *int, f func(i int, matches *int) bo
 			ok      bool
 		}
 		outcomes := make(chan outcome, Fanout)
-		for i := 0; i < Fanout; i++ {
-			i := i
+		for m := mask; m != 0; m = m.Next() {
+			i := m.FirstIndex()
 			go func() {
 				var matches int
 				ok := f(i, &matches)
 				outcomes <- outcome{matches: matches, ok: ok}
 			}()
 		}
-		for i := 0; i < Fanout; i++ {
+		for m := mask; m != 0; m = m.Next() {
 			if o := <-outcomes; o.ok {
 				totalMatches += o.matches
 			} else {
@@ -63,7 +65,8 @@ func (pd Gauge) Parallel(depth int, matches *int, f func(i int, matches *int) bo
 			}
 		}
 	} else {
-		for i := 0; i < Fanout; i++ {
+		for m := mask; m != 0; m = m.Next() {
+			i := m.FirstIndex()
 			if !f(i, &totalMatches) {
 				return false
 			}

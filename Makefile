@@ -14,7 +14,6 @@ tree.files = \
 	empty.go \
 	hasher.go \
 	leaf.go \
-	masker.go \
 	node.go \
 	nodeArgs.go \
 	packer.go \
