@@ -43,7 +43,8 @@ func Iota3(start, stop, step int) Set {
 func NewSetFromMask64(mask uint64) Set {
 	var b SetBuilder
 	for mask := BitIterator(mask); mask != 0; mask = mask.Next() {
-		b.Add(mask.Index())
+		i := mask.Index()
+		b.Add(i)
 	}
 	return b.Finish()
 }

@@ -55,26 +55,34 @@ func TestSetBuilderIncremental(t *testing.T) {
 func TestSetBuilderRemove(t *testing.T) {
 	t.Parallel()
 
-	var b SetBuilder
-	for i := 0; i < 15; i++ {
-		b.Add(i)
-	}
-	for i := 5; i < 10; i++ {
-		b.Remove(i)
-	}
-	m := b.Finish()
-
-	assert.Equal(t, 10, m.Count())
-	for i := 0; i < 15; i++ {
-		switch {
-		case i < 5:
-			assertSetHas(t, m, i)
-		case i < 10:
-			assertSetNotHas(t, m, i)
-		default:
-			assertSetHas(t, m, i)
+	test.Replayable(true, func(r *test.Replayer) {
+		var b SetBuilder
+		for i := 0; i < 15; i++ {
+			b.Add(i)
 		}
-	}
+		for i := 5; i < 10; i++ {
+			m := r.Mark(i)
+			if m.IsTarget() {
+				log.Print(i)
+			}
+			if !assert.NotPanics(t, func() { b.Remove(i) }) {
+				r.ReplayTo(m)
+			}
+		}
+		m := b.Finish()
+
+		assert.Equal(t, 10, m.Count())
+		for i := 0; i < 15; i++ {
+			switch {
+			case i < 5:
+				assertSetHas(t, m, i)
+			case i < 10:
+				assertSetNotHas(t, m, i)
+			default:
+				assertSetHas(t, m, i)
+			}
+		}
+	})
 }
 
 func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop,funlen,gocognit

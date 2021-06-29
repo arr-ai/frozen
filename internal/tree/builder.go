@@ -17,18 +17,29 @@ func (b *Builder) Count() int {
 
 func (b *Builder) Add(args *CombineArgs, v elementT) {
 	matches := 0
-	root := b.t.MutableRoot()
-	h := newHasher(v, 0)
-	b.t.root = root.Add(args, v, 0, h, &matches)
-	b.t.count += 1 - matches
+	if b.t.root == nil {
+		b.t.root = newLeaf1(v)
+		b.t.count = 1
+	} else {
+		h := newHasher(v, 0)
+		if vetting {
+			defer vet(func() { b.Add(args, v) }, b.t.root)(nil)
+		}
+		b.t.root = b.t.root.Add(args, v, 0, h, &matches)
+		b.t.count += 1 - matches
+	}
 }
 
 func (b *Builder) Remove(args *EqArgs, v elementT) {
 	removed := 0
-	root := b.t.MutableRoot()
-	h := newHasher(v, 0)
-	b.t.root = root.Remove(args, v, 0, h, &removed)
-	b.t.count -= removed
+	if b.t.root != nil {
+		h := newHasher(v, 0)
+		if vetting {
+			defer vet(func() { b.Remove(args, v) }, b.t.root)(nil)
+		}
+		b.t.root = b.t.root.Remove(args, v, 0, h, &removed)
+		b.t.count -= removed
+	}
 }
 
 func (b *Builder) Get(args *EqArgs, el elementT) *elementT {
@@ -42,7 +53,7 @@ func (b *Builder) Finish() Tree {
 }
 
 func (b *Builder) Borrow() Tree {
-	return Tree{root: b.t.Root(), count: b.t.count}
+	return b.t
 }
 
 func (b Builder) String() string {

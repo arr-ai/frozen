@@ -4,25 +4,47 @@ import (
 	"fmt"
 
 	"github.com/arr-ai/frozen/errors"
+	"github.com/arr-ai/frozen/internal/fu"
 )
 
-var theEmptyNode = newLeaf().Node()
+type leaf struct {
+	data [2]elementT
+}
 
-func newMutableLeaf(data ...elementT) *leaf {
-	return newLeaf(append(make([]elementT, 0, maxLeafLen), data...)...)
+func newLeaf(data ...elementT) *leaf {
+	switch len(data) {
+	case 1:
+		return newLeaf1(data[0])
+	case 2:
+		return newLeaf2(data[0], data[1])
+	default:
+		panic(errors.Errorf("data wrong size (%d) for leaf", len(data)))
+	}
+}
+
+func newLeaf1(a elementT) *leaf {
+	return newLeaf2(a, zero)
+}
+
+func newLeaf2(a, b elementT) *leaf {
+	if a == zero {
+		panic(errors.WTF)
+	}
+	return &leaf{data: [2]elementT{a, b}}
 }
 
 // fmt.Formatter
 
 func (l *leaf) Format(f fmt.State, verb rune) {
-	f.Write([]byte{'('})
-	for i, e := range l.data {
-		if i > 0 {
-			f.Write([]byte{','})
+	fu.WriteString(f, "(")
+	if l.data[0] != zero {
+		fu.Format(l.data[0], f, verb)
+		if l.data[1] != zero {
+			fu.WriteString(f, ",")
+			fu.Format(l.data[1], f, verb)
 		}
-		formatElement(f, verb, e)
 	}
-	f.Write([]byte{')'})
+	fu.WriteString(f, ")")
 }
 
 // fmt.Stringer
@@ -33,115 +55,135 @@ func (l *leaf) String() string {
 
 // node
 
-func (l *leaf) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) noderef {
-	for i, e := range l.data {
-		if args.eq(e, v) {
-			*matches++
-			l.data[i] = args.f(e, v)
-			return l.Node()
+func (l *leaf) Add(args *CombineArgs, v elementT, depth int, h hasher, matches *int) node {
+	switch {
+	case args.eq(l.data[0], v):
+		l.data[0] = args.f(l.data[0], v)
+		*matches++
+	case l.data[1] == zero:
+		l.data[1] = v
+	case args.eq(l.data[1], v):
+		l.data[1] = args.f(l.data[1], v)
+		*matches++
+	default:
+		return newBranchFrom(depth, l.data[0], l.data[1], v)
+	}
+	return l
+}
+
+func (l *leaf) Canonical(depth int) node {
+	return l
+}
+
+func (l *leaf) Combine(args *CombineArgs, n node, depth int, matches *int) node { //nolint:cyclop
+	switch n := n.(type) {
+	case *branch:
+		return n.Combine(args.flip, l, depth, matches)
+	case *leaf:
+		lr := func(a, b int) int { return a<<2 | b }
+		masks := lr(l.mask(), n.mask())
+		if masks == lr(3, 1) {
+			masks, l, n, args = lr(1, 3), n, l, args.flip
 		}
-	}
-	if len(l.data) < cap(l.data) || depth >= maxTreeDepth {
-		l.data = append(l.data, v)
-		return l.Node()
-	}
-
-	b := newBranch(nil)
-	for _, e := range l.data {
-		b.Add(args, e, depth, newHasher(e, depth), matches)
-	}
-	b.Add(args, v, depth, h, matches)
-
-	return b.Node()
-}
-
-func (l *leaf) Canonical(depth int) noderef {
-	if len(l.data) <= maxLeafLen || depth*fanoutBits >= 64 {
-		return l.Node()
-	}
-	var matches int
-	return newBranch(nil).Combine(DefaultNPCombineArgs, l.Node(), depth, &matches)
-}
-
-func (l *leaf) Combine(args *CombineArgs, n noderef, depth int, matches *int) noderef {
-	if l.Empty() {
-		return n
-	}
-
-	l2 := n.Leaf()
-	if l2 == nil {
-		return n.Combine(args.flip, l.Node(), depth, matches)
-	}
-
-	cloned := false
-scanning:
-	for i, e := range l2.data {
-		for j, f := range l.data {
-			if args.eq(f, e) {
-				if !cloned {
-					l = l.clone(0)
-					cloned = true
+		l0, l1 := l.data[0], l.data[1]
+		n0, n1 := n.data[0], n.data[1]
+		if args.eq(l0, n0) { //nolint:nestif
+			*matches++
+			switch masks {
+			case lr(1, 1):
+				return newLeaf1(args.f(l0, n0))
+			case lr(1, 3):
+				return newLeaf2(args.f(l0, n0), n1)
+			default:
+				if args.eq(l1, n1) {
+					*matches++
+					return newLeaf2(args.f(l0, n0), args.f(l1, n1))
 				}
-				l.data[j] = args.f(f, e)
-				*matches++
-				continue scanning
+			}
+		} else {
+			switch masks {
+			case lr(1, 1):
+				return newLeaf2(l0, n0)
+			case lr(1, 3):
+				if args.eq(l0, n1) {
+					*matches++
+					return newLeaf2(n0, args.f(l0, n1))
+				}
+				return newBranchFrom(depth, l0, n0, n1)
+			default:
+				if args.eq(l1, n1) {
+					*matches++
+					return newBranchFrom(depth, l0, n0, args.f(l1, n1))
+				}
+				if args.eq(l0, n1) {
+					*matches++
+					if args.eq(l1, n0) {
+						*matches++
+						return newLeaf2(args.f(l0, n1), args.f(l1, n0))
+					}
+					return newBranchFrom(depth, args.f(l0, n1), l1, n0)
+				}
+				if args.eq(l1, n0) {
+					*matches++
+					return newBranchFrom(depth, l0, n1, args.f(l1, n0))
+				}
 			}
 		}
-		if len(l.data) < maxLeafLen {
-			l = newLeaf(append(l.data, e)...)
-		} else {
-			return newBranch(nil).
-				Combine(args, l.Node(), depth, matches).
-				Combine(args, newLeaf(l2.data[i:]...).Node(), depth, matches)
-		}
-	}
-	if len(l.data) > maxLeafLen {
+		return newBranchFrom(depth, l0, l1, n0, n1)
+	case *twig:
+		return n.Combine(args.flip, l, depth, matches)
+	default:
 		panic(errors.WTF)
 	}
-	return l.Canonical(depth)
 }
 
 func (l *leaf) AppendTo(dest []elementT) []elementT {
-	if len(dest)+len(l.data) > cap(dest) {
+	data := l.slice()
+	if len(dest)+len(data) > cap(dest) {
 		return nil
 	}
-	return append(dest, l.data...)
+	return append(dest, data...)
 }
 
-func (l *leaf) Difference(args *EqArgs, n noderef, depth int, removed *int) noderef {
-	ret := newLeaf()
-	for _, e := range l.data {
-		h := newHasher(e, depth)
-		if n.Get(args.flip, e, h) == nil {
-			ret.data = append(ret.data, e)
-		} else {
+func (l *leaf) Difference(args *EqArgs, n node, depth int, removed *int) node {
+	mask := l.mask()
+	if n.Get(args, l.data[0], newHasher(l.data[0], depth)) != nil {
+		*removed++
+		mask &^= 0b01
+	}
+
+	if l.data[1] != zero {
+		if n.Get(args, l.data[1], newHasher(l.data[1], depth)) != nil {
 			*removed++
+			mask &^= 0b10
 		}
 	}
-	return ret.Canonical(depth)
+	return l.where(mask)
 }
 
 func (l *leaf) Empty() bool {
-	return len(l.data) == 0
+	return false
 }
 
-func (l *leaf) Equal(args *EqArgs, n noderef, depth int) bool {
-	if m := n.Leaf(); m != nil {
-		if len(l.data) != len(m.data) {
+func (l *leaf) Equal(args *EqArgs, n node, depth int) bool {
+	if n, is := n.(*leaf); is {
+		lm, nm := l.mask(), n.mask()
+		if lm != nm {
 			return false
 		}
-		for _, e := range l.data {
-			if m.Get(args, e, 0) == nil {
-				return false
-			}
+		l0, l1 := l.data[0], l.data[1]
+		n0, n1 := n.data[0], n.data[1]
+		if lm == 1 && nm == 1 {
+			return args.eq(l0, n0)
 		}
-		return true
+		return args.eq(l0, n0) && args.eq(l1, n1) ||
+			args.eq(l0, n1) && args.eq(l1, n0)
 	}
 	return false
 }
 
 func (l *leaf) Get(args *EqArgs, v elementT, _ hasher) *elementT {
-	for i, e := range l.data {
+	for i, e := range l.slice() {
 		if args.eq(e, v) {
 			return &l.data[i]
 		}
@@ -149,57 +191,64 @@ func (l *leaf) Get(args *EqArgs, v elementT, _ hasher) *elementT {
 	return nil
 }
 
-func (l *leaf) Intersection(args *EqArgs, n noderef, depth int, matches *int) noderef {
-	ret := newLeaf()
-	for _, e := range l.data {
-		h := newHasher(e, depth)
-		if n.Get(args, e, h) != nil {
+func (l *leaf) Intersection(args *EqArgs, n node, depth int, matches *int) node {
+	mask := 0
+	if n.Get(args, l.data[0], newHasher(l.data[0], depth)) != nil {
+		*matches++
+		mask |= 0b01
+	}
+
+	if l.data[1] != zero {
+		if n.Get(args, l.data[1], newHasher(l.data[1], depth)) != nil {
 			*matches++
-			ret.data = append(ret.data, e)
+			mask |= 0b10
 		}
 	}
-	return ret.Canonical(depth)
+	return l.where(mask)
 }
 
-func (l *leaf) Iterator([][]noderef) Iterator {
-	return newSliceIterator(l.data)
+func (l *leaf) Iterator([][]node) Iterator {
+	return newSliceIterator(l.slice())
 }
 
 func (l *leaf) Reduce(_ NodeArgs, _ int, r func(values ...elementT) elementT) elementT {
-	return r(l.data...)
+	return r(l.slice()...)
 }
 
-func (l *leaf) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) noderef {
-	for i, e := range l.data {
-		if args.eq(e, v) {
+func (l *leaf) Remove(args *EqArgs, v elementT, depth int, h hasher, matches *int) node {
+	if args.eq(l.data[0], v) {
+		*matches++
+		if l.data[1] == zero {
+			return nil
+		}
+		l.data = [2]elementT{l.data[1], zero}
+	} else if l.data[1] != zero {
+		if args.eq(l.data[1], v) {
 			*matches++
-			last := len(l.data) - 1
-			if last == 0 {
-				return newMutableLeaf().Node()
-			}
-			if i < last {
-				l.data[i] = l.data[last]
-			}
-			l.data = l.data[:last]
-			return l.Node()
+			l.data[1] = zero
 		}
 	}
-	return l.Node()
+	return l
 }
 
-func (l *leaf) SubsetOf(args *EqArgs, n noderef, depth int) bool {
-	for _, e := range l.data {
-		h := newHasher(e, depth)
-		if n.Get(args, e, h) == nil {
+func (l *leaf) SubsetOf(args *EqArgs, n node, depth int) bool {
+	a := l.data[0]
+	h := newHasher(a, depth)
+	if n.Get(args, a, h) == nil {
+		return false
+	}
+	if b := l.data[1]; b != zero {
+		h := newHasher(b, depth)
+		if n.Get(args, b, h) == nil {
 			return false
 		}
 	}
 	return true
 }
 
-func (l *leaf) Map(args *CombineArgs, _ int, counts *int, f func(e elementT) elementT) noderef {
+func (l *leaf) Map(args *CombineArgs, _ int, counts *int, f func(e elementT) elementT) node {
 	var nb Builder
-	for _, e := range l.data {
+	for _, e := range l.slice() {
 		nb.Add(args, f(e))
 	}
 	t := nb.Finish()
@@ -207,43 +256,91 @@ func (l *leaf) Map(args *CombineArgs, _ int, counts *int, f func(e elementT) ele
 	return t.root
 }
 
-func (l *leaf) Where(args *WhereArgs, depth int, matches *int) noderef {
-	ret := newLeaf()
-	for _, e := range l.data {
-		if args.Pred(e) {
-			ret.data = append(ret.data, e)
-			*matches++
+func (l *leaf) Vet() {
+	if l.data[0] == zero {
+		if l.data[1] != zero {
+			panic(errors.Errorf("data only in leaf slot 1"))
 		}
+		panic(errors.Errorf("empty leaf"))
 	}
-	return ret.Canonical(depth)
 }
 
-func (l *leaf) With(args *CombineArgs, v elementT, depth int, h hasher, matches *int) noderef {
-	for i, e := range l.data {
-		if args.eq(e, v) {
+func (l *leaf) Where(args *WhereArgs, depth int, matches *int) node {
+	var mask int
+	if args.Pred(l.data[0]) {
+		*matches++
+		mask ^= 0b01
+	}
+	if l.data[1] != zero {
+		if args.Pred(l.data[1]) {
 			*matches++
-			ret := l.clone(0)
-			ret.data[i] = args.f(ret.data[i], v)
-			return ret.Node()
+			mask ^= 0b10
 		}
 	}
-	return newLeaf(append(l.data, v)...).Canonical(depth)
+	return l.where(mask)
 }
 
-func (l *leaf) Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) noderef {
-	for i, e := range l.data {
-		if args.eq(e, v) {
+func (l *leaf) where(mask int) node {
+	switch mask {
+	case 0b00:
+		return nil
+	case 0b01:
+		if l.data[1] == zero {
+			return l
+		}
+		return newLeaf1(l.data[0])
+	case 0b10:
+		return newLeaf1(l.data[1])
+	default:
+		return l
+	}
+}
+
+func (l *leaf) With(args *CombineArgs, v elementT, depth int, h hasher, matches *int) node {
+	switch {
+	case args.eq(l.data[0], v):
+		*matches++
+		return newLeaf2(args.f(l.data[0], v), l.data[1])
+	case l.data[1] == zero:
+		return newLeaf2(l.data[0], v)
+	case args.eq(l.data[1], v):
+		*matches++
+		return newLeaf2(l.data[0], args.f(l.data[1], v))
+	case depth >= maxTreeDepth:
+		return newTwig(append(l.data[:], v)...)
+	default:
+		return newBranchFrom(depth, l.data[0], l.data[1], v)
+	}
+}
+
+func (l *leaf) Without(args *EqArgs, v elementT, depth int, h hasher, matches *int) node {
+	mask := l.mask()
+	if args.eq(l.data[0], v) {
+		*matches++
+		mask ^= 0b01
+	} else if l.data[1] != zero {
+		if args.eq(l.data[1], v) {
 			*matches++
-			ret := newLeaf(l.data[:len(l.data)-1]...).clone(0)
-			if i != len(ret.data) {
-				ret.data[i] = l.data[len(ret.data)]
-			}
-			return ret.Canonical(depth)
+			mask ^= 0b10
 		}
 	}
-	return l.Node()
+	return l.where(mask)
 }
 
-func (l *leaf) clone(extra int) *leaf {
-	return newLeaf(append(make([]elementT, 0, len(l.data)+extra), l.data...)...)
+func (l *leaf) count() int {
+	if l.data[1] == zero {
+		return 1
+	}
+	return 2
+}
+
+func (l *leaf) mask() int {
+	if l.data[1] == zero {
+		return 1
+	}
+	return 3
+}
+
+func (l *leaf) slice() []elementT {
+	return l.data[:l.count()]
 }

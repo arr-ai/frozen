@@ -8,7 +8,7 @@ import (
 
 	"github.com/arr-ai/hash"
 
-	"github.com/arr-ai/frozen/internal/fmtutil"
+	"github.com/arr-ai/frozen/internal/fu"
 )
 
 const (
@@ -47,7 +47,7 @@ func (h hasher) String() string {
 		}
 		return sb.String()
 	case 4:
-		return "#" + fmtutil.BrailleEncoded(uint64(h))
+		return "#" + fu.BrailleEncoded(uint64(h))
 	default:
 		panic("not implemented")
 	}

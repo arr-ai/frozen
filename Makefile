@@ -11,17 +11,17 @@ tree.package = kvt
 tree.files = \
 	branch.go \
 	builder.go \
+	empty.go \
 	hasher.go \
 	leaf.go \
 	masker.go \
-	node_intf.go \
-	node_ptr.go \
-	node_ptr_safe.go \
-	node_ptr_unsafe.go \
+	node.go \
 	nodeArgs.go \
 	packer.go \
 	packer_iter.go \
 	tree.go \
+	twig.go \
+	vet.go
 
 .PHONY: gen
 gen: gen-kv
@@ -33,17 +33,14 @@ gen-kv-%:
 	./gen-kv.sh internal/$* internal/$*/$($*.package) $($*.files)
 
 LENGTHS = -short ""
-TAGSES = "" frozen_ptr_safe frozen_intf
 
 .PHONY: test
 test:
 	@set -e; \
 	for length in $(LENGTHS); do \
-		for tags in $(TAGSES); do \
-			printf "\e[1mgo test \e[32m$$length \e[35m$${tags:+-tags=$$tags}\e[0;1m $(TESTFLAGS) ./...\e[0m\n"; \
-			go test $$length $${tags:+-tags=$$tags} $(TESTFLAGS) ./... \
-				| (fgrep -v '[no test files]' || true); \
-		done \
+		printf "\e[1mgo test \e[32m$$length $(TESTFLAGS) ./...\e[0m\n"; \
+		go test $$length $(TESTFLAGS) ./... \
+			| (fgrep -v '[no test files]' || true); \
 	done
 
 .PHONY: lint

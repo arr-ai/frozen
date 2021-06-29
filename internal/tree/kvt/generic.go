@@ -1,8 +1,6 @@
 package kvt
 
 import (
-	"fmt"
-
 	"github.com/arr-ai/hash"
 
 	"github.com/arr-ai/frozen/internal/iterator/kvi"
@@ -15,22 +13,17 @@ type (
 	Iterator = kvi.Iterator
 )
 
-var emptyIterator = kvi.Empty
+var (
+	zero          = elementT{}
+	emptyIterator = kvi.Empty
+)
 
 func elementEqual(a, b kv.KeyValue) bool {
 	return value.Equal(a.Key, b.Key)
 }
 
-func formatElement(f fmt.State, verb rune, e elementT) {
-	e.Format(f, verb)
-}
-
 func interfaceAsElement(i interface{}) elementT {
 	return i.(kv.KeyValue)
-}
-
-func isBlank(kv kv.KeyValue) bool {
-	return kv.Key == nil
 }
 
 func newSliceIterator(slice []kv.KeyValue) Iterator {

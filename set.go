@@ -2,11 +2,11 @@ package frozen
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/arr-ai/hash"
 
 	"github.com/arr-ai/frozen/internal/depth"
+	"github.com/arr-ai/frozen/internal/fu"
 	"github.com/arr-ai/frozen/internal/iterator"
 	"github.com/arr-ai/frozen/internal/tree"
 	"github.com/arr-ai/frozen/internal/value"
@@ -128,32 +128,26 @@ func (s Set) String() string {
 }
 
 // Format writes a string representation of the Set into state.
-func (s Set) Format(state fmt.State, verb rune) {
-	if verb == 'v' && state.Flag('+') {
-		fmt.Fprint(state, s.tree.String())
+func (s Set) Format(f fmt.State, verb rune) {
+	if verb == 'v' && f.Flag('+') {
+		fmt.Fprint(f, s.tree.String())
 		return
 	}
 
-	defer func() {
-		if recover() != nil {
-			log.Print("wtf?")
-		}
-	}()
+	w, set := f.Width()
 
-	w, set := state.Width()
-
-	state.Write([]byte("{"))
+	fu.WriteString(f, "{")
 	for i, n := s.Range(), 0; i.Next(); n++ {
 		if set && n == w {
-			state.Write([]byte(fmt.Sprintf(", ...(+%d)...", s.Count()-n)))
+			fu.WriteString(f, fmt.Sprintf(", ...(+%d)...", s.Count()-n))
 			break
 		}
 		if n > 0 {
-			state.Write([]byte(", "))
+			fu.WriteString(f, ", ")
 		}
-		fmt.Fprintf(state, "%v", i.Value())
+		fmt.Fprintf(f, "%v", i.Value())
 	}
-	state.Write([]byte("}"))
+	fu.WriteString(f, "}")
 }
 
 // OrderedRange returns a SetIterator for the Set that iterates over the elements in
@@ -258,7 +252,8 @@ func (s Set) Intersection(t Set) Set {
 
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
-	return Set{tree: s.tree.Combine(tree.NewCombineArgs(s.eqArgs(), tree.UseRHS), t.tree)}
+	args := tree.NewCombineArgs(s.eqArgs(), tree.UseRHS)
+	return Set{tree: s.tree.Combine(args, t.tree)}
 }
 
 // Difference returns a Set with all elements that are s but not in t.

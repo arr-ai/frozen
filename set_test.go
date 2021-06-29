@@ -509,10 +509,13 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 				// log.Print("sxy:  ", sxy)
 				// log.Print("sxsy: ", sxsy)
 				// log.Print("==:   ", sxy.Equal(sxsy))
-				// NewSetFromMask64(x)
-				// NewSetFromMask64(y)
-				// setop(sx, sy)
-				return
+				if bits.OnesCount64(x) < 4 && bits.OnesCount64(y) < 4 {
+					NewSetFromMask64(x)
+					NewSetFromMask64(y)
+					setop(sx, sy)
+					sxy.Equal(sxsy)
+				}
+				// return
 			}
 		}
 	}

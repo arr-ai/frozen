@@ -48,6 +48,6 @@ func (b SetBuilder) String() string {
 	return b.borrow().String()
 }
 
-func (b SetBuilder) Format(state fmt.State, c rune) {
-	b.borrow().Format(state, c)
+func (b SetBuilder) Format(f fmt.State, verb rune) {
+	b.borrow().Format(f, verb)
 }

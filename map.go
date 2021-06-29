@@ -6,6 +6,7 @@ import (
 	"github.com/arr-ai/hash"
 
 	"github.com/arr-ai/frozen/internal/depth"
+	"github.com/arr-ai/frozen/internal/fu"
 	"github.com/arr-ai/frozen/internal/iterator/kvi"
 	"github.com/arr-ai/frozen/internal/tree/kvt"
 	"github.com/arr-ai/frozen/internal/value"
@@ -263,15 +264,17 @@ func (m Map) String() string {
 }
 
 // Format writes a string representation of the Map into state.
-func (m Map) Format(state fmt.State, _ rune) {
-	state.Write([]byte("("))
+func (m Map) Format(f fmt.State, verb rune) {
+	fu.WriteString(f, "(")
 	for i, n := m.Range(), 0; i.Next(); n++ {
 		if n > 0 {
-			state.Write([]byte(", "))
+			fu.WriteString(f, ", ")
 		}
-		fmt.Fprintf(state, "%v: %v", i.Key(), i.Value())
+		fu.Format(i.Key(), f, verb)
+		fu.WriteString(f, ": ")
+		fu.Format(i.Value(), f, verb)
 	}
-	state.Write([]byte(")"))
+	fu.WriteString(f, ")")
 }
 
 // Range returns a MapIterator over the Map.

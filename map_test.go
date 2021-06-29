@@ -1,6 +1,8 @@
 package frozen_test
 
 import (
+	"log"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -405,8 +407,84 @@ func TestMapMergeDifferentValueType(t *testing.T) {
 		}
 	}
 	expected := NewMap(KV(1, "A"), KV(2, "K"), KV(3, 5), KV(4, 4))
+	actual := m.Merge(n, resolve)
 
-	assert.True(t, expected.Equal(m.Merge(n, resolve)))
+	if !assert.True(t, expected.Equal(actual)) {
+		// t.Log("expected: ", expected)
+		// t.Log("actual:   ", m.Merge(n, resolve))
+		// m.Merge(n, resolve)
+		return
+	}
+}
+
+func TestMapMergeDifferentValueTypeLarge(t *testing.T) { //nolint:cyclop,funlen
+	t.Parallel()
+
+	const N = 1 << 15
+
+	var mb MapBuilder
+	for i := 0; i < N; i++ {
+		mb.Put(i, i)
+	}
+	m := mb.Finish()
+
+	var nb MapBuilder
+	for i := 0; i < N; i++ {
+		nb.Put(i, i)
+	}
+	// Add 10% extra elements.
+	for i := N; i < N*11/10; i++ {
+		nb.Put(i, 2*i)
+	}
+	// Fill 1/5th of 90% with strings.
+	for i := 0; i < N*9/10; i += 5 {
+		nb.Put(i, strconv.Itoa(i))
+	}
+	// Fill 1/7th of 90% with float64s.
+	for i := 0; i < N*9/10; i += 7 {
+		nb.Put(i, 1/float64(i))
+	}
+	n := nb.Finish()
+
+	var eb MapBuilder
+	for i := 0; i < 11*N/10; i++ {
+		switch {
+		case i >= N:
+			eb.Put(i, 2*i)
+		case i >= 9*N/10:
+			eb.Put(i, i)
+		case i%7 == 0:
+			// Rock/paper/scissors: float64s get discarded, but we still need
+			// this case, because they replace the strings, which would have
+			// replaced the int.
+			eb.Put(i, i)
+		case i%5 == 0:
+			eb.Put(i, strconv.Itoa(i))
+		default:
+			eb.Put(i, i)
+		}
+	}
+	expected := eb.Finish()
+
+	resolve := func(key, a, b interface{}) interface{} {
+		switch v := b.(type) {
+		case string:
+			return v
+		default:
+			return a
+		}
+	}
+
+	actual := m.Merge(n, resolve)
+
+	if !assert.True(t, expected.Equal(actual)) {
+		log.Print("m:        ", m)
+		log.Print("n:        ", n)
+		log.Print("expected: ", expected)
+		log.Print("actual:   ", m.Merge(n, resolve))
+		m.Merge(n, resolve)
+		return
+	}
 }
 
 func TestMapMergeEmptyMap(t *testing.T) {

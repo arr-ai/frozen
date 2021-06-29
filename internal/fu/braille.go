@@ -1,4 +1,4 @@
-package fmtutil
+package fu
 
 import (
 	"strings"

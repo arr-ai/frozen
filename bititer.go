@@ -3,7 +3,7 @@ package frozen
 import (
 	"math/bits"
 
-	"github.com/arr-ai/frozen/internal/fmtutil"
+	"github.com/arr-ai/frozen/internal/fu"
 )
 
 // BitIterator represents a set of one-bits and the ability to enumerate them.
@@ -34,5 +34,5 @@ func (b BitIterator) Without(i int) BitIterator {
 }
 
 func (b BitIterator) String() string {
-	return fmtutil.BrailleEncoded(bits.Reverse64(uint64(b)))
+	return fu.BrailleEncoded(bits.Reverse64(uint64(b)))
 }

@@ -4,36 +4,22 @@ package kvt
 import (
 	"container/heap"
 	"fmt"
-	"math/bits"
 
 	"github.com/arr-ai/frozen/internal/depth"
+	"github.com/arr-ai/frozen/internal/fu"
 )
 
 type Tree struct {
-	root  noderef
+	root  node
 	count int
 }
 
-func newTree(n noderef, count *int) Tree {
+func newTree(n node, count *int) (out Tree) {
 	return Tree{root: n, count: *count}
 }
 
-func newTreeNeg(n noderef, count *int) Tree {
+func newTreeNeg(n node, count *int) (out Tree) {
 	return Tree{root: n, count: -*count}
-}
-
-func (t Tree) Root() noderef {
-	if t.root == nil {
-		t.root = theEmptyNode
-	}
-	return t.root
-}
-
-func (t Tree) MutableRoot() noderef {
-	if t.root == nil {
-		t.root = newMutableLeaf().Node()
-	}
-	return t.root
 }
 
 func (t Tree) Count() int {
@@ -45,65 +31,97 @@ func (t Tree) Gauge() depth.Gauge {
 }
 
 func (t Tree) String() string {
-	a := t.Root()
-	return a.String()
+	if t.root == nil {
+		return "∅"
+	}
+	return t.root.String()
 }
 
-func (t Tree) Format(state fmt.State, verb rune) {
-	a := t.Root()
-	a.Format(state, verb)
+func (t Tree) Format(f fmt.State, verb rune) {
+	if t.root == nil {
+		fu.WriteString(f, "∅")
+	}
+	t.root.Format(f, verb)
 }
 
-func (t Tree) Combine(args *CombineArgs, u Tree) Tree {
+func (t Tree) Combine(args *CombineArgs, u Tree) (out Tree) {
+	if vetting {
+		defer vet(func() { t.Combine(args, u) }, t.root, u.root)(&out.root)
+	}
+	if t.root == nil {
+		return u
+	}
+	if u.root == nil {
+		return t
+	}
 	count := -(t.count + u.count)
-	a := t.Root()
-	b := u.Root()
-	return newTreeNeg(a.Combine(args, b, 0, &count), &count)
+	return newTreeNeg(t.root.Combine(args, u.root, 0, &count), &count)
 }
 
-func (t Tree) Difference(args *EqArgs, u Tree) Tree {
+func (t Tree) Difference(args *EqArgs, u Tree) (out Tree) {
+	if vetting {
+		defer vet(func() { t.Difference(args, u) }, t.root, u.root)(&out.root)
+	}
+	if t.root == nil || u.root == nil {
+		return t
+	}
 	count := -t.count
-	a := t.Root()
-	b := u.Root()
-	return newTreeNeg(a.Difference(args, b, 0, &count), &count)
+	return newTreeNeg(t.root.Difference(args, u.root, 0, &count), &count)
 }
 
 func (t Tree) Equal(args *EqArgs, u Tree) bool {
-	a := t.Root()
-	b := u.Root()
-	return a.Equal(args, b, 0)
+	if t.count != u.count {
+		return false
+	}
+	if t.root == nil {
+		return u.root == nil
+	}
+	if u.root == nil {
+		return false
+	}
+	return t.root.Equal(args, u.root, 0)
 }
 
 func (t Tree) Get(args *EqArgs, v elementT) *elementT {
-	a := t.Root()
+	if t.root == nil {
+		return nil
+	}
 	h := newHasher(v, 0)
-	return a.Get(args, v, h)
+	return t.root.Get(args, v, h)
 }
 
-func (t Tree) Intersection(args *EqArgs, u Tree) Tree {
+func (t Tree) Intersection(args *EqArgs, u Tree) (out Tree) {
+	if vetting {
+		defer vet(func() { t.Intersection(args, u) }, t.root, u.root)(&out.root)
+	}
+	if t.root == nil || u.root == nil {
+		return Tree{}
+	}
 	if t.count > u.count {
 		t, u = u, t
 		args = args.flip
 	}
 	count := 0
-	a := t.Root()
-	b := u.Root()
-	return newTree(a.Intersection(args, b, 0, &count), &count)
+	return newTree(t.root.Intersection(args, u.root, 0, &count), &count)
 }
 
 func (t Tree) Iterator() Iterator {
-	a := t.Root()
+	if t.root == nil {
+		return emptyIterator
+	}
 	buf := packedIteratorBuf(t.count)
-	return a.Iterator(buf)
+	return t.root.Iterator(buf)
 }
 
 func (t Tree) OrderedIterator(less Less, n int) Iterator {
-	if n == -1 {
+	if n < 0 || n > t.count {
 		n = t.count
 	}
+	if n == 0 {
+		return emptyIterator
+	}
 	o := &ordered{less: less, elements: make([]elementT, 0, n)}
-	a := t.MutableRoot()
-	for i := a.Iterator(packedIteratorBuf(t.count)); i.Next(); {
+	for i := t.root.Iterator(packedIteratorBuf(t.count)); i.Next(); {
 		heap.Push(o, i.Value())
 		if o.Len() > n {
 			heap.Pop(o)
@@ -115,43 +133,64 @@ func (t Tree) OrderedIterator(less Less, n int) Iterator {
 }
 
 func (t Tree) SubsetOf(args *EqArgs, u Tree) bool {
-	a := t.Root()
-	b := u.Root()
-	return a.SubsetOf(args, b, 0)
+	if t.root == nil {
+		return true
+	}
+	if u.root == nil {
+		return false
+	}
+	return t.root.SubsetOf(args, u.root, 0)
 }
 
-func (t Tree) Map(args *CombineArgs, f func(v elementT) elementT) Tree {
+func (t Tree) Map(args *CombineArgs, f func(v elementT) elementT) (out Tree) {
+	if vetting {
+		defer vet(func() { t.Map(args, f) }, t.root)(&out.root)
+	}
+	if t.root == nil {
+		return t
+	}
 	count := 0
-	a := t.Root()
-	return newTree(a.Map(args, 0, &count, f), &count)
+	return newTree(t.root.Map(args, 0, &count, f), &count)
 }
 
 func (t Tree) Reduce(args NodeArgs, r func(values ...elementT) elementT) elementT {
-	a := t.Root()
-	return a.Reduce(args, 0, r)
+	if t.root == nil {
+		return zero
+	}
+	return t.root.Reduce(args, 0, r)
 }
 
-func (t Tree) Where(args *WhereArgs) Tree {
+func (t Tree) Where(args *WhereArgs) (out Tree) {
+	if vetting {
+		defer vet(func() { t.Where(args) }, t.root)(&out.root)
+	}
+	if t.root == nil {
+		return t
+	}
 	count := 0
-	a := t.Root()
-	return newTree(a.Where(args, 0, &count), &count)
+	return newTree(t.root.Where(args, 0, &count), &count)
 }
 
-func (t Tree) With(args *CombineArgs, v elementT) Tree {
+func (t Tree) With(args *CombineArgs, v elementT) (out Tree) {
+	if vetting {
+		defer vet(func() { t.With(args, v) }, t.root)(&out.root)
+	}
+	if t.root == nil {
+		return Tree{root: newLeaf1(v), count: 1}
+	}
 	count := -(t.count + 1)
-	a := t.Root()
 	h := newHasher(v, 0)
-	return newTreeNeg(a.With(args, v, 0, h, &count), &count)
+	return newTreeNeg(t.root.With(args, v, 0, h, &count), &count)
 }
 
-func (t Tree) Without(args *EqArgs, v elementT) Tree {
+func (t Tree) Without(args *EqArgs, v elementT) (out Tree) {
+	if vetting {
+		defer vet(func() { t.Without(args, v) }, t.root)(&out.root)
+	}
+	if t.root == nil {
+		return t
+	}
 	count := -t.count
-	a := t.Root()
 	h := newHasher(v, 0)
-	return newTreeNeg(a.Without(args, v, 0, h, &count), &count)
-}
-
-func packedIteratorBuf(count int) [][]noderef {
-	depth := (bits.Len64(uint64(count)) + 1) * 3 / 2 // 1.5 (log₈(count) + 1)
-	return make([][]noderef, 0, depth)
+	return newTreeNeg(t.root.Without(args, v, 0, h, &count), &count)
 }

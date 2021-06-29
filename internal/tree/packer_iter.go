@@ -8,11 +8,11 @@ import (
 type Less func(a, b elementT) bool
 
 type packerIterator struct {
-	stack [][]noderef
+	stack [][]node
 	i     Iterator
 }
 
-func newPackerIterator(buf [][]noderef, p *packer) *packerIterator {
+func newPackerIterator(buf [][]node, p *packer) *packerIterator {
 	buf = append(buf, p[:])
 	return &packerIterator{stack: buf, i: emptyIterator}
 }

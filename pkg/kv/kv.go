@@ -5,6 +5,7 @@ import (
 
 	"github.com/arr-ai/hash"
 
+	"github.com/arr-ai/frozen/internal/fu"
 	"github.com/arr-ai/frozen/internal/value"
 )
 
@@ -30,9 +31,9 @@ func (kv KeyValue) String() string {
 
 // String returns a string representation of a KeyValue.
 func (kv KeyValue) Format(f fmt.State, verb rune) {
-	value.FormatValue(f, verb, kv.Key)
+	fu.Format(kv.Key, f, verb)
 	f.Write([]byte{':'})
-	value.FormatValue(f, verb, kv.Value)
+	fu.Format(kv.Value, f, verb)
 }
 
 func KeyEqual(a, b KeyValue) bool {

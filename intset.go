@@ -111,7 +111,7 @@ func (s IntSet) String() string {
 	return "[" + strings.Join(stringed, ", ") + "]"
 }
 
-// func (s IntSet) Format(state fmt.State, _ rune)       {}
+// func (s IntSet) Format(f fmt.State, _ rune)       {}
 // func (s IntSet) OrderedRange(less Less) Iterator      {}
 // func (s IntSet) Hash(seed uintptr) uintptr            {}
 // func (s IntSet) Equal(t int) bool                     {}

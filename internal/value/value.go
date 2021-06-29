@@ -1,8 +1,6 @@
 package value
 
 import (
-	"fmt"
-
 	"github.com/arr-ai/hash"
 )
 
@@ -24,16 +22,5 @@ func Equal(a, b interface{}) bool {
 	if a, ok := a.(Equatable); ok {
 		return a.Equal(b)
 	}
-	if b, ok := b.(Equatable); ok {
-		return b.Equal(a)
-	}
 	return a == b
-}
-
-func FormatValue(f fmt.State, verb rune, v interface{}) {
-	if formatter, is := v.(fmt.Formatter); is {
-		formatter.Format(f, verb)
-	} else {
-		fmt.Fprint(f, v)
-	}
 }
