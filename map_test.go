@@ -295,7 +295,11 @@ func TestMapUpdate(t *testing.T) {
 	m := NewMap(KV(3, 4), KV(4, 5), KV(1, 2))
 	n := NewMap(KV(3, 4), KV(4, 7), KV(6, 7))
 	assertMapEqual(t, NewMap(KV(1, 2), KV(3, 4), KV(4, 7), KV(6, 7)), m.Update(n))
-	lotsa := Iota(5).Powerset()
+	oom := 11
+	if testing.Short() {
+		oom = 5
+	}
+	lotsa := Iota(oom).Powerset()
 	plus := func(n int) func(interface{}) interface{} {
 		return func(key interface{}) interface{} { return n + key.(int) }
 	}
@@ -304,21 +308,22 @@ func TestMapUpdate(t *testing.T) {
 		a := NewMapFromKeys(s, plus(0))
 		for j := lotsa.Range(); j.Next(); {
 			u := j.Value().(Set)
-			b := NewMapFromKeys(u, plus(10))
+			b := NewMapFromKeys(u, plus(100))
 			actual := a.Update(b)
 			expected := NewMapFromKeys(s.Union(u), func(key interface{}) interface{} {
 				if u.Has(key) {
-					return 10 + key.(int)
+					return 100 + key.(int)
 				}
 				return key
 			})
 			if !assertMapEqual(t, expected, actual) {
-				// log.Print("a:           ", a)
-				// log.Print("b:           ", b)
-				// log.Print("a.Update(b): ", actual)
-				// a = NewMapFromKeys(s, plus(0))
-				// b = NewMapFromKeys(u, plus(10))
-				// actual = a.Update(b)
+				// log.Print("a:        ", a)
+				// log.Print("b:        ", b)
+				// log.Print("expected: ", expected)
+				// log.Print("actual:   ", actual)
+				// NewMapFromKeys(s, plus(0))
+				// NewMapFromKeys(u, plus(10))
+				// a.Update(b)
 				// a.Update(b)
 				return
 			}

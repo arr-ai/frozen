@@ -77,7 +77,7 @@ func (l *leaf) Canonical(depth int) node {
 	return l
 }
 
-func (l *leaf) Combine(args *CombineArgs, n node, depth int) (_ node, matches int) { //nolint:cyclop
+func (l *leaf) Combine(args *CombineArgs, n node, depth int) (_ node, matches int) { //nolint:cyclop,funlen
 	switch n := n.(type) {
 	case *branch:
 		return n.Combine(args.flip, l, depth)
@@ -90,17 +90,19 @@ func (l *leaf) Combine(args *CombineArgs, n node, depth int) (_ node, matches in
 		l0, l1 := l.data[0], l.data[1]
 		n0, n1 := n.data[0], n.data[1]
 		if args.eq(l0, n0) { //nolint:nestif
+			r0 := args.f(l0, n0)
 			matches++
 			switch masks {
 			case lr(1, 1):
-				return newLeaf1(args.f(l0, n0)), matches
+				return newLeaf1(r0), matches
 			case lr(1, 3):
-				return newLeaf2(args.f(l0, n0), n1), matches
+				return newLeaf2(r0, n1), matches
 			default:
 				if args.eq(l1, n1) {
 					matches++
-					return newLeaf2(args.f(l0, n0), args.f(l1, n1)), matches
+					return newLeaf2(r0, args.f(l1, n1)), matches
 				}
+				return newBranchFrom(depth, r0, l1, n1), matches
 			}
 		} else {
 			switch masks {
@@ -118,20 +120,21 @@ func (l *leaf) Combine(args *CombineArgs, n node, depth int) (_ node, matches in
 					return newBranchFrom(depth, l0, n0, args.f(l1, n1)), matches
 				}
 				if args.eq(l0, n1) {
+					r0 := args.f(l0, n1)
 					matches++
 					if args.eq(l1, n0) {
 						matches++
-						return newLeaf2(args.f(l0, n1), args.f(l1, n0)), matches
+						return newLeaf2(r0, args.f(l1, n0)), matches
 					}
-					return newBranchFrom(depth, args.f(l0, n1), l1, n0), matches
+					return newBranchFrom(depth, r0, l1, n0), matches
 				}
 				if args.eq(l1, n0) {
 					matches++
 					return newBranchFrom(depth, l0, n1, args.f(l1, n0)), matches
 				}
+				return newBranchFrom(depth, l0, l1, n0, n1), matches
 			}
 		}
-		return newBranchFrom(depth, l0, l1, n0, n1), matches
 	case *twig:
 		return n.Combine(args.flip, l, depth)
 	default:
