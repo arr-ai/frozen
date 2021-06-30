@@ -38,8 +38,7 @@ test:
 	@set -e; \
 	for length in $(LENGTHS); do \
 		printf "\e[1mgo test \e[32m$$length $(TESTFLAGS) ./...\e[0m\n"; \
-		go test $$length $(TESTFLAGS) ./... \
-			| (fgrep -v '[no test files]' || true); \
+		go test $$length $(TESTFLAGS) ./...; \
 	done
 
 .PHONY: lint
