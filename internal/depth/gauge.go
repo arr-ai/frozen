@@ -3,6 +3,7 @@ package depth
 import (
 	"math/bits"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -30,6 +31,9 @@ var (
 		return ret
 	}()
 
+	// Ensure parallelism is enough to keep all cores busy.
+	maxDepth = (bits.Len64(uint64(runtime.GOMAXPROCS(0)-1))-1)/FanoutBits + 1
+
 	// NonParallel is a Gauge that never triggers parallel behaviour.
 	NonParallel Gauge = -1
 )
@@ -37,7 +41,11 @@ var (
 type Gauge int
 
 func NewGauge(count int) Gauge {
-	return Gauge((bits.Len64(uint64(count)) - maxConcurrency) / 3)
+	g := (bits.Len64(uint64(count)) - maxConcurrency) / FanoutBits
+	if g > maxDepth {
+		g = maxDepth
+	}
+	return Gauge(g)
 }
 
 func (pd Gauge) Parallel(depth int, mask masker.Masker, f func(i int) (bool, int)) (_ bool, matches int) {
