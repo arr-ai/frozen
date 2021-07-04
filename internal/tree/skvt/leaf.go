@@ -78,7 +78,7 @@ func (l *leaf) Canonical(depth int) node {
 	return l
 }
 
-func (l *leaf) Combine(args *CombineArgs, n node, depth int) (_ node, matches int) { //nolint:cyclop,funlen
+func (l *leaf) Combine(args *CombineArgs, n node, depth int) (_ node, matches int) { //nolint:cyclop
 	switch n := n.(type) {
 	case *branch:
 		return n.Combine(args.flip, l, depth)
@@ -136,8 +136,6 @@ func (l *leaf) Combine(args *CombineArgs, n node, depth int) (_ node, matches in
 				return newBranchFrom(depth, l0, l1, n0, n1), matches
 			}
 		}
-	case *twig:
-		return n.Combine(args.flip, l, depth)
 	default:
 		panic(errors.WTF)
 	}

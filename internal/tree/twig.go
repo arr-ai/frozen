@@ -79,10 +79,6 @@ func (l *twig) Canonical(depth int) node {
 func (l *twig) Combine(args *CombineArgs, n node, depth int) (_ node, matches int) { //nolint:cyclop
 	var ndata []elementT
 	switch n := n.(type) {
-	case *branch:
-		return n.Combine(args.flip, l, depth)
-	case *leaf:
-		ndata = n.slice()
 	case *twig:
 		ndata = n.data
 	default:

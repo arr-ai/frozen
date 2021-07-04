@@ -103,14 +103,6 @@ func (b *branch) Combine(args *CombineArgs, n node, depth int) (_ node, matches 
 			matches += m
 		}
 		return b, matches
-	case *twig:
-		for _, e := range n.data {
-			h := newHasher(e, depth)
-			var m int
-			b, m = b.with(args, e, depth, h)
-			matches += m
-		}
-		return b, matches
 	default:
 		panic(errors.WTF)
 	}
@@ -136,15 +128,6 @@ func (b *branch) Difference(args *EqArgs, n node, depth int) (_ node, matches in
 	case *leaf:
 		ret := node(b)
 		for _, e := range n.slice() {
-			h := newHasher(e, depth)
-			var m int
-			ret, m = ret.Without(args, e, depth, h)
-			matches += m
-		}
-		return ret, matches
-	case *twig:
-		ret := node(b)
-		for _, e := range n.data {
 			h := newHasher(e, depth)
 			var m int
 			ret, m = ret.Without(args, e, depth, h)
@@ -196,8 +179,6 @@ func (b *branch) Intersection(args *EqArgs, n node, depth int) (_ node, matches 
 		ret.p.updateMask()
 		return ret.Canonical(depth), matches
 	case *leaf:
-		return n.Intersection(args.flip, b, depth)
-	case *twig:
 		return n.Intersection(args.flip, b, depth)
 	default:
 		panic(errors.WTF)
