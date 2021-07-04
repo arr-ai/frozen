@@ -101,7 +101,7 @@ func (t Tree) Intersection(args *EqArgs, u Tree) (out Tree) {
 	}
 	if t.count > u.count {
 		t, u = u, t
-		args = args.flip
+		args = args.Flip()
 	}
 
 	return newTree(t.root.Intersection(args, u.root, 0))

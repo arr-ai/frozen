@@ -130,7 +130,7 @@ func (l *twig) Difference(args *EqArgs, n node, depth int) (_ node, matches int)
 	ret := newTwig()
 	for _, e := range l.data {
 		h := newHasher(e, depth)
-		if n.Get(args.flip, e, h) == nil {
+		if n.Get(args.Flip(), e, h) == nil {
 			ret.data = append(ret.data, e)
 		} else {
 			matches++

@@ -81,12 +81,12 @@ func (l *leaf) Canonical(depth int) node {
 func (l *leaf) Combine(args *CombineArgs, n node, depth int) (_ node, matches int) { //nolint:cyclop
 	switch n := n.(type) {
 	case *branch:
-		return n.Combine(args.flip, l, depth)
+		return n.Combine(args.Flip(), l, depth)
 	case *leaf:
 		lr := func(a, b int) int { return a<<2 | b }
 		masks := lr(l.mask(), n.mask())
 		if masks == lr(3, 1) {
-			masks, l, n, args = lr(1, 3), n, l, args.flip
+			masks, l, n, args = lr(1, 3), n, l, args.Flip()
 		}
 		l0, l1 := l.data[0], l.data[1]
 		n0, n1 := n.data[0], n.data[1]

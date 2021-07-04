@@ -180,7 +180,7 @@ func (b *branch) Intersection(args *EqArgs, n node, depth int) (_ node, matches 
 		ret.p.updateMask()
 		return ret.Canonical(depth), matches
 	case *leaf:
-		return n.Intersection(args.flip, b, depth)
+		return n.Intersection(args.Flip(), b, depth)
 	default:
 		panic(errors.WTF)
 	}

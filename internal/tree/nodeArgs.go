@@ -28,19 +28,23 @@ type CombineArgs struct {
 
 	f func(a, b elementT) elementT
 
-	flip *CombineArgs
+	flipped *CombineArgs
 }
 
 func NewCombineArgs(ea *EqArgs, combine func(a, b elementT) elementT) *CombineArgs {
-	flipped := func(a, b elementT) elementT { return combine(b, a) }
-	ae := ea.flip
-	args := &[2]CombineArgs{
-		{EqArgs: ea, f: combine},
-		{EqArgs: ae, f: flipped},
+	return &CombineArgs{EqArgs: ea, f: combine}
+}
+
+func (a *CombineArgs) Flip() *CombineArgs {
+	if a.flipped == nil {
+		f := a.f
+		a.flipped = &CombineArgs{
+			EqArgs:  a.EqArgs.Flip(),
+			f:       func(a, b elementT) elementT { return f(b, a) },
+			flipped: a,
+		}
 	}
-	args[0].flip = &args[1]
-	args[1].flip = &args[0]
-	return &args[0]
+	return a.flipped
 }
 
 type EqArgs struct {
@@ -48,9 +52,9 @@ type EqArgs struct {
 
 	eq func(a, b elementT) bool
 	// TODO
-	lhash, rhash func(a elementT, seed uintptr) uintptr //nolint:structcheck
+	lhash, rhash func(a elementT, seed uintptr) uintptr
 
-	flip *EqArgs
+	flipped *EqArgs
 }
 
 func NewEqArgs(
@@ -58,19 +62,31 @@ func NewEqArgs(
 	eq func(a, b elementT) bool,
 	lhash, rhash func(a elementT, seed uintptr) uintptr,
 ) *EqArgs {
-	qe := func(a, b elementT) bool { return eq(b, a) }
 	na := NewNodeArgs(gauge)
-	args := [2]EqArgs{
-		{NodeArgs: na, eq: eq, lhash: lhash, rhash: rhash},
-		{NodeArgs: na, eq: qe, lhash: rhash, rhash: lhash},
+	return &EqArgs{
+		NodeArgs: na,
+		eq:       eq,
+		lhash:    lhash,
+		rhash:    rhash,
 	}
-	args[0].flip = &args[1]
-	args[1].flip = &args[0]
-	return &args[0]
 }
 
 func NewDefaultEqArgs(gauge depth.Gauge) *EqArgs {
 	return NewEqArgs(gauge, elementEqual, hashValue, hashValue)
+}
+
+func (a *EqArgs) Flip() *EqArgs {
+	if a.flipped == nil {
+		eq := a.eq
+		a.flipped = &EqArgs{
+			NodeArgs: a.NodeArgs,
+			eq:       func(a, b elementT) bool { return eq(b, a) },
+			lhash:    a.rhash,
+			rhash:    a.lhash,
+			flipped:  a,
+		}
+	}
+	return a.flipped
 }
 
 type WhereArgs struct {
