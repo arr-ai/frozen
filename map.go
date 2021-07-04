@@ -78,17 +78,14 @@ func (m Map) Any() (key, value interface{}) {
 // retained from m.
 func (m Map) With(key, val interface{}) Map {
 	kv := KV(key, val)
-	return newMap(m.tree.With(defaultNPKeyCombineArgs, kv))
+	return newMap(m.tree.With(kvt.DefaultNPKeyCombineArgs, kv))
 }
 
 // Without returns a new Map with all keys retained from m except the elements
 // of keys.
 func (m Map) Without(keys Set) Map {
 	args := kvt.NewEqArgs(
-		m.tree.Gauge(),
-		kvt.KeyEqual,
-		kvt.KeyHash,
-		kvt.KeyHash)
+		m.tree.Gauge(), kvt.KeyEqual, kvt.KeyHash, kvt.KeyHash)
 	for i := keys.Range(); i.Next(); {
 		m.tree = m.tree.Without(args, KV(i.Value(), nil))
 	}
@@ -108,12 +105,12 @@ func (m Map) Without2(keys ...interface{}) Map {
 
 // Has returns true iff the key exists in the map.
 func (m Map) Has(key interface{}) bool {
-	return m.tree.Get(defaultNPKeyEqArgs, KV(key, nil)) != nil
+	return m.tree.Get(kvt.DefaultNPKeyEqArgs, KV(key, nil)) != nil
 }
 
 // Get returns the value associated with key in m and true iff the key is found.
 func (m Map) Get(key interface{}) (interface{}, bool) {
-	if kv := m.tree.Get(defaultNPKeyEqArgs, KV(key, nil)); kv != nil {
+	if kv := m.tree.Get(kvt.DefaultNPKeyEqArgs, KV(key, nil)); kv != nil {
 		return kv.Value, true
 	}
 	return nil, false

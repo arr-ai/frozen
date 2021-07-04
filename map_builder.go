@@ -1,18 +1,8 @@
 package frozen
 
 import (
-	"github.com/arr-ai/frozen/internal/depth"
 	"github.com/arr-ai/frozen/internal/tree/kvt"
 )
-
-var (
-	defaultNPKeyEqArgs      = newDefaultKeyEqArgs(depth.NonParallel)
-	defaultNPKeyCombineArgs = kvt.NewCombineArgs(defaultNPKeyEqArgs, kvt.UseRHS)
-)
-
-func newDefaultKeyEqArgs(gauge depth.Gauge) *kvt.EqArgs {
-	return kvt.NewEqArgs(gauge, kvt.KeyEqual, kvt.KeyHash, kvt.KeyHash)
-}
 
 // MapBuilder provides a more efficient way to build Maps incrementally.
 type MapBuilder struct {
@@ -30,12 +20,12 @@ func (b *MapBuilder) Count() int {
 
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder) Put(key, value interface{}) {
-	b.tb.Add(defaultNPKeyCombineArgs, KV(key, value))
+	b.tb.Add(kvt.DefaultNPKeyCombineArgs, KV(key, value))
 }
 
 // Remove removes an entry from the Map under construction.
 func (b *MapBuilder) Remove(key interface{}) {
-	b.tb.Remove(defaultNPKeyEqArgs, KV(key, nil))
+	b.tb.Remove(kvt.DefaultNPKeyEqArgs, KV(key, nil))
 }
 
 func (b *MapBuilder) Has(v interface{}) bool {
@@ -46,7 +36,7 @@ func (b *MapBuilder) Has(v interface{}) bool {
 // Get returns the value for key from the Map under construction or false if
 // not found.
 func (b *MapBuilder) Get(key interface{}) (interface{}, bool) {
-	if entry := b.tb.Get(defaultNPKeyEqArgs, KV(key, nil)); entry != nil {
+	if entry := b.tb.Get(kvt.DefaultNPKeyEqArgs, KV(key, nil)); entry != nil {
 		return entry.Value, true
 	}
 	return nil, false

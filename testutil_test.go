@@ -98,38 +98,38 @@ func assertMapNotHas(t *testing.T, m Map, i interface{}) bool { //nolint:unparam
 	return ok1 && ok2
 }
 
-// func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs ...interface{}) bool {
-// 	t.Helper()
+func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs ...interface{}) bool {
+	t.Helper()
 
-// 	format := "\nexpected %v != \nactual   %v"
-// 	args := []interface{}{}
-// 	if len(msgAndArgs) > 0 {
-// 		format = msgAndArgs[0].(string) + format
-// 		args = append(append(args, format), msgAndArgs[1:]...)
-// 	} else {
-// 		args = append(args, format)
-// 	}
-// 	args = append(args, expected, actual)
-// 	return assert.True(t, expected.Equal(actual), args...)
-// }
+	format := "\nexpected %v != \nactual   %v"
+	args := []interface{}{}
+	if len(msgAndArgs) > 0 {
+		format = msgAndArgs[0].(string) + format
+		args = append(append(args, format), msgAndArgs[1:]...)
+	} else {
+		args = append(args, format)
+	}
+	args = append(args, expected, actual)
+	return assert.True(t, expected.Equal(actual), args...)
+}
 
-// func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{}) bool {
-// 	t.Helper()
+func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{}) bool { //nolint:unparam
+	t.Helper()
 
-// 	v, has := m.Get(i)
-// 	ok1 := assert.Equal(t, has, m.Has(i))
-// 	ok2 := assert.True(t, has, "i=%v", i) && assert.Equal(t, expected, v, "i=%v", i)
-// 	return ok1 && ok2
-// }
+	v, has := m.Get(i)
+	ok1 := assert.Equal(t, has, m.Has(i))
+	ok2 := assert.True(t, has, "i=%v", i) && assert.Equal(t, expected, v, "i=%v", i)
+	return ok1 && ok2
+}
 
-// func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool {
-// 	t.Helper()
+func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool { //nolint:unparam
+	t.Helper()
 
-// 	v, has := m.Get(i)
-// 	ok1 := assert.Equal(t, has, m.Has(i))
-// 	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
-// 	return ok1 && ok2
-// }
+	v, has := m.Get(i)
+	ok1 := assert.Equal(t, has, m.Has(i))
+	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
+	return ok1 && ok2
+}
 
 type mapOfSet map[string]Set
 

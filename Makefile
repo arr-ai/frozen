@@ -2,16 +2,17 @@
 all: lint test
 
 iterator.package = kvi
+iterator.root = internal/iterator
 iterator.files = \
 	empty.go \
 	iterator.go \
 	slice.go
 
 tree.package = kvt
+tree.root = internal/tree
 tree.files = \
 	branch.go \
 	builder.go \
-	empty.go \
 	hasher.go \
 	leaf.go \
 	node.go \
@@ -22,14 +23,24 @@ tree.files = \
 	twig.go \
 	vet.go
 
+siterator.package = skvi
+siterator.root = $(iterator.root)
+siterator.files = $(iterator.files)
+
+stree.package = skvt
+stree.root = $(tree.root)
+stree.files = $(tree.files)
+
 .PHONY: gen
 gen: gen-kv
 
 .PHONY: gen-kv
-gen-kv: gen-kv-iterator gen-kv-tree
+gen-kv: \
+	gen-kv-iterator gen-kv-tree \
+	gen-kv-siterator gen-kv-stree
 
 gen-kv-%:
-	./gen-kv.sh internal/$* internal/$*/$($*.package) $($*.files)
+	./gen-kv.sh $($*.root) $($*.root)/$($*.package) $($*.files)
 
 LENGTHS = -short ""
 
