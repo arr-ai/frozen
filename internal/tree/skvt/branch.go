@@ -90,7 +90,7 @@ func (b *branch) Combine(args *CombineArgs, n node, depth int) (_ node, matches 
 			} else {
 				var n node
 				n, matches = x.Combine(args, y, depth+1)
-				ret.p.SetChild(i, n)
+				ret.p.data[i] = n
 			}
 			return true, matches
 		})
@@ -116,11 +116,11 @@ func (b *branch) Difference(args *EqArgs, n node, depth int) (_ node, matches in
 		_, matches = args.Parallel(depth, b.p.mask, func(i int) (_ bool, matches int) {
 			x, y := b.p.data[i], n.p.data[i]
 			if y == nil {
-				ret.p.SetChild(i, x)
+				ret.p.data[i] = x
 			} else {
 				var n node
 				n, matches = x.Difference(args, y, depth+1)
-				ret.p.SetChild(i, n)
+				ret.p.data[i] = n
 			}
 			return true, matches
 		})
@@ -174,7 +174,7 @@ func (b *branch) Intersection(args *EqArgs, n node, depth int) (_ node, matches 
 			x, y := b.p.data[i], n.p.data[i]
 			var n node
 			n, matches = x.Intersection(args, y, depth+1)
-			ret.p.SetChild(i, n)
+			ret.p.data[i] = n
 			return true, matches
 		})
 		ret.p.updateMask()
@@ -212,7 +212,7 @@ func (b *branch) Remove(args *EqArgs, v elementT, depth int, h hasher) (_ node, 
 	if n := b.p.data[i]; n != nil {
 		var n node
 		n, matches = b.p.data[i].Remove(args, v, depth+1, h.next())
-		b.p.SetChild(i, n)
+		b.p.data[i] = n
 		if _, is := n.(*branch); !is {
 			var buf [maxLeafLen]elementT
 			if data := b.AppendTo(buf[:0]); data != nil {
@@ -220,6 +220,7 @@ func (b *branch) Remove(args *EqArgs, v elementT, depth int, h hasher) (_ node, 
 			}
 		}
 	}
+	b.p.updateMask()
 	return b, matches
 }
 
@@ -248,7 +249,7 @@ func (b *branch) Map(args *CombineArgs, depth int, f func(e elementT) elementT) 
 		if x := b.p.data[i]; x != nil {
 			var n node
 			n, matches = x.Map(args, depth+1, f)
-			p.SetChild(i, n)
+			p.data[i] = n
 		}
 		return true, matches
 	})
@@ -274,7 +275,7 @@ func (b *branch) Where(args *WhereArgs, depth int) (_ node, matches int) {
 		x := b.p.data[i]
 		var n node
 		n, matches = x.Where(args, depth+1)
-		nodes.SetChild(i, n)
+		nodes.data[i] = n
 		return true, matches
 	})
 	nodes.updateMask()
