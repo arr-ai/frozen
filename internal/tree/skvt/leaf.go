@@ -195,20 +195,29 @@ func (l *leaf) Get(args *EqArgs, v elementT, _ hasher) *elementT {
 	return nil
 }
 
-func (l *leaf) Intersection(args *EqArgs, n node, depth int) (_ node, matches int) {
-	mask := 0
-	if n.Get(args, l.data[0], newHasher(l.data[0], depth)) != nil {
-		matches++
-		mask |= 0b01
+func (l *leaf) Intersection(args *CombineArgs, n node, depth int) (_ node, matches int) {
+	var a, b *elementT
+	var x, y elementT
+	if a = n.Get(args.EqArgs, l.data[0], newHasher(l.data[0], depth)); a != nil {
+		x = args.f(l.data[0], *a)
 	}
 
 	if l.data[1] != zero {
-		if n.Get(args, l.data[1], newHasher(l.data[1], depth)) != nil {
-			matches++
-			mask |= 0b10
+		if b = n.Get(args.EqArgs, l.data[1], newHasher(l.data[1], depth)); b != nil {
+			y = args.f(l.data[1], *b)
 		}
 	}
-	return l.where(mask), matches
+	if x == zero {
+		x, y = y, zero
+	}
+	if x == zero {
+		return nil, matches
+	}
+	matches++
+	if y != zero {
+		matches++
+	}
+	return &leaf{data: [2]elementT{x, y}}, matches
 }
 
 func (l *leaf) Iterator([][]node) Iterator {

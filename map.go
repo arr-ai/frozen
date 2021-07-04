@@ -201,17 +201,25 @@ func (m Map) Reduce(f func(acc, key, val interface{}) interface{}, acc interface
 }
 
 func (m Map) EqArgs() *kvt.EqArgs {
-	return kvt.NewEqArgs(
-		depth.NewGauge(m.Count()),
-		kvt.KeyEqual,
-		kvt.KeyHash,
-		kvt.KeyHash,
-	)
+	return kvt.NewEqArgs(depth.NewGauge(m.Count()), kvt.KeyEqual, kvt.KeyHash, kvt.KeyHash)
 }
 
-// Merge returns a map from the merging between two maps, should there be a key overlap,
-// the value that corresponds to key will be replaced by the value resulted from the
-// provided resolve function.
+// Intersection computes the intersection of two maps. The resolve parameter
+// determines the final values for keys that appear in both maps. Keys that are
+// unique to either side won't appear in the output.
+func (m Map) Intersection(n Map, resolve func(key, a, b interface{}) interface{}) Map {
+	extractAndResolve := func(a, b KeyValue) KeyValue {
+		if r := resolve(a.Key, a.Value, b.Value); r != nil {
+			return KV(a.Key, r)
+		}
+		return KeyValue{}
+	}
+	args := kvt.NewCombineArgs(m.EqArgs(), extractAndResolve)
+	return newMap(m.tree.Intersection(args, n.tree))
+}
+
+// Merge merges two maps. If the same key appears in both maps, the resolve
+// parameter determines the final value for that key.
 func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
 	extractAndResolve := func(a, b KeyValue) KeyValue {
 		return KV(a.Key, resolve(a.Key, a.Value, b.Value))

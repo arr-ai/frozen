@@ -382,6 +382,58 @@ func TestMapRange(t *testing.T) {
 	assert.Equal(t, map[int]int{1: 2, 3: 4, 4: 5, 6: 7}, output)
 }
 
+func TestMapIntersect(t *testing.T) {
+	t.Parallel()
+
+	m := NewMap(KV(1, 1), KV(2, 2), KV(3, 3))
+	n := NewMap(KV(1, 2), KV(2, 3), KV(4, 4))
+	expected := NewMap(KV(1, 3), KV(2, 8))
+	actual := m.Intersection(n, func(key, a, b interface{}) interface{} {
+		return key.(int) + a.(int)*b.(int)
+	})
+	assertMapEqual(t, expected, actual)
+}
+
+func TestMapIntersectWithOmissions(t *testing.T) {
+	t.Parallel()
+
+	m := NewMap(KV(1, 1), KV(2, 0), KV(3, 3))
+	n := NewMap(KV(1, 2), KV(2, 3), KV(4, 4))
+	expected := NewMap(KV(1, 2))
+	actual := m.Intersection(n, func(key, a, b interface{}) interface{} {
+		if n := a.(int) * b.(int); n != 0 {
+			return n
+		}
+		return nil
+	})
+	assertMapEqual(t, expected, actual)
+}
+
+func TestMapIntersectLarge(t *testing.T) {
+	t.Parallel()
+
+	N := 1 << 20
+	if testing.Short() {
+		N = 1 << 6
+	}
+	m := NewMapFromKeys(Iota3(0, N, 3), func(key interface{}) interface{} {
+		i := key.(int)
+		return i * i
+	})
+	n := NewMapFromKeys(Iota3(0, N, 5), func(key interface{}) interface{} {
+		i := key.(int)
+		return i * i * i
+	})
+	expected := NewMapFromKeys(Iota3(0, N, 15), func(key interface{}) interface{} {
+		i := key.(int)
+		return 2*i*i + 3*i*i*i
+	})
+	actual := m.Intersection(n, func(key, a, b interface{}) interface{} {
+		return 2*a.(int) + 3*b.(int)
+	})
+	assertMapEqual(t, expected, actual)
+}
+
 func TestMapMergeSameValueType(t *testing.T) {
 	t.Parallel()
 

@@ -166,7 +166,7 @@ func (b *branch) Get(args *EqArgs, v elementT, h hasher) *elementT {
 	return nil
 }
 
-func (b *branch) Intersection(args *EqArgs, n node, depth int) (_ node, matches int) {
+func (b *branch) Intersection(args *CombineArgs, n node, depth int) (_ node, matches int) {
 	switch n := n.(type) {
 	case *branch:
 		ret := newBranch(nil)

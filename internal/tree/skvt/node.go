@@ -15,7 +15,7 @@ type node interface {
 	Empty() bool
 	Equal(args *EqArgs, n2 node, depth int) bool
 	Get(args *EqArgs, v elementT, h hasher) *elementT
-	Intersection(args *EqArgs, n2 node, depth int) (_ node, matches int)
+	Intersection(args *CombineArgs, n2 node, depth int) (_ node, matches int)
 	Iterator(buf [][]node) Iterator
 	Reduce(args NodeArgs, depth int, r func(values ...elementT) elementT) elementT
 	SubsetOf(args *EqArgs, n2 node, depth int) bool

@@ -167,11 +167,11 @@ func (l *twig) Get(args *EqArgs, v elementT, _ hasher) *elementT {
 	return nil
 }
 
-func (l *twig) Intersection(args *EqArgs, n node, depth int) (_ node, matches int) {
+func (l *twig) Intersection(args *CombineArgs, n node, depth int) (_ node, matches int) {
 	ret := newTwig()
 	for _, e := range l.data {
 		h := newHasher(e, depth)
-		if n.Get(args, e, h) != nil {
+		if n.Get(args.EqArgs, e, h) != nil {
 			matches++
 			ret.data = append(ret.data, e)
 		}

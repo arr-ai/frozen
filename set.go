@@ -247,7 +247,8 @@ func (s Set) Reduce2(reduce func(a, b interface{}) interface{}) interface{} {
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set) Intersection(t Set) Set {
-	return Set{tree: s.tree.Intersection(s.eqArgs(), t.tree)}
+	args := tree.NewCombineArgs(s.eqArgs(), tree.UseRHS)
+	return Set{tree: s.tree.Intersection(args, t.tree)}
 }
 
 // Union returns a Set with all elements that are in either s or t.

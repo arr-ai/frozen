@@ -93,7 +93,7 @@ func (t Tree) Get(args *EqArgs, v elementT) *elementT {
 	return t.root.Get(args, v, h)
 }
 
-func (t Tree) Intersection(args *EqArgs, u Tree) (out Tree) {
+func (t Tree) Intersection(args *CombineArgs, u Tree) (out Tree) {
 	if vetting {
 		defer vet(func() { t.Intersection(args, u) }, &t, &u)(&out)
 	}
