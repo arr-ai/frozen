@@ -284,12 +284,13 @@ func (b *branch) Where(args *WhereArgs, depth int) (_ node, matches int) {
 	return b, matches
 }
 
-func (b *branch) Vet() {
+func (b *branch) Vet() int {
 	p := b.p
 	p.updateMask()
 	if p.mask != b.p.mask {
 		panic("stale mask")
 	}
+	count := 0
 	for m := b.p.mask; m != 0; m = m.Next() {
 		func() {
 			defer func() {
@@ -298,12 +299,13 @@ func (b *branch) Vet() {
 				}
 			}()
 			if n := p.GetChild(m); n != nil {
-				p.GetChild(m).Vet()
+				count += p.GetChild(m).Vet()
 			} else {
 				panic(errors.Errorf("nil node for mask %b", b.p.mask))
 			}
 		}()
 	}
+	return count
 }
 
 func (b *branch) With(args *CombineArgs, v elementT, depth int, h hasher) (_ node, matches int) {
@@ -390,4 +392,13 @@ func (b *branch) Format(f fmt.State, verb rune) {
 
 func (b *branch) String() string {
 	return fmt.Sprintf("%s", b)
+}
+
+func (b *branch) clone() node {
+	ret := *b
+	for m := ret.p.mask; m != 0; m = m.Next() {
+		i := m.FirstIndex()
+		ret.p.data[i] = ret.p.data[i].clone()
+	}
+	return &ret
 }

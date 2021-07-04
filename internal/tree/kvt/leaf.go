@@ -260,13 +260,14 @@ func (l *leaf) Map(args *CombineArgs, _ int, f func(e elementT) elementT) (_ nod
 	return t.root, matches
 }
 
-func (l *leaf) Vet() {
+func (l *leaf) Vet() int {
 	if l.data[0] == zero {
 		if l.data[1] != zero {
 			panic(errors.Errorf("data only in leaf slot 1"))
 		}
 		panic(errors.Errorf("empty leaf"))
 	}
+	return l.count()
 }
 
 func (l *leaf) Where(args *WhereArgs, depth int) (_ node, matches int) {
@@ -336,6 +337,11 @@ func (l *leaf) count() int {
 		return 1
 	}
 	return 2
+}
+
+func (l *leaf) clone() node {
+	ret := *l
+	return &ret
 }
 
 func (l *leaf) mask() int {

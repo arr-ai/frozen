@@ -4,10 +4,17 @@ package skvt
 import (
 	"container/heap"
 	"fmt"
+	"math/bits"
 
+	"github.com/arr-ai/frozen/errors"
 	"github.com/arr-ai/frozen/internal/depth"
 	"github.com/arr-ai/frozen/internal/fu"
 )
+
+func packedIteratorBuf(count int) [][]node {
+	depth := (bits.Len64(uint64(count)) + 1) * 3 / 2 // 1.5 (log₈(count) + 1)
+	return make([][]node, 0, depth)
+}
 
 type Tree struct {
 	root  node
@@ -42,7 +49,7 @@ func (t Tree) Format(f fmt.State, verb rune) {
 
 func (t Tree) Combine(args *CombineArgs, u Tree) (out Tree) {
 	if vetting {
-		defer vet(func() { t.Combine(args, u) }, t.root, u.root)(&out.root)
+		defer vet(func() { t.Combine(args, u) }, &t, &u)(&out)
 	}
 	if t.root == nil {
 		return u
@@ -56,7 +63,7 @@ func (t Tree) Combine(args *CombineArgs, u Tree) (out Tree) {
 
 func (t Tree) Difference(args *EqArgs, u Tree) (out Tree) {
 	if vetting {
-		defer vet(func() { t.Difference(args, u) }, t.root, u.root)(&out.root)
+		defer vet(func() { t.Difference(args, u) }, &t, &u)(&out)
 	}
 	if t.root == nil || u.root == nil {
 		return t
@@ -88,7 +95,7 @@ func (t Tree) Get(args *EqArgs, v elementT) *elementT {
 
 func (t Tree) Intersection(args *EqArgs, u Tree) (out Tree) {
 	if vetting {
-		defer vet(func() { t.Intersection(args, u) }, t.root, u.root)(&out.root)
+		defer vet(func() { t.Intersection(args, u) }, &t, &u)(&out)
 	}
 	if t.root == nil || u.root == nil {
 		return Tree{}
@@ -140,7 +147,7 @@ func (t Tree) SubsetOf(args *EqArgs, u Tree) bool {
 
 func (t Tree) Map(args *CombineArgs, f func(v elementT) elementT) (out Tree) {
 	if vetting {
-		defer vet(func() { t.Map(args, f) }, t.root)(&out.root)
+		defer vet(func() { t.Map(args, f) }, &t)(&out)
 	}
 	if t.root == nil {
 		return t
@@ -155,9 +162,22 @@ func (t Tree) Reduce(args NodeArgs, r func(values ...elementT) elementT) element
 	return t.root.Reduce(args, 0, r)
 }
 
+func (t Tree) Vet() {
+	if t.root == nil {
+		if t.count != 0 {
+			panic(errors.Errorf("empty root count > 0 (%d)", t.count))
+		}
+	} else {
+		count := t.root.Vet()
+		if count != t.count {
+			panic(errors.Errorf("count mismatch: measured (%d) != tracked (%d)", count, t.count))
+		}
+	}
+}
+
 func (t Tree) Where(args *WhereArgs) (out Tree) {
 	if vetting {
-		defer vet(func() { t.Where(args) }, t.root)(&out.root)
+		defer vet(func() { t.Where(args) }, &t)(&out)
 	}
 	if t.root == nil {
 		return t
@@ -167,7 +187,7 @@ func (t Tree) Where(args *WhereArgs) (out Tree) {
 
 func (t Tree) With(args *CombineArgs, v elementT) (out Tree) {
 	if vetting {
-		defer vet(func() { t.With(args, v) }, t.root)(&out.root)
+		defer vet(func() { t.With(args, v) }, &t)(&out)
 	}
 	if t.root == nil {
 		return Tree{root: newLeaf1(v), count: 1}
@@ -179,7 +199,7 @@ func (t Tree) With(args *CombineArgs, v elementT) (out Tree) {
 
 func (t Tree) Without(args *EqArgs, v elementT) (out Tree) {
 	if vetting {
-		defer vet(func() { t.Without(args, v) }, t.root)(&out.root)
+		defer vet(func() { t.Without(args, v) }, &t)(&out)
 	}
 	if t.root == nil {
 		return t
@@ -187,4 +207,8 @@ func (t Tree) Without(args *EqArgs, v elementT) (out Tree) {
 	h := newHasher(v, 0)
 	root, matches := t.root.Without(args, v, 0, h)
 	return newTree(root, t.count-matches)
+}
+
+func (t Tree) clone() Tree {
+	return Tree{root: t.root.clone(), count: t.count}
 }

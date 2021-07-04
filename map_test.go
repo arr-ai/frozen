@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/internal/pkg/debug"
 	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
@@ -425,7 +426,10 @@ func TestMapMergeDifferentValueType(t *testing.T) {
 func TestMapMergeDifferentValueTypeLarge(t *testing.T) { //nolint:cyclop,funlen
 	t.Parallel()
 
-	const N = 1 << 15
+	N := 1 << 15
+	if testing.Short() {
+		N = 1 << 6
+	}
 
 	var mb MapBuilder
 	for i := 0; i < N; i++ {
@@ -447,7 +451,7 @@ func TestMapMergeDifferentValueTypeLarge(t *testing.T) { //nolint:cyclop,funlen
 	}
 	// Fill 1/7th of 90% with float64s.
 	for i := 0; i < N*9/10; i += 7 {
-		nb.Put(i, 1/float64(i))
+		nb.Put(i, float64(i*i)+0.1)
 	}
 	n := nb.Finish()
 
@@ -483,11 +487,13 @@ func TestMapMergeDifferentValueTypeLarge(t *testing.T) { //nolint:cyclop,funlen
 	actual := m.Merge(n, resolve)
 
 	if !assert.True(t, expected.Equal(actual)) {
-		log.Print("m:        ", m)
-		log.Print("n:        ", n)
-		log.Print("expected: ", expected)
-		log.Print("actual:   ", m.Merge(n, resolve))
+		log.Printf("m:        %v\n  %s", m, m.DebugReport(debug.Tag{}))
+		log.Printf("n:        %v\n  %s", n, n.DebugReport(debug.Tag{}))
+		log.Printf("expected: %v\n  %s", expected, expected.DebugReport(debug.Tag{}))
+		log.Printf("actual:   %v\n  %s", actual, actual.DebugReport(debug.Tag{}))
+		log.Print("==:       ", expected.Equal(actual))
 		m.Merge(n, resolve)
+		expected.Equal(actual)
 		return
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/arr-ai/frozen/internal/depth"
 	"github.com/arr-ai/frozen/internal/fu"
 	"github.com/arr-ai/frozen/internal/iterator/kvi"
+	"github.com/arr-ai/frozen/internal/pkg/debug"
 	"github.com/arr-ai/frozen/internal/tree/kvt"
 	"github.com/arr-ai/frozen/internal/value"
 	"github.com/arr-ai/frozen/pkg/kv"
@@ -277,6 +278,11 @@ func (m Map) Format(f fmt.State, verb rune) {
 // Range returns a MapIterator over the Map.
 func (m Map) Range() *MapIterator {
 	return &MapIterator{i: m.tree.Iterator()}
+}
+
+// DebugReport is for internal use.
+func (m Map) DebugReport(debug.Tag) string {
+	return m.tree.String()
 }
 
 // MapIterator provides for iterating over a Map.

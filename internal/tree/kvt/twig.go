@@ -92,7 +92,7 @@ scanning:
 		for j, f := range l.data {
 			if args.eq(f, e) {
 				if !cloned {
-					l = l.clone(0)
+					l = l.cloneWithExtra(0)
 					cloned = true
 				}
 				l.data[j] = args.f(f, e)
@@ -225,10 +225,17 @@ func (l *twig) Map(args *CombineArgs, _ int, f func(e elementT) elementT) (_ nod
 	return t.root, t.count
 }
 
-func (l *twig) Vet() {
+func (l *twig) Vet() int {
 	if len(l.data) <= 2 {
 		panic(errors.Errorf("twig too small (%d)", len(l.data)))
 	}
+	h0 := newHasher(l.data[0], 0)
+	for _, e := range l.data[1:] {
+		if newHasher(e, 0) != h0 {
+			panic(errors.Errorf("twig with multiple hashes"))
+		}
+	}
+	return len(l.data)
 }
 
 func (l *twig) Where(args *WhereArgs, depth int) (_ node, matches int) {
@@ -246,7 +253,7 @@ func (l *twig) With(args *CombineArgs, v elementT, depth int, h hasher) (_ node,
 	for i, e := range l.data {
 		if args.eq(e, v) {
 			matches++
-			ret := l.clone(0)
+			ret := l.cloneWithExtra(0)
 			ret.data[i] = args.f(ret.data[i], v)
 			return ret, matches
 		}
@@ -258,7 +265,7 @@ func (l *twig) Without(args *EqArgs, v elementT, depth int, h hasher) (_ node, m
 	for i, e := range l.data {
 		if args.eq(e, v) {
 			matches++
-			ret := newTwig(l.data[:len(l.data)-1]...).clone(0)
+			ret := newTwig(l.data[:len(l.data)-1]...).cloneWithExtra(0)
 			if i != len(ret.data) {
 				ret.data[i] = l.data[len(ret.data)]
 			}
@@ -268,6 +275,10 @@ func (l *twig) Without(args *EqArgs, v elementT, depth int, h hasher) (_ node, m
 	return l, matches
 }
 
-func (l *twig) clone(extra int) *twig {
+func (l *twig) clone() node {
+	return &twig{data: append(([]elementT)(nil), l.data...)}
+}
+
+func (l *twig) cloneWithExtra(extra int) *twig {
 	return newTwig(append(make([]elementT, 0, len(l.data)+extra), l.data...)...)
 }

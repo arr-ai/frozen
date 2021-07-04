@@ -36,7 +36,8 @@ func (b *Builder) Add(args *CombineArgs, v elementT) {
 	} else {
 		h := newHasher(v, 0)
 		if vetting {
-			defer vet(func() { b.Add(args, v) }, b.t.root)(nil)
+			backup := b.clone()
+			defer vet(func() { backup.Add(args, v) }, &b.t)(nil)
 		}
 		var matches int
 		b.t.root, matches = b.t.root.Add(args, v, 0, h)
@@ -48,7 +49,8 @@ func (b *Builder) Remove(args *EqArgs, v elementT) {
 	if b.t.root != nil {
 		h := newHasher(v, 0)
 		if vetting {
-			defer vet(func() { b.Remove(args, v) }, b.t.root)(nil)
+			backup := b.clone()
+			defer vet(func() { backup.Remove(args, v) }, &b.t)(nil)
 		}
 		var matches int
 		b.t.root, matches = b.t.root.Remove(args, v, 0, h)
@@ -76,4 +78,8 @@ func (b Builder) String() string {
 
 func (b Builder) Format(state fmt.State, verb rune) {
 	b.Borrow().Format(state, verb)
+}
+
+func (b *Builder) clone() *Builder {
+	return &Builder{t: b.t.clone()}
 }
