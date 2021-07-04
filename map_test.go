@@ -296,7 +296,7 @@ func TestMapUpdate(t *testing.T) {
 	m := NewMap(KV(3, 4), KV(4, 5), KV(1, 2))
 	n := NewMap(KV(3, 4), KV(4, 7), KV(6, 7))
 	assertMapEqual(t, NewMap(KV(1, 2), KV(3, 4), KV(4, 7), KV(6, 7)), m.Update(n))
-	oom := 11
+	oom := 10
 	if testing.Short() {
 		oom = 5
 	}
