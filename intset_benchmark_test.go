@@ -1,6 +1,7 @@
 package frozen_test
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/arr-ai/frozen"
@@ -34,12 +35,47 @@ func benchmarkWithIntSet(b *testing.B, n int) {
 	}
 }
 
-func BenchmarkNewIntSet100(b *testing.B)  { benchmarkNewIntSet(b, 100) }
-func BenchmarkNewIntSet1k(b *testing.B)   { benchmarkNewIntSet(b, 1000) }
-func BenchmarkNewIntSet100k(b *testing.B) { benchmarkNewIntSet(b, 100000) }
-func BenchmarkNewIntSet1M(b *testing.B)   { benchmarkNewIntSet(b, 1000000) }
+func BenchmarkIntSetN(b *testing.B) {
+	// Uncomment for occasional use
+	b.Skip()
 
-func BenchmarkWithIntSet100(b *testing.B)  { benchmarkWithIntSet(b, 100) }
-func BenchmarkWithIntSet1k(b *testing.B)   { benchmarkWithIntSet(b, 1000) }
-func BenchmarkWithIntSet100k(b *testing.B) { benchmarkWithIntSet(b, 100000) }
-func BenchmarkWithIntSet1M(b *testing.B)   { benchmarkWithIntSet(b, 1000000) }
+	sizes := []int{
+		100,
+		1_000,
+		10_000,
+		80_000,
+		100_000,
+		200_000,
+		300_000,
+		500_000,
+		1_000_000,
+		2_000_000,
+	}
+
+	for _, n := range sizes {
+		b.Run(fmt.Sprintf("New/%d", n), func(b *testing.B) {
+			benchmarkNewIntSet(b, n)
+		})
+	}
+
+	for _, n := range sizes {
+		b.Run(fmt.Sprintf("With/%d", n), func(b *testing.B) {
+			benchmarkWithIntSet(b, n)
+		})
+	}
+}
+
+func BenchmarkIntSet(b *testing.B) {
+	for _, e := range []struct {
+		name string
+		n    int
+	}{{"100", 100}, {"1k", 1_000}, {"100k", 100_000}, {"1M", 1_000_000}} {
+		e := e
+		b.Run("New/"+e.name, func(b *testing.B) {
+			benchmarkNewIntSet(b, e.n)
+		})
+		b.Run("With/"+e.name, func(b *testing.B) {
+			benchmarkWithIntSet(b, e.n)
+		})
+	}
+}

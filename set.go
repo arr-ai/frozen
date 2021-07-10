@@ -2,29 +2,30 @@ package frozen
 
 import (
 	"fmt"
-	"math/bits"
-	"sync"
 
 	"github.com/arr-ai/hash"
+
+	"github.com/arr-ai/frozen/internal/depth"
+	"github.com/arr-ai/frozen/internal/fu"
+	"github.com/arr-ai/frozen/internal/iterator"
+	"github.com/arr-ai/frozen/internal/tree"
+	"github.com/arr-ai/frozen/internal/value"
 )
 
 // Set holds a set of values. The zero value is the empty Set.
 type Set struct {
-	root  *node
-	count int
+	tree tree.Tree
 }
 
-var _ Key = Set{}
+var _ value.Key = Set{}
 
-// Iterator provides for iterating over a Set.
-type Iterator interface {
-	Next() bool
-	Value() interface{}
+func newSet(tree tree.Tree) Set {
+	return Set{tree: tree}
 }
 
 // NewSet creates a new Set with values as elements.
 func NewSet(values ...interface{}) Set {
-	var b SetBuilder
+	b := NewSetBuilder(len(values))
 	for _, value := range values {
 		b.Add(value)
 	}
@@ -40,19 +41,27 @@ func NewSetFromStrings(values ...string) Set {
 	return b.Finish()
 }
 
+func (s Set) nodeArgs() tree.NodeArgs {
+	return tree.NewNodeArgs(depth.NewGauge(s.Count()))
+}
+
+func (s Set) eqArgs() *tree.EqArgs {
+	return tree.NewDefaultEqArgs(depth.NewGauge(s.Count()))
+}
+
 // IsEmpty returns true iff the Set has no elements.
 func (s Set) IsEmpty() bool {
-	return s.root == nil
+	return s.tree.Count() == 0
 }
 
 // Count returns the number of elements in the Set.
 func (s Set) Count() int {
-	return s.count
+	return s.tree.Count()
 }
 
 // Range returns an Iterator over the Set.
-func (s Set) Range() Iterator {
-	return s.root.iterator(s.count)
+func (s Set) Range() iterator.Iterator {
+	return s.tree.Iterator()
 }
 
 func (s Set) Elements() []interface{} {
@@ -64,7 +73,7 @@ func (s Set) Elements() []interface{} {
 }
 
 // OrderedElements takes elements in a defined order.
-func (s Set) OrderedElements(less Less) []interface{} {
+func (s Set) OrderedElements(less tree.Less) []interface{} {
 	result := make([]interface{}, 0, s.Count())
 	for i := s.OrderedRange(less); i.Next(); {
 		result = append(result, i.Value())
@@ -91,17 +100,17 @@ func (s Set) AnyN(n int) Set {
 }
 
 // OrderedFirstN returns a list of elements in a defined order.
-func (s Set) OrderedFirstN(n int, less Less) []interface{} {
+func (s Set) OrderedFirstN(n int, less tree.Less) []interface{} {
 	result := make([]interface{}, 0, n)
 	currentLength := 0
-	for i := s.root.orderedIterator(less, n); i.Next() && currentLength < n; currentLength++ {
+	for i := s.tree.OrderedIterator(less, n); i.Next() && currentLength < n; currentLength++ {
 		result = append(result, i.Value())
 	}
 	return result
 }
 
 // First returns the first element in a defined order.
-func (s Set) First(less Less) interface{} {
+func (s Set) First(less tree.Less) interface{} {
 	for _, i := range s.OrderedFirstN(1, less) {
 		return i
 	}
@@ -109,7 +118,7 @@ func (s Set) First(less Less) interface{} {
 }
 
 // FirstN returns a set of the first n elements in a defined order.
-func (s Set) FirstN(n int, less Less) Set {
+func (s Set) FirstN(n int, less tree.Less) Set {
 	return NewSet(s.OrderedFirstN(n, less)...)
 }
 
@@ -119,21 +128,32 @@ func (s Set) String() string {
 }
 
 // Format writes a string representation of the Set into state.
-func (s Set) Format(state fmt.State, _ rune) {
-	state.Write([]byte("{"))
-	for i, n := s.Range(), 0; i.Next(); n++ {
-		if n > 0 {
-			state.Write([]byte(", "))
-		}
-		fmt.Fprintf(state, "%v", i.Value())
+func (s Set) Format(f fmt.State, verb rune) {
+	if verb == 'v' && f.Flag('+') {
+		fmt.Fprint(f, s.tree.String())
+		return
 	}
-	state.Write([]byte("}"))
+
+	w, set := f.Width()
+
+	fu.WriteString(f, "{")
+	for i, n := s.Range(), 0; i.Next(); n++ {
+		if set && n == w {
+			fu.WriteString(f, fmt.Sprintf(", ...(+%d)...", s.Count()-n))
+			break
+		}
+		if n > 0 {
+			fu.WriteString(f, ", ")
+		}
+		fmt.Fprintf(f, "%v", i.Value())
+	}
+	fu.WriteString(f, "}")
 }
 
 // OrderedRange returns a SetIterator for the Set that iterates over the elements in
 // a specified order.
-func (s Set) OrderedRange(less Less) Iterator {
-	return s.root.orderedIterator(less, s.Count())
+func (s Set) OrderedRange(less tree.Less) iterator.Iterator {
+	return s.tree.OrderedIterator(less, s.Count())
 }
 
 // Hash computes a hash value for s.
@@ -155,22 +175,19 @@ func (s Set) Equal(t interface{}) bool {
 
 // EqualSet returns true iff s and set have all the same elements.
 func (s Set) EqualSet(t Set) bool {
-	if s.root == nil || t.root == nil {
-		return s.root == nil && t.root == nil
-	}
-	c := newCloner(false, s.Count())
-	return s.root.equal(t.root, Equal, 0, c)
+	args := s.eqArgs()
+	return s.tree.Equal(args, t.tree)
 }
 
 // IsSubsetOf returns true iff no element in s is not in t.
 func (s Set) IsSubsetOf(t Set) bool {
-	c := newCloner(false, s.Count())
-	return s.root.isSubsetOf(t.root, 0, c)
+	args := s.eqArgs()
+	return s.tree.SubsetOf(args, t.tree)
 }
 
 // Has returns the value associated with key and true iff the key was found.
 func (s Set) Has(val interface{}) bool {
-	return s.root.get(val) != nil
+	return s.tree.Get(tree.DefaultNPEqArgs, val) != nil
 }
 
 // With returns a new Set retaining all the elements of the Set as well as values.
@@ -185,46 +202,18 @@ func (s Set) Without(values ...interface{}) Set {
 
 // Where returns a Set with all elements that are in s and satisfy pred.
 func (s Set) Where(pred func(elem interface{}) bool) Set {
-	depth := -1
-	return s.where(pred, &depth)
-}
-
-// Where returns a Set with all elements that are in s and satisfy pred.
-func (s Set) where(pred func(elem interface{}) bool, depth *int) Set {
-	c := newCloner(false, s.Count())
-	if depth != nil {
-		c.parallelDepth = *depth // Parallel Where is buggy.
+	args := &tree.WhereArgs{
+		NodeArgs: tree.NewNodeArgs(depth.NewGauge(s.Count())),
+		Pred:     pred,
 	}
-	matches := 0
-	root := s.root.where(pred, 0, &matches, c)
 	// root = root.postop(c.parallelDepth)
-	return Set{root: root, count: matches}
+	return Set{tree: s.tree.Where(args)}
 }
 
 // Map returns a Set with all the results of applying f to all elements in s.
 func (s Set) Map(f func(elem interface{}) interface{}) Set {
-	var m sync.Mutex
-	sbs := []*SetBuilder{}
-	var spawn func() *foreacher
-	spawn = func() *foreacher {
-		m.Lock()
-		defer m.Unlock()
-		var sb SetBuilder
-		sbs = append(sbs, &sb)
-		return &foreacher{
-			f:     func(elem interface{}) { sb.Add(f(elem)) },
-			spawn: spawn,
-		}
-	}
-	c := newCloner(false, s.Count())
-	s.root.foreach(spawn(), 0, c)
-
-	sets := make([]Set, 0, len(sbs))
-	for _, sb := range sbs {
-		sets = append(sets, sb.Finish())
-	}
-
-	return Union(sets...)
+	args := tree.NewCombineArgs(s.eqArgs(), tree.UseRHS)
+	return Set{tree: s.tree.Map(args, f)}
 }
 
 // Reduce returns the result of applying `reduce` to the elements of `s` or
@@ -240,34 +229,7 @@ func (s Set) Map(f func(elem interface{}) interface{}) Set {
 //
 // 'elems` will never be empty.
 func (s Set) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
-	if s.Count() == 0 {
-		return nil
-	}
-
-	pointers := make([]*[]interface{}, 0, bits.Len(uint(s.Count()))>>15)
-	var spawn func() *forbatcher
-	spawn = func() *forbatcher {
-		var value []interface{}
-		pointers = append(pointers, &value)
-		return &forbatcher{
-			f: func(elems ...interface{}) {
-				value = append(value, reduce(elems...))
-			},
-			spawn: spawn,
-		}
-	}
-	c := newCloner(false, s.Count())
-	s.root.forbatches(spawn(), 0, c)
-
-	values := make([]interface{}, 0, len(pointers))
-	// In case there are no elements above the parallelisation waterline.
-	if *pointers[0] != nil {
-		values = append(values, reduce(*pointers[0]...))
-	}
-	for _, p := range pointers[1:] {
-		values = append(values, reduce(*p...))
-	}
-	return reduce(values...)
+	return s.tree.Reduce(s.nodeArgs(), reduce)
 }
 
 // Reduce2 is a convenience wrapper for `Reduce`, allowing the caller to
@@ -285,51 +247,27 @@ func (s Set) Reduce2(reduce func(a, b interface{}) interface{}) interface{} {
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set) Intersection(t Set) Set {
-	return s.intersection(t, nil)
-}
-
-func (s Set) intersection(t Set, depth *int) Set {
-	if s.Count() > t.Count() {
-		s, t = t, s
-	}
-	c := newCloner(false, (s.Count()+t.Count())/2)
-	if depth != nil {
-		c.parallelDepth = *depth
-	}
-	count := 0
-	root := s.root.intersection(t.root, 0, &count, c)
-	// root = root.postop(c.parallelDepth)
-	return Set{root: root, count: count}
+	return Set{tree: s.tree.Intersection(s.eqArgs(), t.tree)}
 }
 
 // Union returns a Set with all elements that are in either s or t.
 func (s Set) Union(t Set) Set {
-	c := newCloner(false, s.Count()+t.Count())
-	matches := 0
-	root := s.root.union(t.root, useRHS, 0, &matches, c)
-	return Set{root: root, count: s.Count() + t.Count() - matches}
+	args := tree.NewCombineArgs(s.eqArgs(), tree.UseRHS)
+	return Set{tree: s.tree.Combine(args, t.tree)}
 }
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set) Difference(t Set) Set {
-	return s.difference(t, nil)
-}
-
-// Difference returns a Set with all elements that are s but not in t.
-func (s Set) difference(t Set, depth *int) Set {
-	c := newCloner(false, s.Count())
-	if depth != nil {
-		c.parallelDepth = *depth
-	}
-	matches := 0
-	root := s.root.difference(t.root, 0, &matches, c)
-	return Set{root: root, count: s.Count() - matches}
+	args := s.eqArgs()
+	return Set{tree: s.tree.Difference(args, t.tree)}
 }
 
 // SymmetricDifference returns a Set with all elements that are s or t, but not
 // both.
 func (s Set) SymmetricDifference(t Set) Set {
-	return s.Difference(t).Union(t.Difference(s))
+	st := s.Difference(t)
+	ts := t.Difference(s)
+	return st.Union(ts)
 }
 
 func (s Set) Powerset() Set {
@@ -393,7 +331,8 @@ func (s Set) GroupBy(key func(el interface{}) interface{}) Map {
 		b.Add(v)
 	}
 	var result MapBuilder
-	for i := builders.Finish().Range(); i.Next(); {
+	fb := builders.Finish()
+	for i := fb.Range(); i.Next(); {
 		result.Put(i.Key(), i.Value().(*SetBuilder).Finish())
 	}
 	return result.Finish()

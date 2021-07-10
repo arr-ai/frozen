@@ -30,12 +30,12 @@ func (i *intSetIterator) Next() bool {
 			return false
 		}
 		i.firstIntInCell = i.blockIter.Key().(int) * blockBits
-		block := i.blockIter.Value().(cellBlock)
+		block := i.blockIter.Value().(*cellBlock)
 		for i.block = block[:]; i.block[0] == 0; i.block = i.block[1:] {
 			i.firstIntInCell += cellBits
 		}
 	}
-	return i.block[0] != 0
+	return len(i.block) > 0
 }
 
 func (i *intSetIterator) Value() int {

@@ -9,7 +9,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/pkg/kv/skv"
 )
+
+type (
+	StringKeyValue = skv.KeyValue
+)
+
+func StringKV(key string, value interface{}) StringKeyValue {
+	return skv.KV(key, value)
+}
 
 func TestStringMapBuilderEmpty(t *testing.T) {
 	t.Parallel()

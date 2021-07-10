@@ -1,12 +1,16 @@
 package frozen_test
 
 import (
+	"log"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/internal/pkg/debug"
+	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
 func TestKeyValueString(t *testing.T) {
@@ -91,7 +95,7 @@ func TestMapNestBug(t *testing.T) {
 			"(aa: {(a: 10), (a: 11)}):{(c: 1)}",
 			"(aa: {(a: 11), (a: 10)}):{(c: 1)}",
 		}, b.String())
-	assert.Equal(t, a.Hash(0) == b.Hash(0), a.Equal(b))
+	assert.Equal(t, a.Hash(0) == b.Hash(0), KeyEqual(a, b))
 
 	// The bug actually caused an endless loop, but there's not way to assert
 	// for that
@@ -194,30 +198,30 @@ func TestMapKeys(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	var m Map
-	assertSetEqual(t, Set{}, m.Keys())
+	test.AssertSetEqual(t, Set{}, m.Keys())
 	m = m.With(1, 2)
-	assertSetEqual(t, NewSet(1), m.Keys())
+	test.AssertSetEqual(t, NewSet(1), m.Keys())
 	m = m.With(3, 4)
-	assertSetEqual(t, NewSet(1, 3), m.Keys())
+	test.AssertSetEqual(t, NewSet(1, 3), m.Keys())
 	m = m.Without(NewSet(1))
-	assertSetEqual(t, NewSet(3), m.Keys())
+	test.AssertSetEqual(t, NewSet(3), m.Keys())
 	m = m.Without(NewSet(3))
-	assertSetEqual(t, Set{}, m.Keys())
+	test.AssertSetEqual(t, Set{}, m.Keys())
 }
 
 func TestMapValues(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	var m Map
-	assertSetEqual(t, Set{}, m.Values())
+	test.AssertSetEqual(t, Set{}, m.Values())
 	m = m.With(1, 2)
-	assertSetEqual(t, NewSet(2), m.Values())
+	test.AssertSetEqual(t, NewSet(2), m.Values())
 	m = m.With(3, 4)
-	assertSetEqual(t, NewSet(2, 4), m.Values())
+	test.AssertSetEqual(t, NewSet(2, 4), m.Values())
 	m = m.Without(NewSet(1))
-	assertSetEqual(t, NewSet(4), m.Values())
+	test.AssertSetEqual(t, NewSet(4), m.Values())
 	m = m.Without(NewSet(3))
-	assertSetEqual(t, Set{}, m.Values())
+	test.AssertSetEqual(t, Set{}, m.Values())
 }
 
 func TestMapProject(t *testing.T) {
@@ -292,7 +296,11 @@ func TestMapUpdate(t *testing.T) {
 	m := NewMap(KV(3, 4), KV(4, 5), KV(1, 2))
 	n := NewMap(KV(3, 4), KV(4, 7), KV(6, 7))
 	assertMapEqual(t, NewMap(KV(1, 2), KV(3, 4), KV(4, 7), KV(6, 7)), m.Update(n))
-	lotsa := Iota(5).Powerset()
+	oom := 10
+	if testing.Short() {
+		oom = 5
+	}
+	lotsa := Iota(oom).Powerset()
 	plus := func(n int) func(interface{}) interface{} {
 		return func(key interface{}) interface{} { return n + key.(int) }
 	}
@@ -301,15 +309,25 @@ func TestMapUpdate(t *testing.T) {
 		a := NewMapFromKeys(s, plus(0))
 		for j := lotsa.Range(); j.Next(); {
 			u := j.Value().(Set)
-			b := NewMapFromKeys(u, plus(10))
+			b := NewMapFromKeys(u, plus(100))
 			actual := a.Update(b)
 			expected := NewMapFromKeys(s.Union(u), func(key interface{}) interface{} {
 				if u.Has(key) {
-					return 10 + key.(int)
+					return 100 + key.(int)
 				}
 				return key
 			})
-			assertMapEqual(t, expected, actual)
+			if !assertMapEqual(t, expected, actual) {
+				// log.Print("a:        ", a)
+				// log.Print("b:        ", b)
+				// log.Print("expected: ", expected)
+				// log.Print("actual:   ", actual)
+				// NewMapFromKeys(s, plus(0))
+				// NewMapFromKeys(u, plus(10))
+				// a.Update(b)
+				// a.Update(b)
+				return
+			}
 		}
 	}
 }
@@ -395,8 +413,89 @@ func TestMapMergeDifferentValueType(t *testing.T) {
 		}
 	}
 	expected := NewMap(KV(1, "A"), KV(2, "K"), KV(3, 5), KV(4, 4))
+	actual := m.Merge(n, resolve)
 
-	assert.True(t, expected.Equal(m.Merge(n, resolve)))
+	if !assert.True(t, expected.Equal(actual)) {
+		// t.Log("expected: ", expected)
+		// t.Log("actual:   ", m.Merge(n, resolve))
+		// m.Merge(n, resolve)
+		return
+	}
+}
+
+func TestMapMergeDifferentValueTypeLarge(t *testing.T) { //nolint:cyclop,funlen
+	t.Parallel()
+
+	N := 1 << 15
+	if testing.Short() {
+		N = 1 << 6
+	}
+
+	var mb MapBuilder
+	for i := 0; i < N; i++ {
+		mb.Put(i, i)
+	}
+	m := mb.Finish()
+
+	var nb MapBuilder
+	for i := 0; i < N; i++ {
+		nb.Put(i, i)
+	}
+	// Add 10% extra elements.
+	for i := N; i < N*11/10; i++ {
+		nb.Put(i, 2*i)
+	}
+	// Fill 1/5th of 90% with strings.
+	for i := 0; i < N*9/10; i += 5 {
+		nb.Put(i, strconv.Itoa(i))
+	}
+	// Fill 1/7th of 90% with float64s.
+	for i := 0; i < N*9/10; i += 7 {
+		nb.Put(i, float64(i*i)+0.1)
+	}
+	n := nb.Finish()
+
+	var eb MapBuilder
+	for i := 0; i < 11*N/10; i++ {
+		switch {
+		case i >= N:
+			eb.Put(i, 2*i)
+		case i >= 9*N/10:
+			eb.Put(i, i)
+		case i%7 == 0:
+			// Rock/paper/scissors: float64s get discarded, but we still need
+			// this case, because they replace the strings, which would have
+			// replaced the int.
+			eb.Put(i, i)
+		case i%5 == 0:
+			eb.Put(i, strconv.Itoa(i))
+		default:
+			eb.Put(i, i)
+		}
+	}
+	expected := eb.Finish()
+
+	resolve := func(key, a, b interface{}) interface{} {
+		switch v := b.(type) {
+		case string:
+			return v
+		default:
+			return a
+		}
+	}
+
+	actual := m.Merge(n, resolve)
+
+	if !assert.True(t, expected.Equal(actual)) {
+		log.Printf("m:        %v\n  %s", m, m.DebugReport(debug.Tag{}))
+		log.Printf("n:        %v\n  %s", n, n.DebugReport(debug.Tag{}))
+		log.Printf("expected: %v\n  %s", expected, expected.DebugReport(debug.Tag{}))
+		log.Printf("actual:   %v\n  %s", actual, actual.DebugReport(debug.Tag{}))
+		log.Print("==:       ", expected.Equal(actual))
+		m.Merge(n, resolve)
+		expected.Equal(actual)
+		return
+	}
 }
 
 func TestMapMergeEmptyMap(t *testing.T) {

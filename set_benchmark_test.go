@@ -12,13 +12,13 @@ func benchmarkSequential(b *testing.B, name string, size int) {
 	b.Helper()
 
 	b.Run(name, func(b *testing.B) {
-		b.Run("SetInt/Prealloc", func(t *testing.B) { benchmarkSetIntPrealloc(t, size) })
+		b.Run("SetInt-Prealloc", func(t *testing.B) { benchmarkSetIntPrealloc(t, size) })
 		b.Run("SetInt", func(t *testing.B) { benchmarkSetInt(t, size) })
-		b.Run("SetInterface/Prealloc", func(t *testing.B) { benchmarkSetInterfacePrealloc(t, size) })
+		b.Run("SetInterface-Prealloc", func(t *testing.B) { benchmarkSetInterfacePrealloc(t, size) })
 		b.Run("SetInterface", func(t *testing.B) { benchmarkSetInterface(t, size) })
-		b.Run("Frozen/SetBuilder/Add/Prealloc", func(t *testing.B) { benchmarkFrozenSetBuilderAddPrealloc(t, size) })
-		b.Run("Frozen/SetBuilder/Add", func(t *testing.B) { benchmarkFrozenSetBuilderAdd(t, size) })
-		b.Run("Frozen/Set/With", func(t *testing.B) { benchmarkFrozenSetWith(t, size) })
+		b.Run("Frozen-SetBuilder-Add-Prealloc", func(t *testing.B) { benchmarkFrozenSetBuilderAddPrealloc(t, size) })
+		b.Run("Frozen-SetBuilder-Add", func(t *testing.B) { benchmarkFrozenSetBuilderAdd(t, size) })
+		b.Run("Frozen-Set-With", func(t *testing.B) { benchmarkFrozenSetWith(t, size) })
 	})
 }
 

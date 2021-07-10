@@ -1,18 +1,20 @@
 package frozen_test
 
 import (
+	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
 func TestSetBuilderEmpty(t *testing.T) {
 	t.Parallel()
 
 	var b SetBuilder
-	assertSetEqual(t, Set{}, b.Finish())
+	test.AssertSetEqual(t, Set{}, b.Finish())
 }
 
 func TestSetBuilder(t *testing.T) {
@@ -32,7 +34,7 @@ func TestSetBuilder(t *testing.T) {
 func TestSetBuilderIncremental(t *testing.T) {
 	t.Parallel()
 
-	replayable(true, func(r replayer) {
+	test.Replayable(false, func(r *test.Replayer) {
 		N := 1_000
 		if testing.Short() {
 			N /= 10
@@ -53,40 +55,47 @@ func TestSetBuilderIncremental(t *testing.T) {
 func TestSetBuilderRemove(t *testing.T) {
 	t.Parallel()
 
-	var b SetBuilder
-	for i := 0; i < 15; i++ {
-		b.Add(i)
-	}
-	for i := 5; i < 10; i++ {
-		b.Remove(i)
-	}
-	m := b.Finish()
-
-	assert.Equal(t, 10, m.Count())
-	for i := 0; i < 15; i++ {
-		switch {
-		case i < 5:
-			assertSetHas(t, m, i)
-		case i < 10:
-			assertSetNotHas(t, m, i)
-		default:
-			assertSetHas(t, m, i)
+	test.Replayable(true, func(r *test.Replayer) {
+		var b SetBuilder
+		for i := 0; i < 15; i++ {
+			b.Add(i)
 		}
-	}
+		for i := 5; i < 10; i++ {
+			b.Remove(i)
+		}
+		m := b.Finish()
+
+		if !assert.Equal(t, 10, m.Count()) {
+			log.Print(m)
+		}
+		for i := 0; i < 15; i++ {
+			switch {
+			case i < 5:
+				assertSetHas(t, m, i)
+			case i < 10:
+				assertSetNotHas(t, m, i)
+			default:
+				assertSetHas(t, m, i)
+			}
+		}
+	})
 }
 
-func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) {
+func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop,funlen,gocognit
 	t.Parallel()
 
-	replayable(false, func(r replayer) {
+	test.Replayable(false, func(r *test.Replayer) {
 		var b SetBuilder
 
 		s := uint64(0)
 
-		requireMatch := func(format string, args ...interface{}) {
-			for j := 0; j < 35; j++ {
-				assert.Equalf(t, s&(uint64(1)<<uint(j)) != 0, b.Has(j), format+" j=%v", append(args, j)...)
+		assertMatch := func(format string, args ...interface{}) bool {
+			for j := 0; j < 60; j++ {
+				if !assert.Equalf(t, s&(uint64(1)<<uint(j)) != 0, b.Has(j), format+" j=%v", append(args, j)...) {
+					return false
+				}
 			}
+			return true
 		}
 
 		add := func(i int) {
@@ -99,31 +108,46 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) {
 			s &^= uint64(1) << uint(i)
 		}
 
-		requireMatch("")
-		for i := 0; i < 35; i++ {
+		assertMatch("")
+		for i := 0; i < 60; i++ {
 			add(i)
-			requireMatch("i=%v", i)
+			if !assertMatch("i=%v", i) {
+				return
+			}
 		}
-		for i := 10; i < 25; i++ {
+		mark := r.Mark()
+		for i := 20; i < 50; i++ {
+			if mark.IsTarget() {
+				log.Printf("%+v", b)
+			}
 			remove(i)
-			requireMatch("i=%v", i)
+			if !assertMatch("i=%v", i) {
+				return
+			}
+		}
+		if mark.IsTarget() {
+			log.Printf("%+v", b)
 		}
 
-		for i := 5; i < 15; i++ {
+		for i := 10; i < 30; i++ {
 			add(i)
-			requireMatch("i=%v", i)
+			if !assertMatch("i=%v", i) {
+				r.ReplayTo(mark)
+			}
 		}
-		for i := 20; i < 30; i++ {
+		for i := 40; i < 55; i++ {
 			remove(i)
-			requireMatch("i=%v", i)
+			if !assertMatch("i=%v", i) {
+				return
+			}
 		}
 		m := b.Finish()
 
-		for i := 0; i < 35; i++ {
+		for i := 0; i < 60; i++ {
 			switch {
-			case i < 15:
-				assertSetHas(t, m, i)
 			case i < 30:
+				assertSetHas(t, m, i)
+			case i < 55:
 				assertSetNotHas(t, m, i)
 			default:
 				assertSetHas(t, m, i)

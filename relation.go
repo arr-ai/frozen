@@ -1,15 +1,14 @@
 package frozen
 
+var trueSet = NewSet(NewMap())
+
 // Join returns the n-ary join of a Set of Sets.
 func Join(relations Set) Set {
-	if i := relations.Range(); i.Next() {
-		result := i.Value().(Set)
-		for i.Next() {
-			result = result.Join(i.Value().(Set))
-		}
-		return result
+	result := trueSet
+	for i := relations.Range(); i.Next(); {
+		result = result.Join(i.Value().(Set))
 	}
-	panic("Cannot join no sets")
+	return result
 }
 
 // NewRelation returns a new set of maps, each having the same keys.
@@ -44,6 +43,12 @@ func (s Set) Project(attrs Set) Set {
 func (s Set) Join(t Set) Set {
 	if s.IsEmpty() || t.IsEmpty() {
 		return Set{}
+	}
+	if s.Equal(trueSet) {
+		return t
+	}
+	if t.Equal(trueSet) {
+		return s
 	}
 	sAttrs := s.Any().(Map).Keys()
 	tAttrs := t.Any().(Map).Keys()
@@ -142,7 +147,11 @@ func (s Set) Unnest(attrs Set) Set {
 	var b SetBuilder
 	for i := s.Range(); i.Next(); {
 		t := i.Value().(Map)
-		for j := Join(t.Project(attrs).Values().With(NewSet(t.Without(attrs)))).Range(); j.Next(); {
+		key := t.Without(attrs)
+		nestedValues := t.Project(attrs).Values()
+		all := nestedValues.With(NewSet(key))
+		joined := Join(all)
+		for j := joined.Range(); j.Next(); {
 			b.Add(j.Value())
 		}
 	}

@@ -2,6 +2,8 @@ package frozen
 
 import (
 	"encoding/json"
+
+	"github.com/arr-ai/frozen/errors"
 )
 
 // Iota returns Iota3(0, stop, 1).
@@ -41,7 +43,8 @@ func Iota3(start, stop, step int) Set {
 func NewSetFromMask64(mask uint64) Set {
 	var b SetBuilder
 	for mask := BitIterator(mask); mask != 0; mask = mask.Next() {
-		b.Add(mask.Index())
+		i := mask.Index()
+		b.Add(i)
 	}
 	return b.Finish()
 }
@@ -53,7 +56,7 @@ func (s Set) MarshalJSON() ([]byte, error) {
 		proxy = append(proxy, i.Value())
 	}
 	data, err := json.Marshal(proxy)
-	return data, errorsWrap(err, 0)
+	return data, errors.Wrap(err, 0)
 }
 
 // Ensure that Set implements json.Marshaler.

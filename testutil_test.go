@@ -1,4 +1,3 @@
-//nolint:unparam
 package frozen_test
 
 import (
@@ -25,34 +24,48 @@ func memoizePrepop(prepare func(n int) interface{}) func(n int) interface{} {
 	}
 }
 
-func assertSetEqual(t *testing.T, expected, actual Set, msgAndArgs ...interface{}) bool {
-	t.Helper()
+// func intSetToMap(s Set) map[int]bool {
+// 	result := make(map[int]bool, s.Count())
+// 	for i := s.Range(); i.Next(); {
+// 		result[i.Value().(int)] = true
+// 	}
+// 	return result
+// }
 
-	format := "\nexpected %v != \nactual   %v" //nolint:goconst
-	args := []interface{}{}
-	if len(msgAndArgs) > 0 {
-		format = msgAndArgs[0].(string) + format
-		args = append(append(args, format), msgAndArgs[1:]...)
-	} else {
-		args = append(args, format)
-	}
-	args = append(args, expected, actual)
-	return assert.True(t, expected.Equal(actual), args...)
-}
+// func intSetDiff(a, b Set) (l, m, r []int) {
+// 	ma := intSetToMap(a)
+// 	mb := intSetToMap(b)
+// 	for e := range ma {
+// 		if mb[e] {
+// 			m = append(m, e)
+// 		} else {
+// 			l = append(l, e)
+// 		}
+// 	}
+// 	for e := range mb {
+// 		if !ma[e] {
+// 			r = append(r, e)
+// 		}
+// 	}
+// 	sort.Ints(l)
+// 	sort.Ints(m)
+// 	sort.Ints(r)
+// 	return
+// }
 
-func assertSetHas(t *testing.T, s Set, i interface{}) bool {
+func assertSetHas(t *testing.T, s Set, i interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	return assert.True(t, s.Has(i), "i=%v", i)
 }
 
-func assertSetNotHas(t *testing.T, s Set, i interface{}) bool {
+func assertSetNotHas(t *testing.T, s Set, i interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	return assert.False(t, s.Has(i), "i=%v", i)
 }
 
-func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{}) bool {
+func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	format := "\nexpected %v != \nactual   %v"
@@ -67,7 +80,7 @@ func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool {
+func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -76,7 +89,7 @@ func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool {
 	return ok1 && ok2
 }
 
-func assertMapNotHas(t *testing.T, m Map, i interface{}) bool {
+func assertMapNotHas(t *testing.T, m Map, i interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -100,7 +113,7 @@ func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs .
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{}) bool {
+func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -109,7 +122,7 @@ func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{
 	return ok1 && ok2
 }
 
-func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool {
+func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
