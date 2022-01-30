@@ -17,13 +17,13 @@ func TestBranchRemove(t *testing.T) {
 	const N = 1 << 15
 
 	test.Replayable(true, func(r *test.Replayer) {
-		var b tree.Builder
+		var b tree.Builder[int]
 		has := func(i int) bool {
-			return b.Get(tree.DefaultNPEqArgs, i) != nil
+			return b.Get(tree.DefaultNPEqArgs[int](), i) != nil
 		}
 		for i := 0; i < N; i++ {
 			require.False(t, has(i), i)
-			b.Add(tree.DefaultNPCombineArgs, i)
+			b.Add(tree.DefaultNPCombineArgs[int](), i)
 			require.True(t, has(i), i)
 		}
 
@@ -33,7 +33,7 @@ func TestBranchRemove(t *testing.T) {
 			if m.IsTarget() {
 				log.Printf("%+v", b)
 			}
-			b.Remove(tree.DefaultNPEqArgs, i)
+			b.Remove(tree.DefaultNPEqArgs[int](), i)
 			if !assert.False(t, has(i), i) {
 				log.Printf("%+v", b)
 				r.ReplayTo(m)

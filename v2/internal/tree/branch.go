@@ -16,16 +16,16 @@ const (
 )
 
 // UseRHS returns its RHS arg.
-func UseRHS[T any](_, b T) T { return b }
+func UseRHS[T comparable](_, b T) T { return b }
 
 // UseLHS returns its LHS arg.
-func UseLHS[T any](a, _ T) T { return a }
+func UseLHS[T comparable](a, _ T) T { return a }
 
-type branch[T any] struct {
+type branch[T comparable] struct {
 	p packer[T]
 }
 
-func newBranch[T any](p *packer[T]) *branch[T] {
+func newBranch[T comparable](p *packer[T]) *branch[T] {
 	b := &branch[T]{}
 	if p != nil {
 		b.p = *p
@@ -33,7 +33,10 @@ func newBranch[T any](p *packer[T]) *branch[T] {
 	return b
 }
 
-func newBranchFrom[T any](depth int, data ...T) *branch[T] {
+func newBranchFrom[T comparable](depth int, data ...T) node[T] {
+	if depth >= maxTreeDepth {
+		return newTwig(data...)
+	}
 	b := &branch[T]{}
 	for _, e := range data {
 		h := newHasher(e, depth)
@@ -94,14 +97,13 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 		})
 		ret.p.updateMask()
 		return ret, matches
-	case *leaf[T]:
-		for _, e := range n.slice() {
-			h := newHasher(e, depth)
-			var m int
-			b, m = b.with(args, e, depth, h)
-			matches += m
-		}
-		return b, matches
+	case *leaf1[T]:
+		return b.with(args, n.data, depth, newHasher(n.data, depth))
+	case *leaf2[T]:
+		var m1, m2 int
+		b, m1 = b.with(args, n.data[0], depth, newHasher(n.data[0], depth))
+		b, m2 = b.with(args, n.data[1], depth, newHasher(n.data[1], depth))
+		return b, m1 + m2
 	default:
 		panic(errors.WTF)
 	}
@@ -124,15 +126,14 @@ func (b *branch[T]) Difference(args *EqArgs[T], n node[T], depth int) (_ node[T]
 		})
 		ret.p.updateMask()
 		return ret.Canonical(depth), matches
-	case *leaf[T]:
+	case *leaf1[T]:
+		return b.Without(args, n.data, depth, newHasher(n.data, depth))
+	case *leaf2[T]:
 		ret := node[T](b)
-		for _, e := range n.slice() {
-			h := newHasher(e, depth)
-			var m int
-			ret, m = ret.Without(args, e, depth, h)
-			matches += m
-		}
-		return ret, matches
+		var m1, m2 int
+		ret, m1 = ret.Without(args, n.data[0], depth, newHasher(n.data[0], depth))
+		ret, m2 = ret.Without(args, n.data[1], depth, newHasher(n.data[1], depth))
+		return ret, m1 + m2
 	default:
 		panic(errors.WTF)
 	}
@@ -177,7 +178,9 @@ func (b *branch[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[
 		})
 		ret.p.updateMask()
 		return ret.Canonical(depth), matches
-	case *leaf[T]:
+	case *leaf1[T]:
+		return n.Intersection(args.Flip(), b, depth)
+	case *leaf2[T]:
 		return n.Intersection(args.Flip(), b, depth)
 	default:
 		panic(errors.WTF)
@@ -197,10 +200,8 @@ func (b *branch[T]) Reduce(args NodeArgs, depth int, r func(values ...T) T) T {
 	})
 
 	results2 := results[:0]
-	for _, r := range results {
-		if !isZero(r) {
-			results2 = append(results2, r)
-		}
+	for i := b.p.mask; i != 0; i = i.Next() {
+		results2 = append(results2, results[i.FirstIndex()])
 	}
 	return r(results2...)
 }
@@ -369,6 +370,7 @@ func (b *branch[T]) Format(f fmt.State, verb rune) {
 		write([]byte("\n"))
 	}
 
+	first := true
 	for i, x := range b.p.data {
 		if x == nil {
 			continue
@@ -377,8 +379,10 @@ func (b *branch[T]) Format(f fmt.State, verb rune) {
 		if shallow {
 			printf("   %s%s\n", index, fu.IndentBlock(x.String()))
 		} else {
-			if i > 0 {
+			if !first {
 				write([]byte(" "))
+			} else {
+				first = false
 			}
 			printf("%s", index)
 			x.Format(f, verb)

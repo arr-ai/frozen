@@ -11,17 +11,17 @@ import (
 	"github.com/arr-ai/frozen/v2/internal/iterator"
 )
 
-func packedIteratorBuf[T any](count int) [][]node[T] {
+func packedIteratorBuf[T comparable](count int) [][]node[T] {
 	depth := (bits.Len64(uint64(count)) + 1) * 3 / 2 // 1.5 (log₈(count) + 1)
 	return make([][]node[T], 0, depth)
 }
 
-type Tree[T any] struct {
+type Tree[T comparable] struct {
 	root  node[T]
 	count int
 }
 
-func newTree[T any](n node[T], count int) (out Tree[T]) {
+func newTree[T comparable](n node[T], count int) (out Tree[T]) {
 	return Tree[T]{root: n, count: count}
 }
 
@@ -155,12 +155,11 @@ func (t Tree[T]) Map(args *CombineArgs[T], f func(v T) T) (out Tree[T]) {
 	return newTree(t.root.Map(args, 0, f))
 }
 
-func (t Tree[T]) Reduce(args NodeArgs, r func(values ...T) T) T {
-	if t.root == nil {
-		var zero T
-		return zero
+func (t Tree[T]) Reduce(args NodeArgs, r func(values ...T) T) (_ T, _ bool) {
+	if t.root != nil {
+		return t.root.Reduce(args, 0, r), true
 	}
-	return t.root.Reduce(args, 0, r)
+	return
 }
 
 func (t Tree[T]) Vet() {

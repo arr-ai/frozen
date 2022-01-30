@@ -8,11 +8,11 @@ import (
 	"github.com/arr-ai/frozen/v2/internal/iterator"
 )
 
-type twig[T any] struct {
+type twig[T comparable] struct {
 	data []T
 }
 
-func newTwig[T any](data ...T) *twig[T] {
+func newTwig[T comparable](data ...T) *twig[T] {
 	return &twig[T]{data: data}
 }
 

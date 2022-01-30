@@ -7,11 +7,11 @@ import (
 )
 
 // SetBuilder[T] provides a more efficient way to build sets incrementally.
-type SetBuilder[T any] struct {
+type SetBuilder[T comparable] struct {
 	b tree.Builder[T]
 }
 
-func NewSetBuilder[T any](capacity int) *SetBuilder[T] {
+func NewSetBuilder[T comparable](capacity int) *SetBuilder[T] {
 	return &SetBuilder[T]{b: *tree.NewBuilder[T](capacity)}
 }
 

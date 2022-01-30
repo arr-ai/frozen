@@ -7,14 +7,14 @@ import (
 )
 
 // Less dictates the order of two elements.
-type Less[T any] func(a, b T) bool
+type Less[T comparable] func(a, b T) bool
 
-type packerIterator[T any] struct {
+type packerIterator[T comparable] struct {
 	stack [][]node[T]
 	i     iterator.Iterator[T]
 }
 
-func newPackerIterator[T any](buf [][]node[T], p *packer[T]) *packerIterator[T] {
+func newPackerIterator[T comparable](buf [][]node[T], p *packer[T]) *packerIterator[T] {
 	buf = append(buf, p.data[:])
 	// TODO: Speed up with mask.
 	return &packerIterator[T]{stack: buf, i: iterator.Empty[T]()}
@@ -40,7 +40,7 @@ func (i *packerIterator[T]) Value() T {
 	return i.i.Value()
 }
 
-type ordered[T any] struct {
+type ordered[T comparable] struct {
 	less     Less[T]
 	elements []T
 	val      T
@@ -80,7 +80,7 @@ func (o *ordered[T]) Pop() interface{} {
 	return result
 }
 
-type reverseOrdered[T any] struct {
+type reverseOrdered[T comparable] struct {
 	// This embedded Interface permits Reverse to use the methods of
 	// another Interface implementation.
 	heap.Interface
@@ -88,7 +88,7 @@ type reverseOrdered[T any] struct {
 }
 
 // Reverse returns the reverse order for data.
-func reverseO[T any](data heap.Interface) heap.Interface {
+func reverseO[T comparable](data heap.Interface) heap.Interface {
 	return &reverseOrdered[T]{Interface: data}
 }
 

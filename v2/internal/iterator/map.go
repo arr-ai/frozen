@@ -1,11 +1,11 @@
 package iterator
 
-type MapIterator[T any] struct {
+type MapIterator[T comparable] struct {
 	i Iterator[T]
 	m func(v T) T
 }
 
-func Map[T any](i Iterator[T], m func(v T) T) *MapIterator[T] {
+func Map[T comparable](i Iterator[T], m func(v T) T) *MapIterator[T] {
 	return &MapIterator[T]{i: i, m: m}
 }
 

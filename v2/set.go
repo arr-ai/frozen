@@ -12,19 +12,19 @@ import (
 	"github.com/arr-ai/frozen/v2/internal/value"
 )
 
-// Set[T] holds a set of values. The zero value is the empty Set[T].
-type Set[T any] struct {
+// Set holds a set of values of type T. The zero value is the empty Set.
+type Set[T comparable] struct {
 	tree tree.Tree[T]
 }
 
-var _ value.Key[any] = Set[any]{}
+var _ value.Key[Set[int]] = Set[int]{}
 
-func newSet[T any](tree tree.Tree[T]) Set[T] {
+func newSet[T comparable](tree tree.Tree[T]) Set[T] {
 	return Set[T]{tree: tree}
 }
 
-// NewSet creates a new Set[T] with values as elements.
-func NewSet[T any](values ...T) Set[T] {
+// NewSet creates a new Set with values as elements.
+func NewSet[T comparable](values ...T) Set[T] {
 	b := NewSetBuilder[T](len(values))
 	for _, value := range values {
 		b.Add(value)
@@ -40,17 +40,17 @@ func (s Set[T]) eqArgs() *tree.EqArgs[T] {
 	return tree.NewDefaultEqArgs[T](depth.NewGauge(s.Count()))
 }
 
-// IsEmpty returns true iff the Set[T] has no elements.
+// IsEmpty returns true iff the Set has no elements.
 func (s Set[T]) IsEmpty() bool {
 	return s.tree.Count() == 0
 }
 
-// Count returns the number of elements in the Set[T].
+// Count returns the number of elements in the Set.
 func (s Set[T]) Count() int {
 	return s.tree.Count()
 }
 
-// Range returns an Iterator over the Set[T].
+// Range returns an Iterator over the Set.
 func (s Set[T]) Range() iterator.Iterator[T] {
 	return s.tree.Iterator()
 }
@@ -72,7 +72,7 @@ func (s Set[T]) OrderedElements(less tree.Less[T]) []T {
 	return result
 }
 
-// Any returns an arbitrary element from the Set[T].
+// Any returns an arbitrary element from the Set.
 func (s Set[T]) Any() T {
 	for i := s.Range(); i.Next(); {
 		return i.Value()
@@ -80,13 +80,13 @@ func (s Set[T]) Any() T {
 	panic("Set[T].Any(): empty set")
 }
 
-// AnyN returns a set of N arbitrary elements from the Set[T].
+// AnyN returns a set of N arbitrary elements from the Set.
 func (s Set[T]) AnyN(n int) Set[T] {
 	if n > s.Count() {
 		return s
 	}
 	b := NewSetBuilder[T](n)
-	for i := s.Range(); n > 0; n-- {
+	for i := s.Range(); i.Next() && n > 0; n-- {
 		b.Add(i.Value())
 	}
 	return b.Finish()
@@ -115,12 +115,12 @@ func (s Set[T]) FirstN(n int, less tree.Less[T]) Set[T] {
 	return NewSet[T](s.OrderedFirstN(n, less)...)
 }
 
-// String returns a string representation of the Set[T].
+// String returns a string representation of the Set.
 func (s Set[T]) String() string {
 	return fmt.Sprintf("%v", s)
 }
 
-// Format writes a string representation of the Set[T] into state.
+// Format writes a string representation of the Set into state.
 func (s Set[T]) Format(f fmt.State, verb rune) {
 	if verb == 'v' && f.Flag('+') {
 		fmt.Fprint(f, s.tree.String())
@@ -143,7 +143,7 @@ func (s Set[T]) Format(f fmt.State, verb rune) {
 	fu.WriteString(f, "}")
 }
 
-// OrderedRange returns a SetIterator for the Set[T] that iterates over the elements in
+// OrderedRange returns a SetIterator for the Set that iterates over the elements in
 // a specified order.
 func (s Set[T]) OrderedRange(less tree.Less[T]) iterator.Iterator[T] {
 	return s.tree.OrderedIterator(less, s.Count())
@@ -158,16 +158,8 @@ func (s Set[T]) Hash(seed uintptr) uintptr {
 	return h
 }
 
-// Equal implements Equatable.
-func (s Set[T]) Equal(t interface{}) bool {
-	if set, ok := t.(Set[T]); ok {
-		return s.EqualSet(set)
-	}
-	return false
-}
-
-// EqualSet returns true iff s and set have all the same elements.
-func (s Set[T]) EqualSet(t Set[T]) bool {
+// Equal returns true iff s and set have all the same elements.
+func (s Set[T]) Equal(t Set[T]) bool {
 	args := s.eqArgs()
 	return s.tree.Equal(args, t.tree)
 }
@@ -183,17 +175,17 @@ func (s Set[T]) Has(val T) bool {
 	return s.tree.Get(tree.DefaultNPEqArgs[T](), val) != nil
 }
 
-// With returns a new Set[T] retaining all the elements of the Set[T] as well as values.
+// With returns a new Set retaining all the elements of the Set as well as values.
 func (s Set[T]) With(values ...T) Set[T] {
 	return s.Union(NewSet(values...))
 }
 
-// Without returns a new Set[T] with all values retained from Set[T] except values.
+// Without returns a new Set with all values retained from Set except values.
 func (s Set[T]) Without(values ...T) Set[T] {
 	return s.Difference(NewSet(values...))
 }
 
-// Where returns a Set[T] with all elements that are in s and satisfy pred.
+// Where returns a Set with all elements that are in s and satisfy pred.
 func (s Set[T]) Where(pred func(elem T) bool) Set[T] {
 	args := &tree.WhereArgs[T]{
 		NodeArgs: tree.NewNodeArgs(depth.NewGauge(s.Count())),
@@ -203,10 +195,10 @@ func (s Set[T]) Where(pred func(elem T) bool) Set[T] {
 	return Set[T]{tree: s.tree.Where(args)}
 }
 
-// // Map returns a Set[T] with all the results of applying f to all elements in s.
-// func (s Set[T]) Map(f func(elem T) interface{}) Set[T] {
+// // Map returns a Set with all the results of applying f to all elements in s.
+// func SetMap[T, U comparable](s Set, f func(elem T) U) Set[U] {
 // 	args := tree.NewCombineArgs(s.eqArgs(), tree.UseRHS)
-// 	return Set[T]{tree: s.tree.Map(args, f)}
+// 	return Set[U]{tree: s.tree.Map(args, f)}
 // }
 
 // // Reduce returns the result of applying `reduce` to the elements of `s` or
@@ -221,14 +213,14 @@ func (s Set[T]) Where(pred func(elem T) bool) Set[T] {
 // // By implication, `reduce` must accept its own output as input.
 // //
 // // 'elems` will never be empty.
-// func (s Set[T]) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
+// func (s Set) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
 // 	return s.tree.Reduce(s.nodeArgs(), reduce)
 // }
 
 // // Reduce2 is a convenience wrapper for `Reduce`, allowing the caller to
 // // implement a simpler, albeit less efficient, binary `reduce` function instead
 // // of an n-adic one.
-// func (s Set[T]) Reduce2(reduce func(a, b interface{}) interface{}) interface{} {
+// func (s Set) Reduce2(reduce func(a, b interface{}) interface{}) interface{} {
 // 	return s.Reduce(func(elems ...interface{}) interface{} {
 // 		acc := elems[0]
 // 		for _, elem := range elems[1:] {
@@ -238,24 +230,24 @@ func (s Set[T]) Where(pred func(elem T) bool) Set[T] {
 // 	})
 // }
 
-// Intersection returns a Set[T] with all elements that are in both s and t.
+// Intersection returns a Set with all elements that are in both s and t.
 func (s Set[T]) Intersection(t Set[T]) Set[T] {
 	return Set[T]{tree: s.tree.Intersection(s.eqArgs(), t.tree)}
 }
 
-// Union returns a Set[T] with all elements that are in either s or t.
+// Union returns a Set with all elements that are in either s or t.
 func (s Set[T]) Union(t Set[T]) Set[T] {
 	args := tree.NewCombineArgs(s.eqArgs(), tree.UseRHS[T])
 	return Set[T]{tree: s.tree.Combine(args, t.tree)}
 }
 
-// Difference returns a Set[T] with all elements that are s but not in t.
+// Difference returns a Set with all elements that are s but not in t.
 func (s Set[T]) Difference(t Set[T]) Set[T] {
 	args := s.eqArgs()
 	return Set[T]{tree: s.tree.Difference(args, t.tree)}
 }
 
-// SymmetricDifference returns a Set[T] with all elements that are s or t, but not
+// SymmetricDifference returns a Set with all elements that are s or t, but not
 // both.
 func (s Set[T]) SymmetricDifference(t Set[T]) Set[T] {
 	st := s.Difference(t)
@@ -263,7 +255,7 @@ func (s Set[T]) SymmetricDifference(t Set[T]) Set[T] {
 	return st.Union(ts)
 }
 
-func Powerset[T any](s Set[T]) Set[Set[T]] {
+func Powerset[T comparable](s Set[T]) Set[Set[T]] {
 	n := s.Count()
 	if n > 63 {
 		panic("set too large")
@@ -308,8 +300,8 @@ func Powerset[T any](s Set[T]) Set[Set[T]] {
 	return result
 }
 
-// // GroupBy returns a Map that groups elements in the Set[T] by their key.
-// func (s Set[T]) GroupBy(key func(el interface{}) interface{}) Map {
+// // GroupBy returns a Map that groups elements in the Set by their key.
+// func (s Set) GroupBy(key func(el interface{}) interface{}) Map {
 // 	var builders MapBuilder
 // 	for i := s.Range(); i.Next(); {
 // 		v := i.Value()

@@ -36,13 +36,13 @@ func TestPackedWithMulti(t *testing.T) {
 }
 
 //nolint:unparam
-func assertEqualPacked(t *testing.T, expected, actual *packer[int], msgAndArgs ...elementT) bool {
+func assertEqualPacked[T comparable](t *testing.T, expected, actual *packer[T], msgAndArgs ...interface{}) bool {
 	t.Helper()
 
 	if !expected.EqualPacker(actual) {
 		expected.EqualPacker(actual)
 		assert.Fail(t, fmt.Sprintf("packed unequal\nexpected: %v, actual:   %v",
-			&branch{p: *expected}, &branch{p: *actual}), msgAndArgs...)
+			&branch[T]{p: *expected}, &branch[T]{p: *actual}), msgAndArgs...)
 		return false
 	}
 	return true

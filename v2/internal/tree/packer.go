@@ -7,7 +7,7 @@ import (
 
 const maxLeafLen = 2
 
-type packer[T any] struct {
+type packer[T comparable] struct {
 	mask masker.Masker
 	data [fanout]node[T]
 }

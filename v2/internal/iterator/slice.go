@@ -1,11 +1,11 @@
 package iterator
 
-type SliceIterator[T any] struct {
+type SliceIterator[T comparable] struct {
 	slice []T
 	index int
 }
 
-func NewSliceIterator[T any](slice []T) *SliceIterator[T] {
+func NewSliceIterator[T comparable](slice []T) *SliceIterator[T] {
 	return &SliceIterator[T]{slice: slice, index: -1}
 }
 

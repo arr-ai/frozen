@@ -1,16 +1,17 @@
 package frozen
 
 import (
-	"github.com/arr-ai/frozen/internal/tree/kvt"
+	"github.com/arr-ai/frozen/v2/internal/tree"
+	"github.com/arr-ai/frozen/v2/pkg/kv"
 )
 
 // MapBuilder[K, V] provides a more efficient way to build Maps incrementally.
-type MapBuilder[K, V any] struct {
-	tb kvt.Builder
+type MapBuilder[K comparable, V comparable] struct {
+	tb tree.Builder[kv.KeyValue[K, V]]
 }
 
-func NewMapBuilder[K, V any](capacity int) *MapBuilder[K, V] {
-	return &MapBuilder[K, V]{tb: *kvt.NewBuilder(capacity)}
+func NewMapBuilder[K comparable, V comparable](capacity int) *MapBuilder[K, V] {
+	return &MapBuilder[K, V]{tb: *tree.NewBuilder[kv.KeyValue[K, V]](capacity)}
 }
 
 // Count returns the number of entries in the Map under construction.
@@ -20,12 +21,13 @@ func (b *MapBuilder[K, V]) Count() int {
 
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder[K, V]) Put(key K, value V) {
-	b.tb.Add(kvt.DefaultNPKeyCombineArgs, KV(key, value))
+	b.tb.Add(tree.DefaultNPKeyCombineArgs[kv.KeyValue[K, V]](), kv.KV(key, value))
 }
 
 // Remove removes an entry from the Map under construction.
 func (b *MapBuilder[K, V]) Remove(key K) {
-	b.tb.Remove(kvt.DefaultNPKeyEqArgs, KV(key, nil))
+	var zarro V
+	b.tb.Remove(tree.DefaultNPKeyEqArgs[kv.KeyValue[K, V]](), kv.KV(key, zarro))
 }
 
 func (b *MapBuilder[K, V]) Has(key K) bool {
@@ -36,7 +38,8 @@ func (b *MapBuilder[K, V]) Has(key K) bool {
 // Get returns the value for key from the Map under construction or false if
 // not found.
 func (b *MapBuilder[K, V]) Get(key K) (V, bool) {
-	if entry := b.tb.Get(kvt.DefaultNPKeyEqArgs[T](), KV(key, nil)); entry != nil {
+	var zarro V
+	if entry := b.tb.Get(tree.DefaultNPKeyEqArgs[kv.KeyValue[K, V]](), kv.KV(key, zarro)); entry != nil {
 		return entry.Value, true
 	}
 	var v V
