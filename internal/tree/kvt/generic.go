@@ -31,7 +31,9 @@ func newSliceIterator(slice []kv.KeyValue) Iterator {
 }
 
 // KeyHash hashes using the KeyValue's own key.
-var KeyHash = keyHasher(func(kv kv.KeyValue, seed uintptr) uintptr { return kv.Hash(seed) })
+func KeyHash(kv kv.KeyValue, seed uintptr) uintptr {
+	return kv.Hash(seed)
+}
 
 // KV creates a kv.KeyValue.
 func KV(key, val interface{}) kv.KeyValue {
@@ -40,12 +42,6 @@ func KV(key, val interface{}) kv.KeyValue {
 
 func hashValue(v kv.KeyValue, seed uintptr) uintptr {
 	return hash.Interface(v.Key, seed)
-}
-
-func keyHasher(hash func(v kv.KeyValue, seed uintptr) uintptr) func(v kv.KeyValue, seed uintptr) uintptr {
-	return func(v kv.KeyValue, seed uintptr) uintptr {
-		return hash(v, seed)
-	}
 }
 
 func KeyEqual(a, b kv.KeyValue) bool {
