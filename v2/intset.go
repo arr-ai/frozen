@@ -85,11 +85,11 @@ func (s IntSet) Elements() []int {
 
 // Any returns a random value from s.
 func (s IntSet) Any() int {
-	i, block := s.data.Any()
+	blockIndex, block := s.data.Any()
 	for cellIndex, cell := range block {
 		if cell != 0 {
 			bit := BitIterator(cell).Index()
-			return blockBits*i + cellBits*cellIndex + bit
+			return blockBits*blockIndex + cellBits*cellIndex + bit
 		}
 	}
 	panic("empty block")
@@ -109,7 +109,6 @@ func (s IntSet) String() string {
 	return "[" + strings.Join(stringed, ", ") + "]"
 }
 
-// func (s IntSet) Format(f fmt.State, _ rune)       {}
 // func (s IntSet) OrderedRange(less Less) Iterator      {}
 // func (s IntSet) Hash(seed uintptr) uintptr            {}
 // func (s IntSet) Equal(t int) bool                     {}

@@ -3,7 +3,7 @@ package tree
 import (
 	"fmt"
 
-	"github.com/arr-ai/frozen/v2/internal/iterator"
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 )
 
 type node[T comparable] interface {

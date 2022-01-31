@@ -3,7 +3,7 @@ package frozen
 import (
 	"fmt"
 
-	"github.com/arr-ai/frozen/v2/internal/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
 )
 
 // SetBuilder[T] provides a more efficient way to build sets incrementally.

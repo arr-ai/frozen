@@ -11,7 +11,7 @@ import (
 	. "github.com/arr-ai/frozen/v2"
 	"github.com/arr-ai/frozen/v2/pkg/kv"
 	"github.com/arr-ai/frozen/v2/internal/pkg/test"
-	"github.com/arr-ai/frozen/v2/internal/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
 )
 
 func largeIntSet() Set[int] {

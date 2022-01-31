@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/arr-ai/frozen/v2/internal/pkg/test"
-	"github.com/arr-ai/frozen/v2/internal/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
 )
 
 func TestBranchRemove(t *testing.T) {

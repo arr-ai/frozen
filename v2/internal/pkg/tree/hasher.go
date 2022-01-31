@@ -7,7 +7,7 @@ import (
 
 	"github.com/arr-ai/hash"
 
-	"github.com/arr-ai/frozen/v2/internal/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
 )
 
 const (

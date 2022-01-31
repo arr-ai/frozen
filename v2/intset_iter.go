@@ -15,13 +15,14 @@ type intSetIterator struct {
 }
 
 func (i *intSetIterator) Next() bool {
-	if len(i.block) > 0 && i.block[0] != 0 {
-		i.block[0] &= i.block[0] - 1
-	}
-
-	if len(i.block) > 0 && i.block[0] == 0 {
-		for ; len(i.block) != 0 && i.block[0] == 0; i.block = i.block[1:] {
-			i.firstIntInCell += cellBits
+	if len(i.block) > 0 {
+		if i.block[0] != 0 {
+			i.block[0] &= i.block[0] - 1
+		}
+		if i.block[0] == 0 {
+			for ; len(i.block) != 0 && i.block[0] == 0; i.block = i.block[1:] {
+				i.firstIntInCell += cellBits
+			}
 		}
 	}
 
@@ -31,7 +32,7 @@ func (i *intSetIterator) Next() bool {
 		}
 		i.firstIntInCell = i.blockIter.Key() * blockBits
 		block := i.blockIter.Value()
-		for i.block = block[:]; i.block[0] == 0; i.block = i.block[1:] {
+		for i.block = block[:]; len(i.block) != 0 && i.block[0] == 0; i.block = i.block[1:] {
 			i.firstIntInCell += cellBits
 		}
 	}

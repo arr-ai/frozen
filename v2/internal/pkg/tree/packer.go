@@ -1,8 +1,8 @@
 package tree
 
 import (
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/v2/internal/pkg/masker"
-	"github.com/arr-ai/frozen/v2/internal/iterator"
 )
 
 const maxLeafLen = 2

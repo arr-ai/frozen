@@ -6,13 +6,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	. "github.com/arr-ai/frozen"
+	. "github.com/arr-ai/frozen/v2"
 )
 
-func memoizePrepop(prepare func(n int) interface{}) func(n int) interface{} {
+func memoizePrepop[T any](prepare func(n int) T) func(n int) T {
 	var lk sync.Mutex
-	prepop := map[int]interface{}{}
-	return func(n int) interface{} {
+	prepop := map[int]T{}
+	return func(n int) T {
 		lk.Lock()
 		defer lk.Unlock()
 		if data, has := prepop[n]; has {
@@ -53,19 +53,23 @@ func memoizePrepop(prepare func(n int) interface{}) func(n int) interface{} {
 // 	return
 // }
 
-func assertSetHas(t *testing.T, s Set, i interface{}) bool { //nolint:unparam
+func assertSetHas[T comparable](t *testing.T, s Set[T], i T) bool { //nolint:unparam
 	t.Helper()
 
 	return assert.True(t, s.Has(i), "i=%v", i)
 }
 
-func assertSetNotHas(t *testing.T, s Set, i interface{}) bool { //nolint:unparam
+func assertSetNotHas[T comparable](t *testing.T, s Set[T], i T) bool { //nolint:unparam
 	t.Helper()
 
 	return assert.False(t, s.Has(i), "i=%v", i)
 }
 
-func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{}) bool { //nolint:unparam
+func assertMapEqual[K, V comparable](
+	t *testing.T,
+	expected, actual Map[K, V],
+	msgAndArgs ...interface{},
+) bool { //nolint:unparam
 	t.Helper()
 
 	format := "\nexpected %v != \nactual   %v"
@@ -80,7 +84,7 @@ func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool { //nolint:unparam
+func assertMapHas[K, V comparable](t *testing.T, m Map[K, V], i K, expected V) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -89,7 +93,7 @@ func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool { //nolint:
 	return ok1 && ok2
 }
 
-func assertMapNotHas(t *testing.T, m Map, i interface{}) bool { //nolint:unparam
+func assertMapNotHas[K, V comparable](t *testing.T, m Map[K, V], i K) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -98,7 +102,7 @@ func assertMapNotHas(t *testing.T, m Map, i interface{}) bool { //nolint:unparam
 	return ok1 && ok2
 }
 
-func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs ...interface{}) bool {
+func assertStringMapEqual[V comparable](t *testing.T, expected, actual Map[string, V], msgAndArgs ...interface{}) bool {
 	t.Helper()
 
 	format := "\nexpected %v != \nactual   %v"
@@ -113,7 +117,7 @@ func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs .
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{}) bool { //nolint:unparam
+func assertStringMapHas[V comparable](t *testing.T, m Map[string, V], i string, expected interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -122,7 +126,7 @@ func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{
 	return ok1 && ok2
 }
 
-func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool { //nolint:unparam
+func assertStringMapNotHas[V comparable](t *testing.T, m Map[string, V], i string) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -131,7 +135,7 @@ func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool { //nolint:
 	return ok1 && ok2
 }
 
-type mapOfSet map[string]Set
+// type mapOfSet map[string]Set
 
 func generateSortedIntArray(start, end, step int) []int {
 	if step == 0 {

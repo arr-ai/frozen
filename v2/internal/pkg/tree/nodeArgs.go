@@ -1,7 +1,7 @@
 package tree
 
 import (
-	"github.com/arr-ai/frozen/v2/internal/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
 )
 
 // DefaultNPEqArgs provides default equality with non-parallel behaviour.

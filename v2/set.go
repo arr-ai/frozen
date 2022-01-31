@@ -5,11 +5,11 @@ import (
 
 	"github.com/arr-ai/hash"
 
-	"github.com/arr-ai/frozen/v2/internal/depth"
-	"github.com/arr-ai/frozen/v2/internal/fu"
-	"github.com/arr-ai/frozen/v2/internal/iterator"
-	"github.com/arr-ai/frozen/v2/internal/tree"
-	"github.com/arr-ai/frozen/v2/internal/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 // Set holds a set of values of type T. The zero value is the empty Set.

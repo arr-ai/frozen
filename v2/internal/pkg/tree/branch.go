@@ -3,10 +3,10 @@ package tree
 import (
 	"fmt"
 
-	"github.com/arr-ai/frozen/v2/errors"
-	"github.com/arr-ai/frozen/v2/internal/depth"
-	"github.com/arr-ai/frozen/v2/internal/iterator"
-	"github.com/arr-ai/frozen/v2/internal/fu"
+	"github.com/arr-ai/frozen/v2/pkg/errors"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
 	"github.com/arr-ai/frozen/v2/internal/pkg/masker"
 )
 

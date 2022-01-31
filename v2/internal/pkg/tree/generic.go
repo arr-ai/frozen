@@ -3,8 +3,8 @@ package tree
 import (
 	"github.com/arr-ai/hash"
 
-	"github.com/arr-ai/frozen/v2/internal/iterator"
-	"github.com/arr-ai/frozen/v2/internal/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 func elementEqual[T comparable](a, b T) bool {

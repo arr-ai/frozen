@@ -3,7 +3,7 @@ package tree
 import (
 	"fmt"
 
-	"github.com/arr-ai/frozen/v2/internal/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
 )
 
 func DefaultNPKeyEqArgs[T comparable]() *EqArgs[T] {

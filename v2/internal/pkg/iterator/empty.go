@@ -1,7 +1,7 @@
 package iterator
 
 import (
-	"github.com/arr-ai/frozen/v2/errors"
+	"github.com/arr-ai/frozen/v2/pkg/errors"
 )
 
 // Empty is the empty iterator.

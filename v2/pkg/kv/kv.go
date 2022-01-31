@@ -5,8 +5,8 @@ import (
 
 	"github.com/arr-ai/hash"
 
-	"github.com/arr-ai/frozen/v2/internal/fu"
-	"github.com/arr-ai/frozen/v2/internal/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 // KeyValue[K, V] represents a key-value pair for insertion into a Map.
@@ -38,7 +38,7 @@ func (kv KeyValue[K, V]) Format(f fmt.State, verb rune) {
 }
 
 func KeyEqual[K comparable, V comparable](a, b KeyValue[K, V]) bool {
-	return Equal(a, b)
+	return value.Equal(a.Key, b.Key)
 }
 
 func KeyValueEqual[K, V comparable](a, b KeyValue[K, V]) bool {

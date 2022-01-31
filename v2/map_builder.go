@@ -1,7 +1,7 @@
 package frozen
 
 import (
-	"github.com/arr-ai/frozen/v2/internal/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
 	"github.com/arr-ai/frozen/v2/pkg/kv"
 )
 

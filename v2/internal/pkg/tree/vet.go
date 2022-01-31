@@ -3,7 +3,7 @@ package tree
 import (
 	"log"
 
-	"github.com/arr-ai/frozen/v2/errors"
+	"github.com/arr-ai/frozen/v2/pkg/errors"
 	"github.com/arr-ai/frozen/v2/internal/pkg/vetctl"
 )
 

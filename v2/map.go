@@ -5,17 +5,33 @@ import (
 
 	"github.com/arr-ai/hash"
 
-	"github.com/arr-ai/frozen/v2/internal/depth"
-	"github.com/arr-ai/frozen/v2/internal/fu"
-	"github.com/arr-ai/frozen/v2/internal/iterator"
 	"github.com/arr-ai/frozen/v2/internal/pkg/debug"
-	"github.com/arr-ai/frozen/v2/internal/tree"
-	"github.com/arr-ai/frozen/v2/internal/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 	"github.com/arr-ai/frozen/v2/pkg/kv"
 )
 
-func KeyEqual[K comparable, V comparable](a, b kv.KeyValue[K, V]) bool {
+func defaultMapNPKeyEqArgs[K, V comparable]() *tree.EqArgs[kv.KeyValue[K, V]] {
+	return newDefaultMapKeyEqArgs[K, V](depth.NonParallel)
+}
+
+func defaultMapNPKeyCombineArgs[K, V comparable]() *tree.CombineArgs[kv.KeyValue[K, V]] {
+	return tree.NewCombineArgs(defaultMapNPKeyEqArgs[K, V](), tree.UseRHS[kv.KeyValue[K, V]])
+}
+
+func newDefaultMapKeyEqArgs[K, V comparable](gauge depth.Gauge) *tree.EqArgs[kv.KeyValue[K, V]] {
+	return tree.NewEqArgs[kv.KeyValue[K, V]](gauge, mapElementEqual[K, V], mapHashValue[K, V], mapHashValue[K, V])
+}
+
+func mapElementEqual[K, V comparable](a, b kv.KeyValue[K, V]) bool {
 	return value.Equal(a.Key, b.Key)
+}
+
+func mapHashValue[K, V comparable](v kv.KeyValue[K, V], seed uintptr) uintptr {
+	return hash.Interface(v.Key, seed)
 }
 
 // Map maps keys to values. The zero value is the empty Map.
@@ -114,16 +130,14 @@ func (m Map[K, V]) Without2(keys ...K) Map[K, V] {
 
 // Has returns true iff the key exists in the map.
 func (m Map[K, V]) Has(key K) bool {
-	var zarro V
-	return m.tree.Get(
-		tree.DefaultNPKeyEqArgs[kv.KeyValue[K, V]](), kv.KV(key, zarro),
-	) != nil
+	_, has := m.Get(key)
+	return has
 }
 
 // Get returns the value associated with key in m and true iff the key is found.
 func (m Map[K, V]) Get(key K) (V, bool) {
 	var zarro V
-	if kv := m.tree.Get(tree.DefaultNPKeyEqArgs[kv.KeyValue[K, V]](), kv.KV(key, zarro)); kv != nil {
+	if kv := m.tree.Get(defaultMapNPKeyEqArgs[K, V](), kv.KV(key, zarro)); kv != nil {
 		return kv.Value, true
 	}
 	return zarro, false

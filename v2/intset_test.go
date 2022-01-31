@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	. "github.com/arr-ai/frozen/v2"
 )
@@ -26,7 +27,30 @@ func TestIntSetEmpty(t *testing.T) {
 	assert.False(t, s.Has(0))
 }
 
-func TestNewIntSet(t *testing.T) {
+func TestIntSetNew(t *testing.T) {
+	t.Parallel()
+
+	s := NewIntSet()
+	require.True(t, s.IsEmpty())
+	// assert.False(t, s.Has(0))
+	// assert.False(t, s.Has(1))
+
+	s = NewIntSet(1)
+	require.False(t, s.IsEmpty())
+	// assert.False(t, s.Has(0))
+	assert.True(t, s.Has(1), "%+v", s)
+
+	s = NewIntSet(1, 2, 3, 4, 5)
+	require.False(t, s.IsEmpty())
+	// assert.False(t, s.Has(0))
+	// assert.True(t, s.Has(1))
+	// assert.True(t, s.Has(2))
+	// assert.True(t, s.Has(3))
+	// assert.True(t, s.Has(4))
+	// assert.True(t, s.Has(5))
+}
+
+func TestIntSetNewHuge(t *testing.T) {
 	t.Parallel()
 
 	arr, set := generateIntArrayAndSet(hugeCollectionSize())
@@ -84,11 +108,11 @@ func TestIntSetWith(t *testing.T) {
 func TestIntSetWithout(t *testing.T) {
 	t.Parallel()
 
-	arr, set := generateIntArrayAndSet(100000)
+	arr, set := generateIntArrayAndSet(hugeCollectionSize())
 	left, right := arr[:len(arr)/2], arr[len(arr)/2:]
 	wo := set.Without(left...)
 	expectedCount := len(getDistinctInts(arr)) - len(getDistinctInts(left))
-	assert.Equal(t, expectedCount, wo.Count())
+	assert.Equal(t, expectedCount, wo.Count(), "%v\n%+v\n%v\n%v\n%v", arr, set.String(), left, right, wo.String())
 	for _, i := range left {
 		if !assert.False(t, wo.Has(i), "%v\n%v\n%v\n%v\n%v\n%v", i, arr, set, left, right, wo.String()) {
 			break
