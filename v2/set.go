@@ -117,7 +117,7 @@ func (s Set[T]) FirstN(n int, less tree.Less[T]) Set[T] {
 
 // String returns a string representation of the Set.
 func (s Set[T]) String() string {
-	return fmt.Sprintf("%v", s)
+	return fu.String(s)
 }
 
 // Format writes a string representation of the Set into state.

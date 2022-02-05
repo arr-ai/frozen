@@ -8,8 +8,8 @@ import (
 
 	. "github.com/arr-ai/frozen/v2"
 	"github.com/arr-ai/frozen/v2/pkg/kv"
-	"github.com/arr-ai/frozen/v2/internal/pkg/test"
 	"github.com/arr-ai/frozen/v2/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
 )
 
 type mapIntInt = Map[int, int]
@@ -124,7 +124,7 @@ func TestMapNestBug(t *testing.T) {
 			"(aa: {(a: 10), (a: 11)}):{(c: 1)}",
 			"(aa: {(a: 11), (a: 10)}):{(c: 1)}",
 		}, b.String())
-	assert.True(t, value.Equal(a.Key, b.Key))
+	require.True(t, value.Equal(a.Key, b.Key))
 	assert.Equal(t, a.Hash(0) == b.Hash(0), kv.KeyEqual(a, b), "%x %x", a.Hash(0), b.Hash(0))
 
 	// The bug actually caused an endless loop, but there's not way to assert
@@ -144,6 +144,9 @@ func TestMapRedundantWithWithout(t *testing.T) {
 	}
 	for i := 5; i < 15; i++ {
 		m = m.With(i, i*i*i)
+		if !assertMapHas(t, m, i, i*i*i) {
+			return
+		}
 	}
 	for i := 20; i < 30; i++ {
 		m = m.Without(Iota2(20, 30))
@@ -163,7 +166,7 @@ func TestMapRedundantWithWithout(t *testing.T) {
 	}
 }
 
-func TestNewMapFromGoMap(t *testing.T) {
+func TestMapNewMapFromGoMap(t *testing.T) {
 	t.Parallel()
 
 	N := hugeCollectionSize()
@@ -382,7 +385,6 @@ func TestMapHashAndEqual(t *testing.T) {
 			assert.Equal(t, i == j, a.Hash(0) == b.Hash(0),
 				"i=%v j=%v a=%v b=%v a.Hash()=%v b.Hash()=%v", i, j, a, b, a.Hash(0), b.Hash(0))
 		}
-		assert.False(t, a.Equal(42))
 	}
 }
 

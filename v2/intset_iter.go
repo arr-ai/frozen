@@ -1,28 +1,28 @@
 package frozen
 
+
 // IntLess dictates the order of two elements.
-type IntLess func(a, b int) bool
+type IntLess[T integer] func(a, b T) bool
 
-type IntIterator interface {
+type IntIterator[T integer] interface {
 	Next() bool
-	Value() int
+	Value() T
 }
 
-type intSetIterator struct {
-	blockIter      *MapIterator[int, *cellBlock]
+type intSetIterator[T integer] struct {
+	blockIter      *MapIterator[T, *cellBlock]
 	block          []cellMask
-	firstIntInCell int
+	firstIntInCell T
 }
 
-func (i *intSetIterator) Next() bool {
-	if len(i.block) > 0 {
-		if i.block[0] != 0 {
-			i.block[0] &= i.block[0] - 1
-		}
-		if i.block[0] == 0 {
-			for ; len(i.block) != 0 && i.block[0] == 0; i.block = i.block[1:] {
-				i.firstIntInCell += cellBits
-			}
+func (i *intSetIterator[T]) Next() bool {
+	if len(i.block) > 0 && i.block[0] != 0 {
+		i.block[0] &= i.block[0] - 1
+	}
+
+	if len(i.block) > 0 && i.block[0] == 0 {
+		for ; len(i.block) != 0 && i.block[0] == 0; i.block = i.block[1:] {
+			i.firstIntInCell += cellBits
 		}
 	}
 
@@ -30,15 +30,15 @@ func (i *intSetIterator) Next() bool {
 		if !i.blockIter.Next() {
 			return false
 		}
-		i.firstIntInCell = i.blockIter.Key() * blockBits
-		block := i.blockIter.Value()
-		for i.block = block[:]; len(i.block) != 0 && i.block[0] == 0; i.block = i.block[1:] {
+		i.firstIntInCell = i.blockIter.Key() << blockShift
+		block := *i.blockIter.Value()
+		for i.block = block[:]; i.block[0] == 0; i.block = i.block[1:] {
 			i.firstIntInCell += cellBits
 		}
 	}
 	return len(i.block) > 0
 }
 
-func (i *intSetIterator) Value() int {
-	return i.firstIntInCell + BitIterator(i.block[0]).Index()
+func (i *intSetIterator[T]) Value() T {
+	return i.firstIntInCell + T(BitIterator(i.block[0]).Index())
 }

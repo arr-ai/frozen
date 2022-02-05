@@ -14,6 +14,18 @@ func PadFormat(f fmt.State, N int) {
 	}
 }
 
+func Sep(w io.Writer, i int, sep string) bool {
+	if i > 0 {
+		Fprint(w, sep)
+		return true
+	}
+	return false
+}
+
+func Comma(w io.Writer, i int) bool {
+	return Sep(w, i, ", ")
+}
+
 func IndentBlock(s string) string {
 	return strings.ReplaceAll(s, "\n", "\n    ")
 }

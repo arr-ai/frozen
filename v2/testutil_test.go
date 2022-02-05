@@ -88,8 +88,9 @@ func assertMapHas[K, V comparable](t *testing.T, m Map[K, V], i K, expected V) b
 	t.Helper()
 
 	v, has := m.Get(i)
-	ok1 := assert.Equal(t, has, m.Has(i))
-	ok2 := assert.True(t, has, "i=%v", i) && assert.Equal(t, expected, v, "i=%v", i)
+	ok1 := assert.Equal(t, has, m.Has(i), "has != Has(): i=%v", i)
+	ok2 := assert.True(t, has, "!has: i=%v", i) &&
+		assert.Equal(t, expected, v, "expected %v != actual %v: i=%v", expected, v, i)
 	return ok1 && ok2
 }
 

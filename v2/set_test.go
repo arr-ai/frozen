@@ -82,7 +82,7 @@ func fromStringArr(a []string) []interface{} {
 	return b
 }
 
-func TestNewSet(t *testing.T) {
+func TestSetNewSet(t *testing.T) {
 	t.Parallel()
 
 	N := 1_000
@@ -102,7 +102,7 @@ func TestNewSet(t *testing.T) {
 	}
 }
 
-func TestNewSetFromStrings(t *testing.T) {
+func TestSetNewSetFromStrings(t *testing.T) {
 	t.Parallel()
 
 	const N = 256

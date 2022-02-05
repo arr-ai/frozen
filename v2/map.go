@@ -94,7 +94,7 @@ func (m Map[K, V]) Any() (key K, value V) {
 func (m Map[K, V]) With(key K, val V) Map[K, V] {
 	kval := kv.KV(key, val)
 	return newMap(m.tree.With(
-		tree.DefaultNPKeyCombineArgs[kv.KeyValue[K, V]](),
+		defaultMapNPKeyCombineArgs[K, V](),
 		kval,
 	))
 }
@@ -108,11 +108,9 @@ func keyHash[K, V comparable](kv kv.KeyValue[K, V], seed uintptr) uintptr {
 // Without returns a new Map with all keys retained from m except the elements
 // of keys.
 func (m Map[K, V]) Without(keys Set[K]) Map[K, V] {
-	args := tree.NewEqArgs(
-		m.tree.Gauge(), kv.KeyEqual[K, V], keyHash[K, V], keyHash[K, V])
 	for i := keys.Range(); i.Next(); {
 		var zarro V
-		m.tree = m.tree.Without(args, kv.KV(i.Value(), zarro))
+		m.tree = m.tree.Without(defaultMapNPKeyEqArgs[K, V](), kv.KV(i.Value(), zarro))
 	}
 	return m
 	// TODO: Reinstate parallelisable implementation below.
@@ -269,17 +267,14 @@ func (m Map[K, V]) Hash(seed uintptr) uintptr {
 
 // Equal returns true iff i is a Map with all the same key-value pairs as this
 // Map.
-func (m Map[K, V]) Equal(i interface{}) bool {
-	if n, ok := i.(Map[K, V]); ok {
-		args := tree.NewEqArgs(
-			depth.NewGauge(m.Count()),
-			kv.KeyValueEqual[K, V],
-			keyHash[K, V],
-			keyHash[K, V],
-		)
-		return m.tree.Equal(args, n.tree)
-	}
-	return false
+func (m Map[K, V]) Equal(n Map[K, V]) bool {
+	args := tree.NewEqArgs(
+		depth.NewGauge(m.Count()),
+		kv.KeyValueEqual[K, V],
+		keyHash[K, V],
+		keyHash[K, V],
+	)
+	return m.tree.Equal(args, n.tree)
 }
 
 // String returns a string representatio of the Map.

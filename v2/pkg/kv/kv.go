@@ -37,6 +37,10 @@ func (kv KeyValue[K, V]) Format(f fmt.State, verb rune) {
 	fu.Format(kv.Value, f, verb)
 }
 
+func (kv KeyValue[K, V]) Equal(kv2 KeyValue[K, V]) bool {
+	return KeyValueEqual(kv, kv2)
+}
+
 func KeyEqual[K comparable, V comparable](a, b KeyValue[K, V]) bool {
 	return value.Equal(a.Key, b.Key)
 }
@@ -44,6 +48,12 @@ func KeyEqual[K comparable, V comparable](a, b KeyValue[K, V]) bool {
 func KeyValueEqual[K, V comparable](a, b KeyValue[K, V]) bool {
 	return value.Equal(a.Key, b.Key) && value.Equal(a.Value, b.Value)
 }
+
+type valueEquatable[T comparable] interface {
+	Equal(T) bool
+}
+
+var _ valueEquatable[KeyValue[int, int]] = KeyValue[int, int]{}
 
 // Equatable represents a type that can be compared for equality with another
 // value.
