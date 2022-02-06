@@ -1,5 +1,8 @@
 package frozen
 
+import (
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
+)
 
 // IntLess dictates the order of two elements.
 type IntLess[T integer] func(a, b T) bool
@@ -40,5 +43,5 @@ func (i *intSetIterator[T]) Next() bool {
 }
 
 func (i *intSetIterator[T]) Value() T {
-	return i.firstIntInCell + T(BitIterator(i.block[0]).Index())
+	return i.firstIntInCell + T(iterator.BitIterator(i.block[0]).Index())
 }

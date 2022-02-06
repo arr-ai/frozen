@@ -3,7 +3,8 @@ package frozen
 import (
 	"encoding/json"
 
-	"github.com/arr-ai/frozen/errors"
+	"github.com/arr-ai/frozen/v2/pkg/errors"
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 )
 
 // Iota returns Iota3(0, stop, 1).
@@ -42,7 +43,7 @@ func Iota3[T ~int](start, stop, step T) Set[T] {
 // of mask is set.
 func NewSetFromMask64(mask uint64) Set[int] {
 	var b SetBuilder[int]
-	for mask := BitIterator(mask); mask != 0; mask = mask.Next() {
+	for mask := iterator.BitIterator(mask); mask != 0; mask = mask.Next() {
 		i := mask.Index()
 		b.Add(i)
 	}

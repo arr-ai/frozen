@@ -5,6 +5,7 @@ import (
 	"math/bits"
 
 	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 )
 
 type integer interface{
@@ -91,7 +92,7 @@ func (s IntSet[I]) Any() I {
 	blockIndex, block := s.data.Any()
 	for cellIndex, cell := range block {
 		if cell != 0 {
-			bit := BitIterator(cell).Index()
+			bit := iterator.BitIterator(cell).Index()
 			return blockIndex<<blockShift + I(cellBits*cellIndex) + I(bit)
 		}
 	}

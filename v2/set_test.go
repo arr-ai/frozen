@@ -10,6 +10,7 @@ import (
 
 	. "github.com/arr-ai/frozen/v2"
 	"github.com/arr-ai/frozen/v2/pkg/kv"
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/v2/internal/pkg/test"
 	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
 )
@@ -343,9 +344,9 @@ func TestSetIsSubsetOf(t *testing.T) {
 	t.Parallel()
 
 	const N = 10
-	for i := BitIterator(0); i < N; i++ {
+	for i := iterator.BitIterator(0); i < N; i++ {
 		a := NewSetFromMask64(uint64(i))
-		for j := BitIterator(0); j < N; j++ {
+		for j := iterator.BitIterator(0); j < N; j++ {
 			b := NewSetFromMask64(uint64(j))
 			if !assert.Equal(t, i&^j == 0, a.IsSubsetOf(b)) {
 				log.Print("a: ", a)
