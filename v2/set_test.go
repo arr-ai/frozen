@@ -57,7 +57,7 @@ func compareElements[T comparable](a, b []T) (aOnly, bOnly []T) {
 }
 
 // faster that assert.ElementsMatch.
-func assertSameElements[T comparable](t *testing.T, a, b []T, msgAndArgs ...interface{}) bool {
+func assertSameElements[T comparable](t *testing.T, a, b []T, msgAndArgs ...any) bool {
 	t.Helper()
 
 	aOnly, bOnly := compareElements(a, b)
@@ -66,7 +66,7 @@ func assertSameElements[T comparable](t *testing.T, a, b []T, msgAndArgs ...inte
 	return aOK && bOK
 }
 
-func requireSameElements[T comparable](t *testing.T, a, b []T, msgAndArgs ...interface{}) {
+func requireSameElements[T comparable](t *testing.T, a, b []T, msgAndArgs ...any) {
 	t.Helper()
 
 	if !assertSameElements(t, a, b, msgAndArgs...) {
@@ -74,8 +74,8 @@ func requireSameElements[T comparable](t *testing.T, a, b []T, msgAndArgs ...int
 	}
 }
 
-func fromStringArr(a []string) []interface{} {
-	b := make([]interface{}, 0, len(a))
+func fromStringArr(a []string) []any {
+	b := make([]any, 0, len(a))
 	for _, i := range a {
 		b = append(b, i)
 	}
@@ -89,7 +89,7 @@ func TestSetNewSet(t *testing.T) {
 	if testing.Short() {
 		N /= 10
 	}
-	arr := make([]interface{}, 0, N)
+	arr := make([]any, 0, N)
 	for i := 0; i < N; i++ {
 		arr = append(arr, i)
 	}
@@ -225,18 +225,18 @@ func TestSetOrderedElements(t *testing.T) {
 func TestSetHash(t *testing.T) {
 	t.Parallel()
 
-	maps := []Set[interface{}]{
+	maps := []Set[any]{
 		{},
-		NewSet[interface{}](1, 2),
-		NewSet[interface{}](1, 3),
-		NewSet[interface{}](3, 4),
-		NewSet[interface{}](3, 5),
-		NewSet[interface{}](1, 3, 4),
-		NewSet[interface{}](1, 3, 5),
-		NewSet[interface{}](1, 2, 3, 4),
-		NewSet[interface{}](1, 2, 3, 5),
-		NewSet[interface{}](NewMap(kv.KV("cc", NewSet(NewMap(kv.KV("c", 1)))))),
-		NewSet[interface{}](NewMap(kv.KV("cc", NewSet(NewMap(kv.KV("c", 2)))))),
+		NewSet[any](1, 2),
+		NewSet[any](1, 3),
+		NewSet[any](3, 4),
+		NewSet[any](3, 5),
+		NewSet[any](1, 3, 4),
+		NewSet[any](1, 3, 5),
+		NewSet[any](1, 2, 3, 4),
+		NewSet[any](1, 2, 3, 5),
+		NewSet[any](NewMap(kv.KV("cc", NewSet(NewMap(kv.KV("c", 1)))))),
+		NewSet[any](NewMap(kv.KV("cc", NewSet(NewMap(kv.KV("c", 2)))))),
 	}
 	for i, a := range maps {
 		for j, b := range maps {
@@ -244,7 +244,7 @@ func TestSetHash(t *testing.T) {
 			assert.Equal(t, i == j, a.Hash(0) == b.Hash(0),
 				"i=%d j=%d a=%+v b=%+v a.Hash()=%v b.Hash()=%v", i, j, a, b, a.Hash(0), b.Hash(0))
 		}
-		assert.False(t, a.Equal(NewSet[interface{}](42)))
+		assert.False(t, a.Equal(NewSet[any](42)))
 	}
 }
 
@@ -419,8 +419,8 @@ func TestSetWhere(t *testing.T) {
 // func TestSetMap(t *testing.T) {
 // 	t.Parallel()
 
-// 	square := func(e interface{}) interface{} { return e.(int) * e.(int) }
-// 	div2 := func(e interface{}) interface{} { return e.(int) / 2 }
+// 	square := func(e any) any { return e.(int) * e.(int) }
+// 	div2 := func(e any) any { return e.(int) / 2 }
 // 	test.AssertSetEqual(t, Set[int]{}, Set[int]{}.Map(square))
 // 	test.AssertSetEqual(t, NewSet(1, 4, 9, 16, 25), NewSet(1, 2, 3, 4, 5).Map(square))
 // 	test.AssertSetEqual(t, NewSet(0, 1, 3), NewSet(1, 2, 3, 6).Map(div2))
@@ -429,7 +429,7 @@ func TestSetWhere(t *testing.T) {
 // func TestSetMapShrunk(t *testing.T) {
 // 	t.Parallel()
 
-// 	div2 := func(e interface{}) interface{} { return e.(int) / 2 }
+// 	div2 := func(e any) any { return e.(int) / 2 }
 // 	s := NewSet(1, 2, 3, 6)
 // 	mapped := s.Map(div2)
 // 	assert.Equal(t, 3, mapped.Count(), "%v", mapped)
@@ -439,24 +439,24 @@ func TestSetWhere(t *testing.T) {
 // 	t.Parallel()
 
 // 	s := intSet(0, 50)
-// 	// assertSetEqual(t, NewSet(42), s.Map(func(e interface{}) interface{} { return 42 }))
-// 	if !test.AssertSetEqual(t, Iota3(0, 2*s.Count(), 2), s.Map(func(e interface{}) interface{} { return 2 * e.(int) })) {
+// 	// assertSetEqual(t, NewSet(42), s.Map(func(e any) any { return 42 }))
+// 	if !test.AssertSetEqual(t, Iota3(0, 2*s.Count(), 2), s.Map(func(e any) any { return 2 * e.(int) })) {
 // 		expected := Iota3(0, 2*s.Count(), 2)
-// 		actual := s.Map(func(e interface{}) interface{} { return 2 * e.(int) })
+// 		actual := s.Map(func(e any) any { return 2 * e.(int) })
 // 		log.Print(expected)
 // 		log.Print(actual)
 // 		for {
-// 			s.Map(func(e interface{}) interface{} { return 2 * e.(int) })
+// 			s.Map(func(e any) any { return 2 * e.(int) })
 // 		}
 // 	}
-// 	test.AssertSetEqual(t, Iota(s.Count()/10), s.Map(func(e interface{}) interface{} { return e.(int) / 10 }))
+// 	test.AssertSetEqual(t, Iota(s.Count()/10), s.Map(func(e any) any { return e.(int) / 10 }))
 // }
 
 // func TestSetReduce(t *testing.T) {
 // 	t.Parallel()
 
-// 	sum := func(acc, b interface{}) interface{} { return acc.(int) + b.(int) }
-// 	product := func(acc, b interface{}) interface{} { return acc.(int) * b.(int) }
+// 	sum := func(acc, b any) any { return acc.(int) + b.(int) }
+// 	product := func(acc, b any) any { return acc.(int) * b.(int) }
 
 // 	if !assert.NotPanics(t, func() { Iota2(1, 11).Reduce2(sum) }) {
 // 		i := Iota2(1, 11)
@@ -474,7 +474,7 @@ func TestSetWhere(t *testing.T) {
 // func TestSetReduceHuge(t *testing.T) {
 // 	t.Parallel()
 
-// 	sum := func(a, b interface{}) interface{} { return a.(int) + b.(int) }
+// 	sum := func(a, b any) any { return a.(int) + b.(int) }
 
 // 	n := hugeCollectionSize()
 // 	assert.Equal(t, (n-1)*n/2, Iota(n).Reduce2(sum))
@@ -645,7 +645,7 @@ func TestSetSymmetricDifference(t *testing.T) {
 
 // 	const N = 100
 // 	const D = 7
-// 	group := Iota(N).GroupBy(func(el interface{}) interface{} {
+// 	group := Iota(N).GroupBy(func(el any) any {
 // 		return el % D
 // 	})
 // 	var b MapBuilder
@@ -753,7 +753,7 @@ func intSet(offset, size int) Set[int] {
 	return sb.Finish()
 }
 
-var prepopSetInt = memoizePrepop(func(n int) interface{} {
+var prepopSetInt = memoizePrepop(func(n int) any {
 	m := make(map[int]struct{}, n)
 	for i := 0; i < n; i++ {
 		m[i] = struct{}{}
@@ -783,8 +783,8 @@ func BenchmarkInsertSetInt1M(b *testing.B) {
 	benchmarkInsertSetInt(b, 1<<20)
 }
 
-var prepopSetInterface = memoizePrepop(func(n int) interface{} {
-	m := make(map[interface{}]struct{}, n)
+var prepopSetInterface = memoizePrepop(func(n int) any {
+	m := make(map[any]struct{}, n)
 	for i := 0; i < n; i++ {
 		m[i] = struct{}{}
 	}
@@ -794,7 +794,7 @@ var prepopSetInterface = memoizePrepop(func(n int) interface{} {
 func benchmarkInsertSetInterface(b *testing.B, n int) {
 	b.Helper()
 
-	m := prepopSetInterface(n).(map[interface{}]struct{})
+	m := prepopSetInterface(n).(map[any]struct{})
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
 		m[i] = struct{}{}
@@ -813,7 +813,7 @@ func BenchmarkInsertSetInterface1M(b *testing.B) {
 	benchmarkInsertSetInterface(b, 1<<20)
 }
 
-var prepopFrozenSet = memoizePrepop(func(n int) interface{} {
+var prepopFrozenSet = memoizePrepop(func(n int) any {
 	var s Set[int]
 	for i := 0; i < n; i++ {
 		s = s.With(i)

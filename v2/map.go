@@ -206,7 +206,7 @@ func (m Map[K, V]) Where(pred func(key K, val V) bool) Map[K, V] {
 
 // // Map returns a Map with keys from this Map, but the values replaced by the
 // // result of calling f.
-// func (m Map) Map(f func(key, val interface{}) interface{}) Map {
+// func (m Map) Map(f func(key, val any) any) Map {
 // 	var b MapBuilder
 // 	for i := m.Range(); i.Next(); {
 // 		key, val := i.Entry()
@@ -217,7 +217,7 @@ func (m Map[K, V]) Where(pred func(key K, val V) bool) Map[K, V] {
 
 // // Reduce returns the result of applying f to each key-value pair on the Map.
 // // The result of each call is used as the acc argument for the next element.
-// func (m Map) Reduce(f func(acc, key, val interface{}) interface{}, acc interface{}) interface{} {
+// func (m Map) Reduce(f func(acc, key, val any) any, acc any) any {
 // 	for i := m.Range(); i.Next(); {
 // 		acc = f(acc, i.Key(), i.Value())
 // 	}

@@ -68,12 +68,12 @@ func assertSetNotHas[T any](t *testing.T, s Set[T], i T) bool { //nolint:unparam
 func assertMapEqual[K, V any](
 	t *testing.T,
 	expected, actual Map[K, V],
-	msgAndArgs ...interface{},
+	msgAndArgs ...any,
 ) bool { //nolint:unparam
 	t.Helper()
 
 	format := "\nexpected %v != \nactual   %v"
-	args := []interface{}{}
+	args := []any{}
 	if len(msgAndArgs) > 0 {
 		format = msgAndArgs[0].(string) + format
 		args = append(append(args, format), msgAndArgs[1:]...)
@@ -103,11 +103,11 @@ func assertMapNotHas[K, V any](t *testing.T, m Map[K, V], i K) bool { //nolint:u
 	return ok1 && ok2
 }
 
-func assertStringMapEqual[V any](t *testing.T, expected, actual Map[string, V], msgAndArgs ...interface{}) bool {
+func assertStringMapEqual[V any](t *testing.T, expected, actual Map[string, V], msgAndArgs ...any) bool {
 	t.Helper()
 
 	format := "\nexpected %v != \nactual   %v"
-	args := []interface{}{}
+	args := []any{}
 	if len(msgAndArgs) > 0 {
 		format = msgAndArgs[0].(string) + format
 		args = append(append(args, format), msgAndArgs[1:]...)
@@ -118,7 +118,7 @@ func assertStringMapEqual[V any](t *testing.T, expected, actual Map[string, V], 
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertStringMapHas[V any](t *testing.T, m Map[string, V], i string, expected interface{}) bool { //nolint:unparam
+func assertStringMapHas[V any](t *testing.T, m Map[string, V], i string, expected any) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)

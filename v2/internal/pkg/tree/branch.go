@@ -346,7 +346,7 @@ var branchStringIndices = []string{
 func (b *branch[T]) Format(f fmt.State, verb rune) {
 	total := 0
 
-	printf := func(format string, args ...interface{}) {
+	printf := func(format string, args ...any) {
 		n, err := fmt.Fprintf(f, format, args...)
 		if err != nil {
 			panic(err)

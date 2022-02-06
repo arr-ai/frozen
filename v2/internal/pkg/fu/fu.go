@@ -30,7 +30,7 @@ func IndentBlock(s string) string {
 	return strings.ReplaceAll(s, "\n", "\n    ")
 }
 
-func Format(i interface{}, f fmt.State, verb rune) {
+func Format(i any, f fmt.State, verb rune) {
 	switch i := i.(type) {
 	case fmt.Formatter:
 		i.Format(f, verb)
@@ -39,19 +39,19 @@ func Format(i interface{}, f fmt.State, verb rune) {
 	}
 }
 
-func Fprint(w io.Writer, a ...interface{}) {
+func Fprint(w io.Writer, a ...any) {
 	if _, err := fmt.Fprint(w, a...); err != nil {
 		panic(err)
 	}
 }
 
-func Fprintf(w io.Writer, format string, a ...interface{}) {
+func Fprintf(w io.Writer, format string, a ...any) {
 	if _, err := fmt.Fprintf(w, format, a...); err != nil {
 		panic(err)
 	}
 }
 
-func String(i interface{}) string {
+func String(i any) string {
 	return fmt.Sprintf("%s", i)
 }
 

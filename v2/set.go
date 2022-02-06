@@ -103,7 +103,7 @@ func (s Set[T]) OrderedFirstN(n int, less tree.Less[T]) []T {
 }
 
 // First returns the first element in a defined order.
-func (s Set[T]) First(less tree.Less[T]) interface{} {
+func (s Set[T]) First(less tree.Less[T]) any {
 	for _, i := range s.OrderedFirstN(1, less) {
 		return i
 	}
@@ -213,15 +213,15 @@ func (s Set[T]) Where(pred func(elem T) bool) Set[T] {
 // // By implication, `reduce` must accept its own output as input.
 // //
 // // 'elems` will never be empty.
-// func (s Set) Reduce(reduce func(elems ...interface{}) interface{}) interface{} {
+// func (s Set) Reduce(reduce func(elems ...any) any) any {
 // 	return s.tree.Reduce(s.nodeArgs(), reduce)
 // }
 
 // // Reduce2 is a convenience wrapper for `Reduce`, allowing the caller to
 // // implement a simpler, albeit less efficient, binary `reduce` function instead
 // // of an n-adic one.
-// func (s Set) Reduce2(reduce func(a, b interface{}) interface{}) interface{} {
-// 	return s.Reduce(func(elems ...interface{}) interface{} {
+// func (s Set) Reduce2(reduce func(a, b any) any) any {
+// 	return s.Reduce(func(elems ...any) any {
 // 		acc := elems[0]
 // 		for _, elem := range elems[1:] {
 // 			acc = reduce(acc, elem)
@@ -301,7 +301,7 @@ func Powerset[T any](s Set[T]) Set[Set[T]] {
 }
 
 // // GroupBy returns a Map that groups elements in the Set by their key.
-// func (s Set) GroupBy(key func(el interface{}) interface{}) Map {
+// func (s Set) GroupBy(key func(el any) any) Map {
 // 	var builders MapBuilder
 // 	for i := s.Range(); i.Next(); {
 // 		v := i.Value()

@@ -6,11 +6,11 @@ import (
 	"github.com/arr-ai/frozen/v2"
 )
 
-func AssertSetEqual[T comparable](t *testing.T, expected, actual frozen.Set[T], msgAndArgs ...interface{}) bool {
+func AssertSetEqual[T comparable](t *testing.T, expected, actual frozen.Set[T], msgAndArgs ...any) bool {
 	t.Helper()
 
 	format := "\nexpected: %10v !=\nactual:   %10v"
-	args := []interface{}{}
+	args := []any{}
 	if len(msgAndArgs) > 0 {
 		format = msgAndArgs[0].(string) + format
 		args = append(args, msgAndArgs[1:]...)

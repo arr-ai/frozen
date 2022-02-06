@@ -70,11 +70,11 @@ func (o *ordered[T]) Swap(i, j int) {
 	o.elements[i], o.elements[j] = o.elements[j], o.elements[i]
 }
 
-func (o *ordered[T]) Push(x interface{}) {
+func (o *ordered[T]) Push(x any) {
 	o.elements = append(o.elements, x.(T))
 }
 
-func (o *ordered[T]) Pop() interface{} {
+func (o *ordered[T]) Pop() any {
 	result := o.elements[len(o.elements)-1]
 	o.elements = o.elements[:len(o.elements)-1]
 	return result

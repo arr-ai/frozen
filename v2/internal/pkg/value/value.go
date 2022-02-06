@@ -19,7 +19,7 @@ type Key[T any] interface {
 // Equal returns true iff a == b. If a or b implements Equatable, that is used
 // to perform the test.
 func Equal[T any](a, b T) bool {
-	var i, j interface{} = a, b
+	var i, j any = a, b
 	if a, ok := i.(Equatable[T]); ok {
 		return a.Equal(b)
 	}
