@@ -14,7 +14,7 @@ const (
 
 var vetFailed = false
 
-func vet[T comparable](rerun func(), ins ...*Tree[T]) func(out *Tree[T]) {
+func vet[T any](rerun func(), ins ...*Tree[T]) func(out *Tree[T]) {
 	if !vetting {
 		panic(errors.Errorf("call to (*Tree[T]).vet() not wrapped in if Vetting { ... }"))
 	}

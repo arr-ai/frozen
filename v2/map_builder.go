@@ -6,11 +6,11 @@ import (
 )
 
 // MapBuilder[K, V] provides a more efficient way to build Maps incrementally.
-type MapBuilder[K comparable, V comparable] struct {
+type MapBuilder[K any, V any] struct {
 	tb tree.Builder[kv.KeyValue[K, V]]
 }
 
-func NewMapBuilder[K comparable, V comparable](capacity int) *MapBuilder[K, V] {
+func NewMapBuilder[K any, V any](capacity int) *MapBuilder[K, V] {
 	return &MapBuilder[K, V]{tb: *tree.NewBuilder[kv.KeyValue[K, V]](capacity)}
 }
 

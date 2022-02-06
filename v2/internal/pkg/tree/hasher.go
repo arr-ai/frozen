@@ -18,7 +18,7 @@ const (
 
 type hasher uintptr
 
-func newHasher[T comparable](key T, depth int) hasher {
+func newHasher[T any](key T, depth int) hasher {
 	return hasher(hash.Interface(key, 0)) << uint(depth*fanoutBits)
 }
 

@@ -8,11 +8,11 @@ import (
 	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 )
 
-type leaf2[T comparable] struct {
+type leaf2[T any] struct {
 	data [2]T
 }
 
-func newLeaf2[T comparable](a, b T) *leaf2[T] {
+func newLeaf2[T any](a, b T) *leaf2[T] {
 	return &leaf2[T]{data: [2]T{a, b}}
 }
 

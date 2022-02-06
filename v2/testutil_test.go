@@ -53,19 +53,19 @@ func memoizePrepop[T any](prepare func(n int) T) func(n int) T {
 // 	return
 // }
 
-func assertSetHas[T comparable](t *testing.T, s Set[T], i T) bool { //nolint:unparam
+func assertSetHas[T any](t *testing.T, s Set[T], i T) bool { //nolint:unparam
 	t.Helper()
 
 	return assert.True(t, s.Has(i), "i=%v", i)
 }
 
-func assertSetNotHas[T comparable](t *testing.T, s Set[T], i T) bool { //nolint:unparam
+func assertSetNotHas[T any](t *testing.T, s Set[T], i T) bool { //nolint:unparam
 	t.Helper()
 
 	return assert.False(t, s.Has(i), "i=%v", i)
 }
 
-func assertMapEqual[K, V comparable](
+func assertMapEqual[K, V any](
 	t *testing.T,
 	expected, actual Map[K, V],
 	msgAndArgs ...interface{},
@@ -84,7 +84,7 @@ func assertMapEqual[K, V comparable](
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertMapHas[K, V comparable](t *testing.T, m Map[K, V], i K, expected V) bool { //nolint:unparam
+func assertMapHas[K, V any](t *testing.T, m Map[K, V], i K, expected V) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -94,7 +94,7 @@ func assertMapHas[K, V comparable](t *testing.T, m Map[K, V], i K, expected V) b
 	return ok1 && ok2
 }
 
-func assertMapNotHas[K, V comparable](t *testing.T, m Map[K, V], i K) bool { //nolint:unparam
+func assertMapNotHas[K, V any](t *testing.T, m Map[K, V], i K) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -103,7 +103,7 @@ func assertMapNotHas[K, V comparable](t *testing.T, m Map[K, V], i K) bool { //n
 	return ok1 && ok2
 }
 
-func assertStringMapEqual[V comparable](t *testing.T, expected, actual Map[string, V], msgAndArgs ...interface{}) bool {
+func assertStringMapEqual[V any](t *testing.T, expected, actual Map[string, V], msgAndArgs ...interface{}) bool {
 	t.Helper()
 
 	format := "\nexpected %v != \nactual   %v"
@@ -118,7 +118,7 @@ func assertStringMapEqual[V comparable](t *testing.T, expected, actual Map[strin
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertStringMapHas[V comparable](t *testing.T, m Map[string, V], i string, expected interface{}) bool { //nolint:unparam
+func assertStringMapHas[V any](t *testing.T, m Map[string, V], i string, expected interface{}) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -127,7 +127,7 @@ func assertStringMapHas[V comparable](t *testing.T, m Map[string, V], i string, 
 	return ok1 && ok2
 }
 
-func assertStringMapNotHas[V comparable](t *testing.T, m Map[string, V], i string) bool { //nolint:unparam
+func assertStringMapNotHas[V any](t *testing.T, m Map[string, V], i string) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)

@@ -10,13 +10,13 @@ import (
 )
 
 // KeyValue[K, V] represents a key-value pair for insertion into a Map.
-type KeyValue[K comparable, V comparable] struct {
+type KeyValue[K any, V any] struct {
 	Key K
 	Value V
 }
 
 // KV creates a KeyValue[K, V].
-func KV[K comparable, V comparable](key K, val V) KeyValue[K, V] {
+func KV[K any, V any](key K, val V) KeyValue[K, V] {
 	return KeyValue[K, V]{Key: key, Value: val}
 }
 
@@ -41,15 +41,15 @@ func (kv KeyValue[K, V]) Equal(kv2 KeyValue[K, V]) bool {
 	return KeyValueEqual(kv, kv2)
 }
 
-func KeyEqual[K comparable, V comparable](a, b KeyValue[K, V]) bool {
+func KeyEqual[K any, V any](a, b KeyValue[K, V]) bool {
 	return value.Equal(a.Key, b.Key)
 }
 
-func KeyValueEqual[K, V comparable](a, b KeyValue[K, V]) bool {
+func KeyValueEqual[K, V any](a, b KeyValue[K, V]) bool {
 	return value.Equal(a.Key, b.Key) && value.Equal(a.Value, b.Value)
 }
 
-type valueEquatable[T comparable] interface {
+type valueEquatable[T any] interface {
 	Equal(T) bool
 }
 
@@ -57,7 +57,7 @@ var _ valueEquatable[KeyValue[int, int]] = KeyValue[int, int]{}
 
 // Equatable represents a type that can be compared for equality with another
 // value.
-type Equatable[K comparable, V comparable] interface {
+type Equatable[K any, V any] interface {
 	Equal(KeyValue[K, V]) bool
 }
 
@@ -69,6 +69,6 @@ type Equatable[K comparable, V comparable] interface {
 
 // Equal returns true iff a == b. If a or b implements Equatable, that is used
 // to perform the test.
-func Equal[K comparable, V comparable](a, b KeyValue[K, V]) bool {
+func Equal[K any, V any](a, b KeyValue[K, V]) bool {
 	return value.Equal(a.Key, b.Key)
 }

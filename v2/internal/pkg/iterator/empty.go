@@ -5,9 +5,9 @@ import (
 )
 
 // Empty is the empty iterator.
-func Empty[T comparable]() Iterator[T] { return empty[T]{} }
+func Empty[T any]() Iterator[T] { return empty[T]{} }
 
-type empty[T comparable] struct{}
+type empty[T any] struct{}
 
 func (empty[T]) Next() bool {
 	return false

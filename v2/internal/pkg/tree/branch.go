@@ -16,16 +16,16 @@ const (
 )
 
 // UseRHS returns its RHS arg.
-func UseRHS[T comparable](_, b T) T { return b }
+func UseRHS[T any](_, b T) T { return b }
 
 // UseLHS returns its LHS arg.
-func UseLHS[T comparable](a, _ T) T { return a }
+func UseLHS[T any](a, _ T) T { return a }
 
-type branch[T comparable] struct {
+type branch[T any] struct {
 	p packer[T]
 }
 
-func newBranch[T comparable](p *packer[T]) *branch[T] {
+func newBranch[T any](p *packer[T]) *branch[T] {
 	b := &branch[T]{}
 	if p != nil {
 		b.p = *p
@@ -33,7 +33,7 @@ func newBranch[T comparable](p *packer[T]) *branch[T] {
 	return b
 }
 
-func newBranchFrom[T comparable](depth int, data ...T) node[T] {
+func newBranchFrom[T any](depth int, data ...T) node[T] {
 	if depth >= maxTreeDepth {
 		return newTwig(data...)
 	}

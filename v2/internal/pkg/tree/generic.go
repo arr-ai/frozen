@@ -7,14 +7,14 @@ import (
 	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
-func elementEqual[T comparable](a, b T) bool {
+func elementEqual[T any](a, b T) bool {
 	return value.Equal(a, b)
 }
 
-func hashValue[T comparable](i T, seed uintptr) uintptr {
+func hashValue[T any](i T, seed uintptr) uintptr {
 	return hash.Interface(i, seed)
 }
 
-func newSliceIterator[T comparable](slice []T) iterator.Iterator[T] {
+func newSliceIterator[T any](slice []T) iterator.Iterator[T] {
 	return iterator.NewSliceIterator(slice)
 }

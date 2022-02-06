@@ -13,18 +13,18 @@ import (
 )
 
 // Set holds a set of values of type T. The zero value is the empty Set.
-type Set[T comparable] struct {
+type Set[T any] struct {
 	tree tree.Tree[T]
 }
 
 var _ value.Key[Set[int]] = Set[int]{}
 
-func newSet[T comparable](tree tree.Tree[T]) Set[T] {
+func newSet[T any](tree tree.Tree[T]) Set[T] {
 	return Set[T]{tree: tree}
 }
 
 // NewSet creates a new Set with values as elements.
-func NewSet[T comparable](values ...T) Set[T] {
+func NewSet[T any](values ...T) Set[T] {
 	b := NewSetBuilder[T](len(values))
 	for _, value := range values {
 		b.Add(value)
@@ -196,7 +196,7 @@ func (s Set[T]) Where(pred func(elem T) bool) Set[T] {
 }
 
 // // Map returns a Set with all the results of applying f to all elements in s.
-// func SetMap[T, U comparable](s Set, f func(elem T) U) Set[U] {
+// func SetMap[T, U any](s Set, f func(elem T) U) Set[U] {
 // 	args := tree.NewCombineArgs(s.eqArgs(), tree.UseRHS)
 // 	return Set[U]{tree: s.tree.Map(args, f)}
 // }
@@ -255,7 +255,7 @@ func (s Set[T]) SymmetricDifference(t Set[T]) Set[T] {
 	return st.Union(ts)
 }
 
-func Powerset[T comparable](s Set[T]) Set[Set[T]] {
+func Powerset[T any](s Set[T]) Set[Set[T]] {
 	n := s.Count()
 	if n > 63 {
 		panic("set too large")

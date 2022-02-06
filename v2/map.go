@@ -14,37 +14,37 @@ import (
 	"github.com/arr-ai/frozen/v2/pkg/kv"
 )
 
-func defaultMapNPKeyEqArgs[K, V comparable]() *tree.EqArgs[kv.KeyValue[K, V]] {
+func defaultMapNPKeyEqArgs[K, V any]() *tree.EqArgs[kv.KeyValue[K, V]] {
 	return newDefaultMapKeyEqArgs[K, V](depth.NonParallel)
 }
 
-func defaultMapNPKeyCombineArgs[K, V comparable]() *tree.CombineArgs[kv.KeyValue[K, V]] {
+func defaultMapNPKeyCombineArgs[K, V any]() *tree.CombineArgs[kv.KeyValue[K, V]] {
 	return tree.NewCombineArgs(defaultMapNPKeyEqArgs[K, V](), tree.UseRHS[kv.KeyValue[K, V]])
 }
 
-func newDefaultMapKeyEqArgs[K, V comparable](gauge depth.Gauge) *tree.EqArgs[kv.KeyValue[K, V]] {
+func newDefaultMapKeyEqArgs[K, V any](gauge depth.Gauge) *tree.EqArgs[kv.KeyValue[K, V]] {
 	return tree.NewEqArgs[kv.KeyValue[K, V]](gauge, mapElementEqual[K, V], mapHashValue[K, V], mapHashValue[K, V])
 }
 
-func mapElementEqual[K, V comparable](a, b kv.KeyValue[K, V]) bool {
+func mapElementEqual[K, V any](a, b kv.KeyValue[K, V]) bool {
 	return value.Equal(a.Key, b.Key)
 }
 
-func mapHashValue[K, V comparable](v kv.KeyValue[K, V], seed uintptr) uintptr {
+func mapHashValue[K, V any](v kv.KeyValue[K, V], seed uintptr) uintptr {
 	return hash.Interface(v.Key, seed)
 }
 
 // Map maps keys to values. The zero value is the empty Map.
-type Map[K comparable, V comparable] struct {
+type Map[K any, V any] struct {
 	tree tree.Tree[kv.KeyValue[K, V]]
 }
 
-func newMap[K comparable, V comparable](tree tree.Tree[kv.KeyValue[K, V]]) Map[K, V] {
+func newMap[K any, V any](tree tree.Tree[kv.KeyValue[K, V]]) Map[K, V] {
 	return Map[K, V]{tree: tree}
 }
 
 // NewMap creates a new Map with kvs as keys and values.
-func NewMap[K comparable, V comparable](kvs ...kv.KeyValue[K, V]) Map[K, V] {
+func NewMap[K any, V any](kvs ...kv.KeyValue[K, V]) Map[K, V] {
 	b := NewMapBuilder[K, V](len(kvs))
 	for _, kv := range kvs {
 		b.Put(kv.Key, kv.Value)
@@ -53,7 +53,7 @@ func NewMap[K comparable, V comparable](kvs ...kv.KeyValue[K, V]) Map[K, V] {
 }
 
 // NewMapFromKeys creates a new Map in which values are computed from keys.
-func NewMapFromKeys[K comparable, V comparable](keys Set[K], f func(key K) V) Map[K, V] {
+func NewMapFromKeys[K any, V any](keys Set[K], f func(key K) V) Map[K, V] {
 	b := NewMapBuilder[K, V](keys.Count())
 	for i := keys.Range(); i.Next(); {
 		val := i.Value()
@@ -63,7 +63,7 @@ func NewMapFromKeys[K comparable, V comparable](keys Set[K], f func(key K) V) Ma
 }
 
 // NewMapFromGoMap takes a map[K]V and returns a frozen Map from it.
-func NewMapFromGoMap[K comparable, V comparable](m map[K]V) Map[K, V] {
+func NewMapFromGoMap[K comparable, V any](m map[K]V) Map[K, V] {
 	mb := NewMapBuilder[K, V](len(m))
 	for k, v := range m {
 		mb.Put(k, v)
@@ -101,7 +101,7 @@ func (m Map[K, V]) With(key K, val V) Map[K, V] {
 
 
 // keyHash hashes using the KeyValue's own key.
-func keyHash[K, V comparable](kv kv.KeyValue[K, V], seed uintptr) uintptr {
+func keyHash[K, V any](kv kv.KeyValue[K, V], seed uintptr) uintptr {
 	return kv.Hash(seed)
 }
 
@@ -307,7 +307,7 @@ func (m Map[K, V]) DebugReport(debug.Tag) string {
 }
 
 // MapIterator provides for iterating over a Map.
-type MapIterator[K comparable, V comparable] struct {
+type MapIterator[K any, V any] struct {
 	i  iterator.Iterator[kv.KeyValue[K, V]]
 	kv kv.KeyValue[K, V]
 }

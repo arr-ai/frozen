@@ -6,24 +6,24 @@ import (
 	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
 )
 
-func DefaultNPKeyEqArgs[T comparable]() *EqArgs[T] {
+func DefaultNPKeyEqArgs[T any]() *EqArgs[T] {
 	return NewDefaultKeyEqArgs[T](depth.NonParallel)
 }
 
-func DefaultNPKeyCombineArgs[T comparable]() *CombineArgs[T] {
+func DefaultNPKeyCombineArgs[T any]() *CombineArgs[T] {
 	return NewCombineArgs(DefaultNPKeyEqArgs[T](), UseRHS[T])
 }
 
-func NewDefaultKeyEqArgs[T comparable](gauge depth.Gauge) *EqArgs[T] {
+func NewDefaultKeyEqArgs[T any](gauge depth.Gauge) *EqArgs[T] {
 	return NewEqArgs[T](gauge, elementEqual[T], hashValue[T], hashValue[T])
 }
 
 // Builder[T] provides a more efficient way to build nodes incrementally.
-type Builder[T comparable] struct {
+type Builder[T any] struct {
 	t Tree[T]
 }
 
-func NewBuilder[T comparable](capacity int) *Builder[T] {
+func NewBuilder[T any](capacity int) *Builder[T] {
 	return &Builder[T]{}
 }
 

@@ -11,17 +11,17 @@ import (
 	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 )
 
-func packedIteratorBuf[T comparable](count int) [][]node[T] {
+func packedIteratorBuf[T any](count int) [][]node[T] {
 	depth := (bits.Len64(uint64(count)) + 1) * 3 / 2 // 1.5 (log₈(count) + 1)
 	return make([][]node[T], 0, depth)
 }
 
-type Tree[T comparable] struct {
+type Tree[T any] struct {
 	root  node[T]
 	count int
 }
 
-func newTree[T comparable](n node[T], count int) (out Tree[T]) {
+func newTree[T any](n node[T], count int) (out Tree[T]) {
 	return Tree[T]{root: n, count: count}
 }
 

@@ -6,7 +6,7 @@ import (
 	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 )
 
-type node[T comparable] interface {
+type node[T any] interface {
 	fmt.Formatter
 	fmt.Stringer
 

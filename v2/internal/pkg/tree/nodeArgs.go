@@ -5,13 +5,13 @@ import (
 )
 
 // DefaultNPEqArgs provides default equality with non-parallel behaviour.
-func DefaultNPEqArgs[T comparable]() *EqArgs[T] {
+func DefaultNPEqArgs[T any]() *EqArgs[T] {
 	return NewDefaultEqArgs[T](depth.NonParallel)
 }
 
 // DefaultNPCombineArgs provides default combiner with non-parallel
 // behaviour.
-func DefaultNPCombineArgs[T comparable]() *CombineArgs[T] {
+func DefaultNPCombineArgs[T any]() *CombineArgs[T] {
 	return NewCombineArgs[T](DefaultNPEqArgs[T](), UseRHS[T])
 }
 
@@ -25,7 +25,7 @@ func NewNodeArgs(gauge depth.Gauge) NodeArgs {
 	}
 }
 
-type CombineArgs[T comparable] struct {
+type CombineArgs[T any] struct {
 	*EqArgs[T]
 
 	f func(a, b T) T
@@ -33,7 +33,7 @@ type CombineArgs[T comparable] struct {
 	flipped *CombineArgs[T]
 }
 
-func NewCombineArgs[T comparable](ea *EqArgs[T], combine func(a, b T) T) *CombineArgs[T] {
+func NewCombineArgs[T any](ea *EqArgs[T], combine func(a, b T) T) *CombineArgs[T] {
 	return &CombineArgs[T]{EqArgs: ea, f: combine}
 }
 
@@ -49,7 +49,7 @@ func (a *CombineArgs[T]) Flip() *CombineArgs[T] {
 	return a.flipped
 }
 
-type EqArgs[T comparable] struct {
+type EqArgs[T any] struct {
 	NodeArgs
 
 	eq func(a, b T) bool
@@ -59,7 +59,7 @@ type EqArgs[T comparable] struct {
 	flipped *EqArgs[T]
 }
 
-func NewEqArgs[T comparable](
+func NewEqArgs[T any](
 	gauge depth.Gauge,
 	eq func(a, b T) bool,
 	lhash, rhash func(a T, seed uintptr) uintptr,
@@ -73,7 +73,7 @@ func NewEqArgs[T comparable](
 	}
 }
 
-func NewDefaultEqArgs[T comparable](gauge depth.Gauge) *EqArgs[T] {
+func NewDefaultEqArgs[T any](gauge depth.Gauge) *EqArgs[T] {
 	return NewEqArgs[T](gauge, elementEqual[T], hashValue[T], hashValue[T])
 }
 
@@ -91,7 +91,7 @@ func (a *EqArgs[T]) Flip() *EqArgs[T] {
 	return a.flipped
 }
 
-type WhereArgs[T comparable] struct {
+type WhereArgs[T any] struct {
 	NodeArgs
 
 	Pred func(elem T) bool
