@@ -39,7 +39,7 @@ func (b *MapBuilder[K, V]) Has(key K) bool {
 // not found.
 func (b *MapBuilder[K, V]) Get(key K) (V, bool) {
 	var zarro V
-	if entry := b.tb.Get(tree.DefaultNPKeyEqArgs[kv.KeyValue[K, V]](), kv.KV(key, zarro)); entry != nil {
+	if entry := b.tb.Get(defaultMapNPKeyEqArgs[K, V](), kv.KV(key, zarro)); entry != nil {
 		return entry.Value, true
 	}
 	var v V
@@ -49,5 +49,5 @@ func (b *MapBuilder[K, V]) Get(key K) (V, bool) {
 // Finish returns a Map containing all entries added since the MapBuilder[K, V] was
 // initialised or the last call to Finish.
 func (b *MapBuilder[K, V]) Finish() Map[K, V] {
-	return newMap[K, V](b.tb.Finish())
+	return newMap(b.tb.Finish())
 }

@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	. "github.com/arr-ai/frozen/v2"
-	"github.com/arr-ai/frozen/v2/pkg/kv"
 	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/v2/internal/pkg/test"
 	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2/pkg/kv"
 )
 
 func largeIntSet() Set[int] {
@@ -75,14 +75,6 @@ func requireSameElements[T comparable](t *testing.T, a, b []T, msgAndArgs ...any
 	}
 }
 
-func fromStringArr(a []string) []any {
-	b := make([]any, 0, len(a))
-	for _, i := range a {
-		b = append(b, i)
-	}
-	return b
-}
-
 func TestSetNewSet(t *testing.T) {
 	t.Parallel()
 
@@ -90,7 +82,7 @@ func TestSetNewSet(t *testing.T) {
 	if testing.Short() {
 		N /= 10
 	}
-	arr := make([]any, 0, N)
+	arr := make([]int, 0, N)
 	for i := 0; i < N; i++ {
 		arr = append(arr, i)
 	}
@@ -113,7 +105,7 @@ func TestSetNewSetFromStrings(t *testing.T) {
 	}
 
 	for i := N - 1; i >= 0; i-- {
-		assertSameElements(t, fromStringArr(arr[i:]), NewSet(fromStringArr(arr[i:])...).Elements())
+		assertSameElements(t, arr[i:], NewSet(arr[i:]...).Elements())
 	}
 }
 
@@ -417,69 +409,74 @@ func TestSetWhere(t *testing.T) {
 	test.AssertSetEqual(t, NewSet(1, 5, 7), s.Where(not(multipleOf(3))).Where(not(multipleOf(2))))
 }
 
-// func TestSetMap(t *testing.T) {
-// 	t.Parallel()
+func TestSetMap(t *testing.T) {
+	t.Parallel()
 
-// 	square := func(e any) any { return e.(int) * e.(int) }
-// 	div2 := func(e any) any { return e.(int) / 2 }
-// 	test.AssertSetEqual(t, Set[int]{}, Set[int]{}.Map(square))
-// 	test.AssertSetEqual(t, NewSet(1, 4, 9, 16, 25), NewSet(1, 2, 3, 4, 5).Map(square))
-// 	test.AssertSetEqual(t, NewSet(0, 1, 3), NewSet(1, 2, 3, 6).Map(div2))
-// }
+	square := func(e int) int { return e * e }
+	div2 := func(e int) int { return e / 2 }
+	test.AssertSetEqual(t, Set[int]{}, SetMap(Set[int]{}, square))
+	test.AssertSetEqual(t, NewSet(1, 4, 9, 16, 25), SetMap(NewSet(1, 2, 3, 4, 5), square))
+	test.AssertSetEqual(t, NewSet(0, 1, 3), SetMap(NewSet(1, 2, 3, 6), div2))
+}
 
-// func TestSetMapShrunk(t *testing.T) {
-// 	t.Parallel()
+func TestSetMapShrunk(t *testing.T) {
+	t.Parallel()
 
-// 	div2 := func(e any) any { return e.(int) / 2 }
-// 	s := NewSet(1, 2, 3, 6)
-// 	mapped := s.Map(div2)
-// 	assert.Equal(t, 3, mapped.Count(), "%v", mapped)
-// }
+	div2 := func(e int) int { return e / 2 }
+	s := NewSet(1, 2, 3, 6)
+	mapped := SetMap(s, div2)
+	assert.Equal(t, 3, mapped.Count(), "%v", mapped)
+}
 
-// func TestSetMapLarge(t *testing.T) {
-// 	t.Parallel()
+func TestSetMapLarge(t *testing.T) {
+	t.Parallel()
 
-// 	s := intSet(0, 50)
-// 	// assertSetEqual(t, NewSet(42), s.Map(func(e any) any { return 42 }))
-// 	if !test.AssertSetEqual(t, Iota3(0, 2*s.Count(), 2), s.Map(func(e any) any { return 2 * e.(int) })) {
-// 		expected := Iota3(0, 2*s.Count(), 2)
-// 		actual := s.Map(func(e any) any { return 2 * e.(int) })
-// 		log.Print(expected)
-// 		log.Print(actual)
-// 		for {
-// 			s.Map(func(e any) any { return 2 * e.(int) })
-// 		}
-// 	}
-// 	test.AssertSetEqual(t, Iota(s.Count()/10), s.Map(func(e any) any { return e.(int) / 10 }))
-// }
+	s := intSet(0, 50)
+	// assertSetEqual(t, NewSet(42), s.Map(func(e any) any { return 42 }))
+	if !test.AssertSetEqual(t, Iota3(0, 2*s.Count(), 2), SetMap(s, func(e int) int { return 2 * e })) {
+		expected := Iota3(0, 2*s.Count(), 2)
+		actual := SetMap(s, func(e int) int { return 2 * e })
+		log.Print(expected)
+		log.Print(actual)
+		for {
+			SetMap(s, func(e int) int { return 2 * e })
+		}
+	}
+	test.AssertSetEqual(t, Iota(s.Count()/10), SetMap(s, func(e int) int { return e / 10 }))
+}
 
-// func TestSetReduce(t *testing.T) {
-// 	t.Parallel()
+func TestSetReduce(t *testing.T) {
+	t.Parallel()
 
-// 	sum := func(acc, b any) any { return acc.(int) + b.(int) }
-// 	product := func(acc, b any) any { return acc.(int) * b.(int) }
+	sum := func(acc, b int) int { return acc + b }
+	product := func(acc, b int) int { return acc * b }
 
-// 	if !assert.NotPanics(t, func() { Iota2(1, 11).Reduce2(sum) }) {
-// 		i := Iota2(1, 11)
-// 		i.Reduce2(sum)
-// 	}
+	if !assert.NotPanics(t, func() { Iota2(1, 11).Reduce2(sum) }) {
+		i := Iota2(1, 11)
+		i.Reduce2(sum)
+	}
 
-// 	assert.Equal(t, 42, NewSet(42).Reduce2(sum))
-// 	assert.Equal(t, 42, NewSet(42).Reduce2(product))
-// 	assert.Equal(t, 12, NewSet(5, 7).Reduce2(sum))
-// 	assert.Equal(t, 35, NewSet(5, 7).Reduce2(product))
-// 	assert.Equal(t, 55, Iota2(1, 11).Reduce2(sum))
-// 	assert.Equal(t, 720, Iota2(2, 7).Reduce2(product))
-// }
+	assertReduce2 := func(expected int, s Set[int], f func(acc, b int) int) bool {
+		actual, ok := s.Reduce2(f)
+		return assert.True(t, ok) && assert.Equal(t, expected, actual)
+	}
+	assertReduce2(42, NewSet(42), sum)
+	assertReduce2(42, NewSet(42), product)
+	assertReduce2(12, NewSet(5, 7), sum)
+	assertReduce2(35, NewSet(5, 7), product)
+	assertReduce2(55, Iota2(1, 11), sum)
+	assertReduce2(720, Iota2(2, 7), product)
+}
 
-// func TestSetReduceHuge(t *testing.T) {
-// 	t.Parallel()
+func TestSetReduceHuge(t *testing.T) {
+	t.Parallel()
 
-// 	sum := func(a, b any) any { return a.(int) + b.(int) }
+	sum := func(a, b int) int { return a + b }
 
-// 	n := hugeCollectionSize()
-// 	assert.Equal(t, (n-1)*n/2, Iota(n).Reduce2(sum))
-// }
+	n := hugeCollectionSize()
+	actual, ok := Iota(n).Reduce2(sum)
+	_ = assert.True(t, ok) && assert.Equal(t, (n-1)*n/2, actual)
+}
 
 func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set[int]) Set[int]) { //nolint:cyclop
 	t.Helper()
@@ -602,59 +599,59 @@ func TestSetSymmetricDifference(t *testing.T) {
 	)
 }
 
-// func TestSetPowerset(t *testing.T) {
-// 	t.Parallel()
+func TestSetPowerset(t *testing.T) {
+	t.Parallel()
 
-// 	expected := NewSet(
-// 		NewSet(),
-// 		NewSet(3),
-// 		NewSet(2),
-// 		NewSet(2, 3),
-// 		NewSet(1),
-// 		NewSet(1, 3),
-// 		NewSet(1, 2),
-// 		NewSet(1, 2, 3),
-// 	)
-// 	actual := NewSet(1, 2, 3).Powerset()
-// 	if !test.AssertSetEqual(t, expected, actual, "%v", mapOfSet{"expected": expected, "actual": actual}) {
-// 		log.Print("expected: ", expected)
-// 		log.Print("actual:   ", actual)
-// 		expected.Equal(actual)
-// 	}
-// }
+	expected := NewSet(
+		NewSet[int](),
+		NewSet(3),
+		NewSet(2),
+		NewSet(2, 3),
+		NewSet(1),
+		NewSet(1, 3),
+		NewSet(1, 2),
+		NewSet(1, 2, 3),
+	)
+	actual := Powerset(NewSet(1, 2, 3))
+	if !assert.True(t, expected.Equal(actual), "%v", map[string]Set[Set[int]]{"expected": expected, "actual": actual}) {
+		log.Print("expected: ", expected)
+		log.Print("actual:   ", actual)
+		expected.Equal(actual)
+	}
+}
 
-// func TestSetPowersetLarge(t *testing.T) {
-// 	t.Parallel()
+func TestSetPowersetLarge(t *testing.T) {
+	t.Parallel()
 
-// 	expected := NewSet()
-// 	var b SetBuilder
-// 	bits := 15
-// 	if testing.Short() {
-// 		bits -= 3
-// 	}
-// 	for i := BitIterator(0); i <= 1<<bits; i++ {
-// 		if i.Count() == 1 {
-// 			expected = expected.Union(b.Finish())
-// 			test.AssertSetEqual(t, expected, NewSetFromMask64(uint64(i-1)).Powerset(), "i=%v", i)
-// 		}
-// 		b.Add(NewSetFromMask64(uint64(i)))
-// 	}
-// }
+	expected := NewSet[Set[int]]()
+	var b SetBuilder[Set[int]]
+	bits := 15
+	if testing.Short() {
+		bits -= 3
+	}
+	for i := iterator.BitIterator(0); i <= 1<<bits; i++ {
+		if i.Count() == 1 {
+			expected = expected.Union(b.Finish())
+			assert.True(t, expected.Equal(Powerset(NewSetFromMask64(uint64(i-1)))), "i=%v", i)
+		}
+		b.Add(NewSetFromMask64(uint64(i)))
+	}
+}
 
-// func TestSetGroupBy(t *testing.T) {
-// 	t.Parallel()
+func TestSetGroupBy(t *testing.T) {
+	t.Parallel()
 
-// 	const N = 100
-// 	const D = 7
-// 	group := Iota(N).GroupBy(func(el any) any {
-// 		return el % D
-// 	})
-// 	var b MapBuilder
-// 	for i := 0; i < D; i++ {
-// 		b.Put(i, Iota3(i, N, D))
-// 	}
-// 	assertMapEqual(t, b.Finish(), group)
-// }
+	const N = 100
+	const D = 7
+	group := SetGroupBy(Iota(N), func(el int) int {
+		return el % D
+	})
+	var b MapBuilder[int, Set[int]]
+	for i := 0; i < D; i++ {
+		b.Put(i, Iota3(i, N, D))
+	}
+	assertMapEqual(t, b.Finish(), group)
+}
 
 func TestSetRange(t *testing.T) {
 	t.Parallel()

@@ -2,6 +2,7 @@ package frozen
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/arr-ai/hash"
 
@@ -112,7 +113,7 @@ func (s Set[T]) First(less tree.Less[T]) any {
 
 // FirstN returns a set of the first n elements in a defined order.
 func (s Set[T]) FirstN(n int, less tree.Less[T]) Set[T] {
-	return NewSet[T](s.OrderedFirstN(n, less)...)
+	return NewSet(s.OrderedFirstN(n, less)...)
 }
 
 // String returns a string representation of the Set.
@@ -196,39 +197,39 @@ func (s Set[T]) Where(pred func(elem T) bool) Set[T] {
 }
 
 // // Map returns a Set with all the results of applying f to all elements in s.
-// func SetMap[T, U any](s Set, f func(elem T) U) Set[U] {
-// 	args := tree.NewCombineArgs(s.eqArgs(), tree.UseRHS)
-// 	return Set[U]{tree: s.tree.Map(args, f)}
-// }
+func SetMap[T, U any](s Set[T], f func(elem T) U) Set[U] {
+	args := tree.NewCombineArgs(tree.NewDefaultEqArgs[U](depth.NewGauge(s.Count())), tree.UseRHS[U])
+	return Set[U]{tree: tree.TreeMap(s.tree, args, f)}
+}
 
-// // Reduce returns the result of applying `reduce` to the elements of `s` or
-// // `nil` if `s.IsEmpty()`. The result of each call is used as the acc argument
-// // for the next element.
-// //
-// // The `reduce` function must have the following properties:
-// //
-// //   - commutative: `reduce(a, b, c) == reduce(c, a, b)`
-// //   - associative: `reduce(reduce(a, b), c) == reduce(a, reduce(b, c))`
-// //
-// // By implication, `reduce` must accept its own output as input.
-// //
-// // 'elems` will never be empty.
-// func (s Set) Reduce(reduce func(elems ...any) any) any {
-// 	return s.tree.Reduce(s.nodeArgs(), reduce)
-// }
+// Reduce returns the result of applying reduce to the elements of s or
+// false if s.IsEmpty(). The result of each call is used as the acc argument
+// for the next element.
+//
+// The reduce function must have the following properties:
+//
+//   - commutative: reduce(a, b, c) == reduce(c, a, b)
+//   - associative: reduce(reduce(a, b), c) == reduce(a, reduce(b, c))
+//
+// By implication, reduce must accept its own output as input.
+//
+// elems will never be empty.
+func (s Set[T]) Reduce(reduce func(elems ...T) T) (T, bool) {
+	return s.tree.Reduce(s.nodeArgs(), reduce)
+}
 
-// // Reduce2 is a convenience wrapper for `Reduce`, allowing the caller to
-// // implement a simpler, albeit less efficient, binary `reduce` function instead
-// // of an n-adic one.
-// func (s Set) Reduce2(reduce func(a, b any) any) any {
-// 	return s.Reduce(func(elems ...any) any {
-// 		acc := elems[0]
-// 		for _, elem := range elems[1:] {
-// 			acc = reduce(acc, elem)
-// 		}
-// 		return acc
-// 	})
-// }
+// Reduce2 is a convenience wrapper for `Reduce`, allowing the caller to
+// implement a simpler, albeit less efficient, binary `reduce` function instead
+// of an n-adic one.
+func (s Set[T]) Reduce2(reduce func(a, b T) T) (T, bool) {
+	return s.Reduce(func(elems ...T) T {
+		acc := elems[0]
+		for _, elem := range elems[1:] {
+			acc = reduce(acc, elem)
+		}
+		return acc
+	})
+}
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set[T]) Intersection(t Set[T]) Set[T] {
@@ -300,25 +301,26 @@ func Powerset[T any](s Set[T]) Set[Set[T]] {
 	return result
 }
 
-// // GroupBy returns a Map that groups elements in the Set by their key.
-// func (s Set) GroupBy(key func(el any) any) Map {
-// 	var builders MapBuilder
-// 	for i := s.Range(); i.Next(); {
-// 		v := i.Value()
-// 		k := key(v)
-// 		var b *SetBuilder
-// 		if builder, has := builders.Get(k); has {
-// 			b = builder.(*SetBuilder)
-// 		} else {
-// 			b = &SetBuilder{}
-// 			builders.Put(k, b)
-// 		}
-// 		b.Add(v)
-// 	}
-// 	var result MapBuilder
-// 	fb := builders.Finish()
-// 	for i := fb.Range(); i.Next(); {
-// 		result.Put(i.Key(), i.Value().(*SetBuilder).Finish())
-// 	}
-// 	return result.Finish()
-// }
+// GroupBy returns a Map that groups elements in the Set by their key.
+func SetGroupBy[T, K any](s Set[T], key func(el T) K) Map[K, Set[T]] {
+	var builders MapBuilder[K, *SetBuilder[T]]
+	for i := s.Range(); i.Next(); {
+		v := i.Value()
+		k := key(v)
+		var b *SetBuilder[T]
+		if builder, has := builders.Get(k); has {
+			log.Print(v)
+			b = builder
+		} else {
+			b = &SetBuilder[T]{}
+			builders.Put(k, b)
+		}
+		b.Add(v)
+	}
+	var result MapBuilder[K, Set[T]]
+	fb := builders.Finish()
+	for i := fb.Range(); i.Next(); {
+		result.Put(i.Key(), i.Value().Finish())
+	}
+	return result.Finish()
+}

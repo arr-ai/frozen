@@ -39,7 +39,7 @@ func (b *Builder[T]) Add(args *CombineArgs[T], v T) {
 		h := newHasher(v, 0)
 		if vetting {
 			backup := b.clone()
-			defer vet(func() { backup.Add(args, v) }, &b.t)(nil)
+			defer vet[T](func() { backup.Add(args, v) }, &b.t)(nil)
 		}
 		var matches int
 		b.t.root, matches = b.t.root.Add(args, v, 0, h)
@@ -52,7 +52,7 @@ func (b *Builder[T]) Remove(args *EqArgs[T], v T) {
 		h := newHasher(v, 0)
 		if vetting {
 			backup := b.clone()
-			defer vet(func() { backup.Remove(args, v) }, &b.t)(nil)
+			defer vet[T](func() { backup.Remove(args, v) }, &b.t)(nil)
 		}
 		var matches int
 		b.t.root, matches = b.t.root.Remove(args, v, 0, h)

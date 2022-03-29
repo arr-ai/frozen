@@ -23,7 +23,7 @@ func defaultMapNPKeyCombineArgs[K, V any]() *tree.CombineArgs[kv.KeyValue[K, V]]
 }
 
 func newDefaultMapKeyEqArgs[K, V any](gauge depth.Gauge) *tree.EqArgs[kv.KeyValue[K, V]] {
-	return tree.NewEqArgs[kv.KeyValue[K, V]](gauge, mapElementEqual[K, V], mapHashValue[K, V], mapHashValue[K, V])
+	return tree.NewEqArgs(gauge, mapElementEqual[K, V], mapHashValue[K, V], mapHashValue[K, V])
 }
 
 func mapElementEqual[K, V any](a, b kv.KeyValue[K, V]) bool {
@@ -98,7 +98,6 @@ func (m Map[K, V]) With(key K, val V) Map[K, V] {
 		kval,
 	))
 }
-
 
 // keyHash hashes using the KeyValue's own key.
 func keyHash[K, V any](kv kv.KeyValue[K, V], seed uintptr) uintptr {
@@ -204,25 +203,16 @@ func (m Map[K, V]) Where(pred func(key K, val V) bool) Map[K, V] {
 	return b.Finish()
 }
 
-// // Map returns a Map with keys from this Map, but the values replaced by the
-// // result of calling f.
-// func (m Map) Map(f func(key, val any) any) Map {
-// 	var b MapBuilder
-// 	for i := m.Range(); i.Next(); {
-// 		key, val := i.Entry()
-// 		b.Put(key, f(key, val))
-// 	}
-// 	return b.Finish()
-// }
-
-// // Reduce returns the result of applying f to each key-value pair on the Map.
-// // The result of each call is used as the acc argument for the next element.
-// func (m Map) Reduce(f func(acc, key, val any) any, acc any) any {
-// 	for i := m.Range(); i.Next(); {
-// 		acc = f(acc, i.Key(), i.Value())
-// 	}
-// 	return acc
-// }
+// Map returns a Map with keys from this Map, but the values replaced by the
+// result of calling f.
+func MapMap[K, V, U any](m Map[K, V], f func(key K, val V) U) Map[K, U] {
+	var b MapBuilder[K, U]
+	for i := m.Range(); i.Next(); {
+		key, val := i.Entry()
+		b.Put(key, f(key, val))
+	}
+	return b.Finish()
+}
 
 func (m Map[K, V]) EqArgs() *tree.EqArgs[kv.KeyValue[K, V]] {
 	return tree.NewEqArgs(
@@ -240,8 +230,8 @@ func (m Map[K, V]) Merge(n Map[K, V], resolve func(key K, a, b V) V) Map[K, V] {
 	extractAndResolve := func(a, b kv.KeyValue[K, V]) kv.KeyValue[K, V] {
 		return kv.KV(a.Key, resolve(a.Key, a.Value, b.Value))
 	}
-	args := tree.NewCombineArgs[kv.KeyValue[K, V]](m.EqArgs(), extractAndResolve)
-	return newMap[K, V](m.tree.Combine(args, n.tree))
+	args := tree.NewCombineArgs(m.EqArgs(), extractAndResolve)
+	return newMap(m.tree.Combine(args, n.tree))
 }
 
 // Update returns a Map with key-value pairs from n added or replacing existing
@@ -297,8 +287,8 @@ func (m Map[K, V]) Format(f fmt.State, verb rune) {
 }
 
 // Range returns a MapIterator over the Map.
-func (m Map[K, V]) Range() *MapIterator[K, V] {
-	return &MapIterator[K, V]{i: m.tree.Iterator()}
+func (m Map[K, V]) Range() MapIterator[K, V] {
+	return MapIterator[K, V]{i: m.tree.Iterator()}
 }
 
 // DebugReport is for internal use.

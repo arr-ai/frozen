@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/arr-ai/frozen/v2/pkg/errors"
 	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
 	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
 	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/v2/pkg/errors"
 )
 
 func packedIteratorBuf[T any](count int) [][]node[T] {
@@ -49,7 +49,7 @@ func (t Tree[T]) Format(f fmt.State, verb rune) {
 
 func (t Tree[T]) Combine(args *CombineArgs[T], u Tree[T]) (out Tree[T]) {
 	if vetting {
-		defer vet(func() { t.Combine(args, u) }, &t, &u)(&out)
+		defer vet[T](func() { t.Combine(args, u) }, &t, &u)(&out)
 	}
 	if t.root == nil {
 		return u
@@ -63,7 +63,7 @@ func (t Tree[T]) Combine(args *CombineArgs[T], u Tree[T]) (out Tree[T]) {
 
 func (t Tree[T]) Difference(args *EqArgs[T], u Tree[T]) (out Tree[T]) {
 	if vetting {
-		defer vet(func() { t.Difference(args, u) }, &t, &u)(&out)
+		defer vet[T](func() { t.Difference(args, u) }, &t, &u)(&out)
 	}
 	if t.root == nil || u.root == nil {
 		return t
@@ -95,7 +95,7 @@ func (t Tree[T]) Get(args *EqArgs[T], v T) *T {
 
 func (t Tree[T]) Intersection(args *EqArgs[T], u Tree[T]) (out Tree[T]) {
 	if vetting {
-		defer vet(func() { t.Intersection(args, u) }, &t, &u)(&out)
+		defer vet[T](func() { t.Intersection(args, u) }, &t, &u)(&out)
 	}
 	if t.root == nil || u.root == nil {
 		return Tree[T]{}
@@ -145,14 +145,18 @@ func (t Tree[T]) SubsetOf(args *EqArgs[T], u Tree[T]) bool {
 	return t.root.SubsetOf(args, u.root, 0)
 }
 
-func (t Tree[T]) Map(args *CombineArgs[T], f func(v T) T) (out Tree[T]) {
+func TreeMap[T, U any](t Tree[T], args *CombineArgs[U], f func(v T) U) (out Tree[U]) {
 	if vetting {
-		defer vet(func() { t.Map(args, f) }, &t)(&out)
+		defer vet[U](func() { TreeMap(t, args, f) }, &t)(&out)
 	}
 	if t.root == nil {
-		return t
+		return
 	}
-	return newTree(t.root.Map(args, 0, f))
+	var b Builder[U]
+	for i := t.Iterator(); i.Next(); {
+		b.Add(args, f(i.Value()))
+	}
+	return b.Finish()
 }
 
 func (t Tree[T]) Reduce(args NodeArgs, r func(values ...T) T) (_ T, _ bool) {
@@ -177,7 +181,7 @@ func (t Tree[T]) Vet() {
 
 func (t Tree[T]) Where(args *WhereArgs[T]) (out Tree[T]) {
 	if vetting {
-		defer vet(func() { t.Where(args) }, &t)(&out)
+		defer vet[T](func() { t.Where(args) }, &t)(&out)
 	}
 	if t.root == nil {
 		return t
@@ -187,7 +191,7 @@ func (t Tree[T]) Where(args *WhereArgs[T]) (out Tree[T]) {
 
 func (t Tree[T]) With(args *CombineArgs[T], v T) (out Tree[T]) {
 	if vetting {
-		defer vet(func() { t.With(args, v) }, &t)(&out)
+		defer vet[T](func() { t.With(args, v) }, &t)(&out)
 	}
 	if t.root == nil {
 		return Tree[T]{root: newLeaf1(v), count: 1}
@@ -199,7 +203,7 @@ func (t Tree[T]) With(args *CombineArgs[T], v T) (out Tree[T]) {
 
 func (t Tree[T]) Without(args *EqArgs[T], v T) (out Tree[T]) {
 	if vetting {
-		defer vet(func() { t.Without(args, v) }, &t)(&out)
+		defer vet[T](func() { t.Without(args, v) }, &t)(&out)
 	}
 	if t.root == nil {
 		return t

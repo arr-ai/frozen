@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"math/bits"
 
+	"golang.org/x/exp/constraints"
+
 	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
 	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 )
 
-type integer interface{
-	~uint16 | ~int | ~int8
-}
-
-type IntSet[I integer] struct {
+type IntSet[I constraints.Integer] struct {
 	data  Map[I, *cellBlock]
 	count int
 }
@@ -36,12 +34,12 @@ func (b *cellBlock) isSubsetOf(c *cellBlock) bool {
 	return true
 }
 
-func locateBlock[I integer](i I) (blockIndex, cellIndex I, bitMask cellMask) {
-	return i >> blockShift, (i - i >> blockShift << blockShift) / cellBits, cellMask(1) << uint(i%cellBits)
+func locateBlock[I constraints.Integer](i I) (blockIndex, cellIndex I, bitMask cellMask) {
+	return i >> blockShift, (i - i>>blockShift<<blockShift) / cellBits, cellMask(1) << uint(i%cellBits)
 }
 
 // NewIntSet returns an IntSet with the values provided.
-func NewIntSet[I integer](is ...I) IntSet[I] {
+func NewIntSet[I constraints.Integer](is ...I) IntSet[I] {
 	m := map[I]*cellBlock{}
 	for _, i := range is {
 		blockIndex, cellIndex, bitMask := locateBlock(i)
@@ -72,7 +70,7 @@ func (s IntSet[I]) Count() int {
 }
 
 // Range returns the iterator for IntSet.
-func (s IntSet[I]) Range() IntIterator[I] {
+func (s IntSet[I]) Range() iterator.Iterator[I] {
 	return &intSetIterator[I]{blockIter: s.data.Range()}
 }
 

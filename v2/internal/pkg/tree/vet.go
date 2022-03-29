@@ -3,8 +3,8 @@ package tree
 import (
 	"log"
 
-	"github.com/arr-ai/frozen/v2/pkg/errors"
 	"github.com/arr-ai/frozen/v2/internal/pkg/vetctl"
+	"github.com/arr-ai/frozen/v2/pkg/errors"
 )
 
 const (
@@ -14,12 +14,12 @@ const (
 
 var vetFailed = false
 
-func vet[T any](rerun func(), ins ...*Tree[T]) func(out *Tree[T]) {
+func vet[U, T any](rerun func(), ins ...*Tree[T]) func(out *Tree[U]) {
 	if !vetting {
 		panic(errors.Errorf("call to (*Tree[T]).vet() not wrapped in if Vetting { ... }"))
 	}
 	if vetFailed {
-		return func(out *Tree[T]) {}
+		return func(out *Tree[U]) {}
 	}
 
 	check := func(trees ...*Tree[T]) {
@@ -46,9 +46,10 @@ func vet[T any](rerun func(), ins ...*Tree[T]) func(out *Tree[T]) {
 		}
 	}
 	check(ins...)
-	return func(out *Tree[T]) {
+	return func(out *Tree[U]) {
 		if out != nil {
-			ins = append(ins, out)
+			// TODO: reinstate
+			// ins = append(ins, out)
 		}
 		check(ins...)
 	}

@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	. "github.com/arr-ai/frozen/v2"
-	"github.com/arr-ai/frozen/v2/pkg/kv"
-	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 	"github.com/arr-ai/frozen/v2/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/pkg/kv"
 )
 
 type mapIntInt = Map[int, int]
@@ -303,25 +303,15 @@ func TestMapWhere(t *testing.T) {
 	)
 }
 
-// func TestMapMap(t *testing.T) {
-// 	t.Parallel()
+func TestMapMap(t *testing.T) {
+	t.Parallel()
 
-// 	m := NewMap(kv.KV(1, 2), kv.KV(3, 4), kv.KV(4, 5), kv.KV(6, 7))
-// 	assertMapEqual(t,
-// 		NewMap(kv.KV(1, 3), kv.KV(3, 7), kv.KV(4, 9), kv.KV(6, 13)),
-// 		m.Map(func(k, v int) int { return k + v }),
-// 	)
-// }
-
-// func TestMapReduce(t *testing.T) {
-// 	t.Parallel()
-
-// 	m := NewMap(kv.KV(1, 2), kv.KV(3, 4), kv.KV(4, 5), kv.KV(6, 7))
-// 	assert.Equal(t,
-// 		1*2+3*4+4*5+6*7,
-// 		m.Reduce(func(acc, k, v int) int { return acc + k*v }, 0),
-// 	)
-// }
+	m := NewMap(kv.KV(1, 2), kv.KV(3, 4), kv.KV(4, 5), kv.KV(6, 7))
+	assertMapEqual(t,
+		NewMap(kv.KV(1, 3), kv.KV(3, 7), kv.KV(4, 9), kv.KV(6, 13)),
+		MapMap(m, func(k, v int) int { return k + v }),
+	)
+}
 
 func TestMapUpdate(t *testing.T) {
 	t.Parallel()

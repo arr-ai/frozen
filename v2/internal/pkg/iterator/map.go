@@ -5,8 +5,8 @@ type MapIterator[T any] struct {
 	m func(v T) T
 }
 
-func Map[T any](i Iterator[T], m func(v T) T) *MapIterator[T] {
-	return &MapIterator[T]{i: i, m: m}
+func Map[T any](i Iterator[T], m func(v T) T) MapIterator[T] {
+	return MapIterator[T]{i: i, m: m}
 }
 
 func (m MapIterator[T]) Next() bool {

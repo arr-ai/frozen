@@ -1,31 +1,29 @@
 package frozen
 
 import (
+	"golang.org/x/exp/constraints"
+
 	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 )
 
-// IntLess dictates the order of two elements.
-type IntLess[T integer] func(a, b T) bool
-
-type IntIterator[T integer] interface {
-	Next() bool
-	Value() T
-}
-
-type intSetIterator[T integer] struct {
-	blockIter      *MapIterator[T, *cellBlock]
+type intSetIterator[T constraints.Integer] struct {
+	blockIter      MapIterator[T, *cellBlock]
 	block          []cellMask
 	firstIntInCell T
 }
 
 func (i *intSetIterator[T]) Next() bool {
-	if len(i.block) > 0 && i.block[0] != 0 {
-		i.block[0] &= i.block[0] - 1
-	}
+	if len(i.block) > 0 {
+		if i.block[0] != 0 {
+			i.block[0] &= i.block[0] - 1
+		}
 
-	if len(i.block) > 0 && i.block[0] == 0 {
-		for ; len(i.block) != 0 && i.block[0] == 0; i.block = i.block[1:] {
+		for i.block[0] == 0 {
 			i.firstIntInCell += cellBits
+			i.block = i.block[1:]
+			if len(i.block) == 0 {
+				break
+			}
 		}
 	}
 
