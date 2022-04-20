@@ -4,10 +4,10 @@ import "github.com/arr-ai/frozen"
 
 type frozenSet struct {
 	baseSet
-	set frozen.Set
+	set frozen.Set[any]
 }
 
-func Frozen(set frozen.Set) Set {
+func Frozen(set frozen.Set[any]) Set {
 	s := &frozenSet{set: set}
 	s.baseSet.set = s
 	return s
@@ -32,13 +32,13 @@ func (s *frozenSet) FastCountUpTo(limit int) (count int, ok bool) {
 	return limit, true
 }
 
-func (s *frozenSet) FastHas(el interface{}) (has, ok bool) {
+func (s *frozenSet) FastHas(el any) (has, ok bool) {
 	return s.set.Has(el), true
 }
 
 func (s *frozenSet) EqualSet(set Set) bool {
 	if f, ok := set.(*frozenSet); ok {
-		return s.set.EqualSet(f.set)
+		return s.set.Equal(f.set)
 	}
 	n := s.set.Count()
 	i := set.Range()
@@ -70,14 +70,14 @@ func (s *frozenSet) Range() SetIterator {
 	return s.set.Range()
 }
 
-func (s *frozenSet) With(els ...interface{}) Set {
+func (s *frozenSet) With(els ...any) Set {
 	return Frozen(s.set.With(els...))
 }
 
-func (s *frozenSet) Without(els ...interface{}) Set {
+func (s *frozenSet) Without(els ...any) Set {
 	return Frozen(s.set.Without(els...))
 }
 
 func (s *frozenSet) Map(m Mapper) Set {
-	return Frozen(s.set.Map(m))
+	return Frozen(frozen.SetMap(s.set, m))
 }

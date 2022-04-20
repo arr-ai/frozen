@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	. "github.com/arr-ai/frozen"
 )
@@ -11,14 +12,14 @@ import (
 func TestMapBuilderEmpty(t *testing.T) {
 	t.Parallel()
 
-	var b MapBuilder
-	assertMapEqual(t, Map{}, b.Finish())
+	var b MapBuilder[int, int]
+	assertMapEqual(t, Map[int, int]{}, b.Finish())
 }
 
 func TestMapBuilder(t *testing.T) {
 	t.Parallel()
 
-	var b MapBuilder
+	var b MapBuilder[int, int]
 	for i := 0; i < 10; i++ {
 		b.Put(i, i*i)
 	}
@@ -29,19 +30,44 @@ func TestMapBuilder(t *testing.T) {
 	}
 }
 
+func TestMapBuilderSimple(t *testing.T) {
+	t.Parallel()
+
+	var b MapBuilder[int, int]
+	b.Put(0, 0)
+	assert.Equal(t, 1, b.Count())
+	b.Remove(0)
+	assert.Equal(t, 0, b.Count())
+
+	b.Put(0, 0)
+	b.Put(1, 1)
+	b.Put(2, 2)
+	assert.Equal(t, 3, b.Count())
+
+	b.Put(3, 3)
+	b.Put(4, 4)
+	b.Put(5, 5)
+	assert.Equal(t, 6, b.Count())
+	b.Remove(5)
+	assert.Equal(t, 5, b.Count())
+}
+
 func TestMapBuilderRemove(t *testing.T) {
 	t.Parallel()
 
-	var b MapBuilder
+	var b MapBuilder[int, int]
+
 	for i := 0; i < 15; i++ {
 		b.Put(i, i*i)
 	}
 	for i := 5; i < 10; i++ {
 		b.Remove(i)
+		v, has := b.Get(i)
+		require.False(t, has, v)
 	}
 	m := b.Finish()
 
-	assert.Equal(t, 10, m.Count())
+	assert.Equal(t, 10, m.Count(), m)
 	for i := 0; i < 15; i++ {
 		switch {
 		case i < 5:
@@ -57,22 +83,22 @@ func TestMapBuilderRemove(t *testing.T) {
 func TestMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop
 	t.Parallel()
 
-	var b MapBuilder
-	s := make([]interface{}, 35)
-	requireMatch := func(format string, args ...interface{}) {
+	var b MapBuilder[int, int]
+	s := make([]*int, 35)
+	requireMatch := func(format string, args ...any) {
 		for j, u := range s {
 			v, has := b.Get(j)
 			if u == nil {
-				assert.Falsef(t, has, format+" j=%v v=%v", append(args, j, v)...)
+				require.Falsef(t, has, format+" j=%v v=%v", append(args, j, v)...)
 			} else {
-				assert.Truef(t, has, format+" j=%v", append(args, j)...)
+				require.Truef(t, has, format+" j=%v", append(args, j)...)
 			}
 		}
 	}
 
 	put := func(i int, v int) {
 		b.Put(i, v)
-		s[i] = v
+		s[i] = &v
 	}
 	remove := func(i int) {
 		b.Remove(i)
@@ -97,16 +123,25 @@ func TestMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop
 	}
 	m := b.Finish()
 
+loop:
 	for i := 0; i < 35; i++ {
 		switch {
 		case i < 5:
-			assertMapHas(t, m, i, i*i)
+			if !assertMapHas(t, m, i, i*i) {
+				break loop
+			}
 		case i < 15:
-			assertMapHas(t, m, i, i*i*i)
+			if !assertMapHas(t, m, i, i*i*i) {
+				break loop
+			}
 		case i < 30:
-			assertMapNotHas(t, m, i)
+			if !assertMapNotHas(t, m, i) {
+				break loop
+			}
 		default:
-			assertMapHas(t, m, i, i*i)
+			if !assertMapHas(t, m, i, i*i) {
+				break loop
+			}
 		}
 	}
 }

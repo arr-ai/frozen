@@ -1,49 +1,53 @@
 package frozen
 
 import (
-	"github.com/arr-ai/frozen/internal/tree/kvt"
+	"github.com/arr-ai/frozen/internal/pkg/tree"
+	"github.com/arr-ai/frozen/pkg/kv"
 )
 
-// MapBuilder provides a more efficient way to build Maps incrementally.
-type MapBuilder struct {
-	tb kvt.Builder
+// MapBuilder[K, V] provides a more efficient way to build Maps incrementally.
+type MapBuilder[K any, V any] struct {
+	tb tree.Builder[kv.KeyValue[K, V]]
 }
 
-func NewMapBuilder(capacity int) *MapBuilder {
-	return &MapBuilder{tb: *kvt.NewBuilder(capacity)}
+func NewMapBuilder[K any, V any](capacity int) *MapBuilder[K, V] {
+	return &MapBuilder[K, V]{tb: *tree.NewBuilder[kv.KeyValue[K, V]](capacity)}
 }
 
 // Count returns the number of entries in the Map under construction.
-func (b *MapBuilder) Count() int {
+func (b *MapBuilder[K, V]) Count() int {
 	return b.tb.Count()
 }
 
 // Put adds or changes an entry into the Map under construction.
-func (b *MapBuilder) Put(key, value interface{}) {
-	b.tb.Add(kvt.DefaultNPKeyCombineArgs, KV(key, value))
+func (b *MapBuilder[K, V]) Put(key K, value V) {
+	b.tb.Add(defaultMapNPKeyCombineArgs[K, V](), kv.KV(key, value))
 }
 
 // Remove removes an entry from the Map under construction.
-func (b *MapBuilder) Remove(key interface{}) {
-	b.tb.Remove(kvt.DefaultNPKeyEqArgs, KV(key, nil))
+func (b *MapBuilder[K, V]) Remove(key K) {
+	var zarro V
+	b.tb.Remove(defaultMapNPKeyEqArgs[K, V](), kv.KV(key, zarro))
 }
 
-func (b *MapBuilder) Has(v interface{}) bool {
-	_, has := b.Get(v)
+func (b *MapBuilder[K, V]) Has(key K) bool {
+	_, has := b.Get(key)
 	return has
 }
 
 // Get returns the value for key from the Map under construction or false if
 // not found.
-func (b *MapBuilder) Get(key interface{}) (interface{}, bool) {
-	if entry := b.tb.Get(kvt.DefaultNPKeyEqArgs, KV(key, nil)); entry != nil {
+func (b *MapBuilder[K, V]) Get(key K) (V, bool) {
+	var zarro V
+	if entry := b.tb.Get(defaultMapNPKeyEqArgs[K, V](), kv.KV(key, zarro)); entry != nil {
 		return entry.Value, true
 	}
-	return nil, false
+	var v V
+	return v, false
 }
 
-// Finish returns a Map containing all entries added since the MapBuilder was
+// Finish returns a Map containing all entries added since the MapBuilder[K, V] was
 // initialised or the last call to Finish.
-func (b *MapBuilder) Finish() Map {
+func (b *MapBuilder[K, V]) Finish() Map[K, V] {
 	return newMap(b.tb.Finish())
 }

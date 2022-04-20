@@ -14,7 +14,7 @@ import (
 func TestIota(t *testing.T) {
 	t.Parallel()
 
-	test.AssertSetEqual(t, Set{}, Iota(0))
+	test.AssertSetEqual(t, Set[int]{}, Iota(0))
 	test.AssertSetEqual(t, NewSet(0), Iota(1))
 	test.AssertSetEqual(t, NewSet(0, 1, 2, 3, 4, 5), Iota(6))
 }
@@ -22,7 +22,7 @@ func TestIota(t *testing.T) {
 func TestIota2(t *testing.T) {
 	t.Parallel()
 
-	test.AssertSetEqual(t, Set{}, Iota2(6, 6))
+	test.AssertSetEqual(t, Set[int]{}, Iota2(6, 6))
 	test.AssertSetEqual(t, NewSet(5), Iota2(5, 6))
 	test.AssertSetEqual(t, NewSet(1, 2, 3, 4, 5), Iota2(1, 6))
 }
@@ -30,7 +30,7 @@ func TestIota2(t *testing.T) {
 func TestIota3(t *testing.T) {
 	t.Parallel()
 
-	test.AssertSetEqual(t, Set{}, Iota3(1, 1, 0))
+	test.AssertSetEqual(t, Set[int]{}, Iota3(1, 1, 0))
 
 	assert.Panics(t, func() { Iota3(1, 2, 0) })
 
@@ -43,7 +43,7 @@ func TestIota3(t *testing.T) {
 func TestNewSetFromMask64(t *testing.T) {
 	t.Parallel()
 
-	test.AssertSetEqual(t, Set{}, NewSetFromMask64(0))
+	test.AssertSetEqual(t, Set[int]{}, NewSetFromMask64(0))
 	for i := 0; i < 64; i++ {
 		test.AssertSetEqual(t, NewSet(i), NewSetFromMask64(uint64(1)<<uint(i)), "%v", i)
 	}

@@ -4,7 +4,7 @@ import (
 	"github.com/arr-ai/hash"
 
 	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/value"
+	"github.com/arr-ai/frozen/internal/pkg/value"
 )
 
 const (
@@ -61,7 +61,7 @@ func (s *baseSet) Freeze() Set {
 	return s.set
 }
 
-func (s *baseSet) Equal(set interface{}) bool {
+func (s *baseSet) Equal(set any) bool {
 	if set, ok := set.(Set); ok {
 		return s.set.EqualSet(set)
 	}
@@ -80,7 +80,7 @@ func (s *baseSet) Hash(seed uintptr) uintptr {
 	return h
 }
 
-func (s *baseSet) Has(el interface{}) bool {
+func (s *baseSet) Has(el any) bool {
 	if has, ok := s.set.FastHas(el); ok {
 		return has
 	}
@@ -92,7 +92,7 @@ func (s *baseSet) Has(el interface{}) bool {
 	return false
 }
 
-func (s *baseSet) FastHas(el interface{}) (has, ok bool) {
+func (s *baseSet) FastHas(el any) (has, ok bool) {
 	return false, false
 }
 
@@ -104,11 +104,11 @@ func (s *baseSet) Where(pred Predicate) Set {
 	return where(s.set, pred)
 }
 
-func (s *baseSet) With(els ...interface{}) Set {
+func (s *baseSet) With(els ...any) Set {
 	return union(s.set, Frozen(frozen.NewSet(els...)))
 }
 
-func (s *baseSet) Without(els ...interface{}) Set {
+func (s *baseSet) Without(els ...any) Set {
 	return difference(s.set, Frozen(frozen.NewSet(els...)))
 }
 

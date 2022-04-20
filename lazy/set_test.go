@@ -88,7 +88,7 @@ func TestSet(t *testing.T) { //nolint:funlen,cyclop
 	}
 
 	for i := uint64(0); i < 1<<3; i++ {
-		f := Frozen(frozen.NewSetFromMask64(i))
+		f := Frozen(frozen.SetAs[any](frozen.NewSetFromMask64(i)))
 		test(func() Set { return f }, f)
 	}
 	for i := 0; i < 2; i++ {
@@ -97,20 +97,20 @@ func TestSet(t *testing.T) { //nolint:funlen,cyclop
 		sort.Sort(pairs)
 		for _, p := range pairs {
 			p := p
-			for _, pred := range []func(interface{}) bool{
-				func(el interface{}) bool { return false },
-				func(el interface{}) bool { return true },
-				func(el interface{}) bool { return extractInt(el) < 2 },
-				func(el interface{}) bool { return extractInt(el)%2 == 0 },
+			for _, pred := range []func(any) bool{
+				func(el any) bool { return false },
+				func(el any) bool { return true },
+				func(el any) bool { return extractInt(el) < 2 },
+				func(el any) bool { return extractInt(el)%2 == 0 },
 			} {
 				pred := pred
 				test(func() Set { return p.eager.Where(pred) }, p.lazy.Where(pred))
 			}
-			for _, m := range []func(interface{}) interface{}{
-				func(el interface{}) interface{} { return 42 },
-				func(el interface{}) interface{} { return extractInt(el) * 2 },
-				func(el interface{}) interface{} { return extractInt(el) / 2 },
-				func(el interface{}) interface{} { return extractInt(el) % 2 },
+			for _, m := range []func(any) any{
+				func(el any) any { return 42 },
+				func(el any) any { return extractInt(el) * 2 },
+				func(el any) any { return extractInt(el) / 2 },
+				func(el any) any { return extractInt(el) % 2 },
 			} {
 				m := m
 				test(func() Set { return p.eager.Map(m) }, p.lazy.Map(m))
@@ -128,4 +128,13 @@ func TestSet(t *testing.T) { //nolint:funlen,cyclop
 	wg.Wait()
 	close(pairCh)
 	close(workCh)
+}
+
+func ConvertSlice[T, U any](slice []T) []U {
+	result := make([]U, len(slice))
+	for _, t := range slice {
+		var a any = t
+		result = append(result, a.(U))
+	}
+	return result
 }

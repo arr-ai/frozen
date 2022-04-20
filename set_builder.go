@@ -3,51 +3,51 @@ package frozen
 import (
 	"fmt"
 
-	"github.com/arr-ai/frozen/internal/tree"
+	"github.com/arr-ai/frozen/internal/pkg/tree"
 )
 
-// SetBuilder provides a more efficient way to build sets incrementally.
-type SetBuilder struct {
-	b tree.Builder
+// SetBuilder[T] provides a more efficient way to build sets incrementally.
+type SetBuilder[T any] struct {
+	b tree.Builder[T]
 }
 
-func NewSetBuilder(capacity int) *SetBuilder {
-	return &SetBuilder{b: *tree.NewBuilder(capacity)}
+func NewSetBuilder[T any](capacity int) *SetBuilder[T] {
+	return &SetBuilder[T]{b: *tree.NewBuilder[T](capacity)}
 }
 
 // Count returns the count of the Set that will be returned from Finish().
-func (b *SetBuilder) Count() int {
+func (b *SetBuilder[T]) Count() int {
 	return b.b.Count()
 }
 
 // Add adds el to the Set under construction.
-func (b *SetBuilder) Add(v interface{}) {
-	b.b.Add(tree.DefaultNPCombineArgs, v)
+func (b *SetBuilder[T]) Add(v T) {
+	b.b.Add(tree.DefaultNPCombineArgs[T](), v)
 }
 
 // Remove removes el to the Set under construction.
-func (b *SetBuilder) Remove(v interface{}) {
-	b.b.Remove(tree.DefaultNPEqArgs, v)
+func (b *SetBuilder[T]) Remove(v T) {
+	b.b.Remove(tree.DefaultNPEqArgs[T](), v)
 }
 
-func (b *SetBuilder) Has(v interface{}) bool {
-	return b.b.Get(tree.DefaultNPEqArgs, v) != nil
+func (b *SetBuilder[T]) Has(v T) bool {
+	return b.b.Get(tree.DefaultNPEqArgs[T](), v) != nil
 }
 
-// Finish returns a Set containing all elements added since the SetBuilder was
+// Finish returns a Set containing all elements added since the SetBuilder[T] was
 // initialised or the last call to Finish.
-func (b *SetBuilder) Finish() Set {
+func (b *SetBuilder[T]) Finish() Set[T] {
 	return newSet(b.b.Finish())
 }
 
-func (b *SetBuilder) borrow() Set {
+func (b *SetBuilder[T]) borrow() Set[T] {
 	return newSet(b.b.Borrow())
 }
 
-func (b SetBuilder) String() string {
+func (b SetBuilder[T]) String() string {
 	return b.borrow().String()
 }
 
-func (b SetBuilder) Format(f fmt.State, verb rune) {
+func (b SetBuilder[T]) Format(f fmt.State, verb rune) {
 	b.borrow().Format(f, verb)
 }

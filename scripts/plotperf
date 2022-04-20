@@ -30,9 +30,9 @@ def main():
         'FrozenMap': 'frozen.Map',
         'FrozenSet': 'frozen.Set',
         'MapInt': 'map[int]int',
-        'MapInterface': 'map[interface{}]interface{}',
+        'MapInterface': 'map[any]any',
         'SetInt': 'set = map[int]struct{}',
-        'SetInterface': 'set = map[interface{}]struct{}',
+        'SetInterface': 'set = map[any]struct{}',
     }
 
     data = collections.defaultdict(dict)

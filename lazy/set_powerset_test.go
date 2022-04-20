@@ -10,10 +10,15 @@ import (
 func TestSetPowerset(t *testing.T) {
 	t.Parallel()
 
-	f := frozen.NewSet(1, 2, 3)
+	f := frozen.NewSet[any](1, 2, 3)
 	s := func() Set { return Frozen(f).Powerset() }
 
-	assertSetOps(t, f.Powerset().Map(func(el interface{}) interface{} { return Frozen(el.(frozen.Set)) }), s())
+	assertSetOps(t,
+		frozen.SetMap(
+			frozen.Powerset(f),
+			func(el frozen.Set[any]) any { return Frozen(el) },
+		),
+		s())
 
 	assertFastNotIsEmpty(t, s())
 	assertFastCountEqual(t, 8, s())

@@ -48,7 +48,7 @@ func benchmarkSetInterfacePrealloc(b *testing.B, size int) {
 	b.Helper()
 
 	for n := 0; n < b.N; n++ {
-		m := make(map[interface{}]struct{}, size)
+		m := make(map[any]struct{}, size)
 		for i := 0; i < size; i++ {
 			m[i] = struct{}{}
 		}
@@ -59,7 +59,7 @@ func benchmarkSetInterface(b *testing.B, size int) {
 	b.Helper()
 
 	for n := 0; n < b.N; n++ {
-		m := map[interface{}]struct{}{}
+		m := map[any]struct{}{}
 		for i := 0; i < size; i++ {
 			m[i] = struct{}{}
 		}
@@ -70,7 +70,7 @@ func benchmarkFrozenSetBuilderAddPrealloc(b *testing.B, size int) {
 	b.Helper()
 
 	for n := 0; n < b.N; n++ {
-		sb := NewSetBuilder(size)
+		sb := NewSetBuilder[int](size)
 		for i := 0; i < size; i++ {
 			sb.Add(i)
 		}
@@ -82,7 +82,7 @@ func benchmarkFrozenSetBuilderAdd(b *testing.B, size int) {
 	b.Helper()
 
 	for n := 0; n < b.N; n++ {
-		var sb SetBuilder
+		var sb SetBuilder[int]
 		for i := 0; i < size; i++ {
 			sb.Add(i)
 		}
@@ -94,7 +94,7 @@ func benchmarkFrozenSetWith(b *testing.B, size int) {
 	b.Helper()
 
 	for n := 0; n < b.N; n++ {
-		var s Set
+		var s Set[int]
 		for i := 0; i < size; i++ {
 			s = s.With(i)
 		}
@@ -107,7 +107,7 @@ func BenchmarkSequential(b *testing.B) {
 	benchmarkSequential(b, "1Mi", 1<<20)
 }
 
-func parallelUnion(sets []Set) Set {
+func parallelUnion(sets []Set[int]) Set[int] {
 	switch len(sets) {
 	case 1:
 		return sets[0]
@@ -115,7 +115,7 @@ func parallelUnion(sets []Set) Set {
 		return sets[0].Union(sets[1])
 	default:
 		half := len(sets) / 2
-		ch := make(chan Set)
+		ch := make(chan Set[int])
 		go func() {
 			ch <- parallelUnion(sets[:half])
 		}()
@@ -126,7 +126,7 @@ func parallelUnion(sets []Set) Set {
 func BenchmarkSetParallelWith1M(b *testing.B) {
 	D := runtime.GOMAXPROCS(0)
 	for n := 0; n < b.N; n++ {
-		sets := make([]Set, D)
+		sets := make([]Set[int], D)
 		var wg sync.WaitGroup
 		wg.Add(D)
 		for d := 0; d < D; d++ {
@@ -148,8 +148,8 @@ func BenchmarkSetParallelWith1M(b *testing.B) {
 }
 
 func BenchmarkSetUnion1M(b *testing.B) {
-	s5 := Iota(1 << 19).Map(func(i interface{}) interface{} { return 5 * i.(int) })
-	s7 := Iota(1 << 20).Map(func(i interface{}) interface{} { return 7 * i.(int) })
+	s5 := SetMap(Iota(1<<19), func(i int) int { return 5 * i })
+	s7 := SetMap(Iota(1<<20), func(i int) int { return 7 * i })
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		s5.Union(s7)

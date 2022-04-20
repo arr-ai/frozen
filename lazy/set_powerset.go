@@ -56,8 +56,8 @@ func (s *powerSet) FastCountUpTo(limit int) (count int, ok bool) {
 	return 0, false
 }
 
-func (s *powerSet) Has(el interface{}) bool {
-	ss, ok := el.(frozen.Set)
+func (s *powerSet) Has(el any) bool {
+	ss, ok := el.(frozen.Set[any])
 	return ok && Frozen(ss).IsSubsetOf(s.set)
 }
 
@@ -73,8 +73,8 @@ type powerSetSetIterator struct {
 	i     SetIterator
 	end   frozen.BitIterator
 	mask  frozen.BitIterator
-	elems []interface{}
-	value frozen.Set
+	elems []any
+	value frozen.Set[any]
 }
 
 func (i *powerSetSetIterator) Next() bool {
@@ -101,6 +101,6 @@ func (i *powerSetSetIterator) Next() bool {
 	return true
 }
 
-func (i *powerSetSetIterator) Value() interface{} {
+func (i *powerSetSetIterator) Value() any {
 	return Frozen(i.value)
 }

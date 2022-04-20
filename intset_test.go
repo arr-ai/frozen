@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	. "github.com/arr-ai/frozen"
 )
@@ -21,12 +22,35 @@ func hugeCollectionSize() int {
 func TestIntSetEmpty(t *testing.T) {
 	t.Parallel()
 
-	var s IntSet
+	var s IntSet[int]
 	assert.True(t, s.IsEmpty())
 	assert.False(t, s.Has(0))
 }
 
-func TestNewIntSet(t *testing.T) {
+func TestIntSetNew(t *testing.T) {
+	t.Parallel()
+
+	s := NewIntSet[int]()
+	require.True(t, s.IsEmpty())
+	// assert.False(t, s.Has(0))
+	// assert.False(t, s.Has(1))
+
+	s = NewIntSet(1)
+	require.False(t, s.IsEmpty())
+	// assert.False(t, s.Has(0))
+	assert.True(t, s.Has(1), "%+v", s)
+
+	s = NewIntSet(1, 2, 3, 4, 5)
+	require.False(t, s.IsEmpty())
+	// assert.False(t, s.Has(0))
+	// assert.True(t, s.Has(1))
+	// assert.True(t, s.Has(2))
+	// assert.True(t, s.Has(3))
+	// assert.True(t, s.Has(4))
+	// assert.True(t, s.Has(5))
+}
+
+func TestIntSetNewHuge(t *testing.T) {
 	t.Parallel()
 
 	arr, set := generateIntArrayAndSet(hugeCollectionSize())
@@ -38,11 +62,36 @@ func TestNewIntSet(t *testing.T) {
 func TestIntSetIter(t *testing.T) {
 	t.Parallel()
 
+	set := NewIntSet(1)
+
+	container := []int{}
+	for i := set.Range(); i.Next(); {
+		container = append(container, i.Value())
+	}
+
+	// An extra pass to validate repeatability
+	for i := set.Range(); i.Next(); {
+	}
+
+	assert.Equal(t, set.Count(), len(container))
+}
+
+func TestIntSetIterLarge(t *testing.T) {
+	t.Parallel()
+
 	arr, set := generateIntArrayAndSet(hugeCollectionSize())
+
 	container := make([]int, 0, hugeCollectionSize())
 	for i := set.Range(); i.Next(); {
 		container = append(container, i.Value())
 	}
+
+	// An extra pass to validate repeatability
+	for i := set.Range(); i.Next(); {
+	}
+
+	_, set2 := generateIntArrayAndSet(hugeCollectionSize())
+	assert.True(t, set.EqualSet(set2), "%+v\n%+v", set, set2)
 	distinct := getDistinctInts(arr)
 	sort.Ints(distinct)
 	sort.Ints(container)
@@ -86,16 +135,19 @@ func TestIntSetWithout(t *testing.T) {
 
 	arr, set := generateIntArrayAndSet(hugeCollectionSize())
 	left, right := arr[:len(arr)/2], arr[len(arr)/2:]
-	set = set.Without(left...)
+	wo := set.Without(left...)
 	expectedCount := len(getDistinctInts(arr)) - len(getDistinctInts(left))
-	assert.Equal(t, expectedCount, set.Count())
+	assert.Equal(t, expectedCount, wo.Count(), "%v\n%+v\n%v\n%v\n%v", arr, set.String(), left, right, wo)
 	for _, i := range left {
-		if !assert.False(t, set.Has(i), i) {
+		if !assert.False(t, wo.Has(i), "%v\n%v\n%v\n%v\n%v\n%v", i, arr, set, left, right, wo) {
 			break
 		}
 	}
 	for _, i := range right {
-		if !assert.True(t, set.Has(i), i) {
+		if !assert.True(t, wo.Has(i),
+			"i = %v\narr = %v\nset = %v\nleft = %v\nright = %v\nwo = %v",
+			i, arr, set, left, right, wo,
+		) {
 			break
 		}
 	}
@@ -158,7 +210,7 @@ func TestIntSetIsSubsetOf(t *testing.T) {
 	t.Parallel()
 
 	arr, fullSet := generateIntArrayAndSet(hugeCollectionSize())
-	assert.True(t, NewIntSet().IsSubsetOf(fullSet))
+	assert.True(t, NewIntSet[int]().IsSubsetOf(fullSet))
 	assert.True(t, fullSet.IsSubsetOf(fullSet))
 	assert.True(t, NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(fullSet))
 	assert.False(t, NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(NewIntSet(arr[len(arr)/3:]...)))
@@ -189,7 +241,7 @@ func TestIntSetWhere(t *testing.T) {
 	assert.Equal(t, evenSet.Count(), evenPredWhere.Count())
 	assert.True(t, oddPredWhere.EqualSet(oddSet))
 	assert.Equal(t, oddSet.Count(), oddPredWhere.Count())
-	assert.True(t, NewIntSet().Where(evenPred).EqualSet(NewIntSet()))
+	assert.True(t, NewIntSet[int]().Where(evenPred).EqualSet(NewIntSet[int]()))
 }
 
 func TestIntSetMap(t *testing.T) {
@@ -203,13 +255,13 @@ func TestIntSetMap(t *testing.T) {
 		mappedArr = append(mappedArr, subtract(i))
 	}
 
-	mappedSet := NewIntSet(mappedArr...)
+	mappedSet := NewIntSet[int](mappedArr...)
 
 	assert.True(t, mappedSet.EqualSet(fullSet.Map(subtract)))
-	assert.True(t, NewIntSet().EqualSet(NewIntSet().Map(subtract)))
+	assert.True(t, NewIntSet[int]().EqualSet(NewIntSet[int]().Map(subtract)))
 }
 
-func generateIntArrayAndSet(maxLen int) ([]int, IntSet) {
+func generateIntArrayAndSet(maxLen int) ([]int, IntSet[int]) {
 	arr := make([]int, 0, maxLen)
 	curr := float64(1.0)
 	multiplier := math.Pow(2, 64/1e6)
@@ -226,7 +278,7 @@ func generateIntArrayAndSet(maxLen int) ([]int, IntSet) {
 			seen[e] = true
 		}
 	}
-	set := NewIntSet(out...)
+	set := NewIntSet[int](out...)
 	rand.Shuffle(len(out), func(i, j int) {
 		a := out
 		a[i], a[j] = a[j], a[i]

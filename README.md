@@ -21,11 +21,11 @@ with 1M elements. The implementations are as follows:
 | Benchmark       | Type                           |
 | --------------- | ------------------------------ |
 | MapInt          | map[int]int                    |
-| MapInterface    | map[interface{}]interface{}    |
+| MapInterface    | map[any]any    |
 | FrozenMap       | frozen.Map                     |
 | FrozenNode      | frozen.node                    |
 | SetInt          | set = map[int]struct{}         |
-| SetInterface    | set = map[interface{}]struct{} |
+| SetInterface    | set = map[any]struct{} |
 | FrozenSet       | frozen.Set                     |
 
 In all cases, ints are mapped to ints.

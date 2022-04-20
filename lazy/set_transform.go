@@ -25,6 +25,6 @@ func (s *mapperSetIterator) Next() bool {
 	return s.i.Next()
 }
 
-func (s *mapperSetIterator) Value() interface{} {
+func (s *mapperSetIterator) Value() any {
 	return s.m(s.i.Value())
 }

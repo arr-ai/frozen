@@ -9,10 +9,10 @@ import (
 	. "github.com/arr-ai/frozen"
 )
 
-func memoizePrepop(prepare func(n int) interface{}) func(n int) interface{} {
+func memoizePrepop[T any](prepare func(n int) T) func(n int) T {
 	var lk sync.Mutex
-	prepop := map[int]interface{}{}
-	return func(n int) interface{} {
+	prepop := map[int]T{}
+	return func(n int) T {
 		lk.Lock()
 		defer lk.Unlock()
 		if data, has := prepop[n]; has {
@@ -53,23 +53,27 @@ func memoizePrepop(prepare func(n int) interface{}) func(n int) interface{} {
 // 	return
 // }
 
-func assertSetHas(t *testing.T, s Set, i interface{}) bool { //nolint:unparam
+func assertSetHas[T any](t *testing.T, s Set[T], i T) bool { //nolint:unparam
 	t.Helper()
 
 	return assert.True(t, s.Has(i), "i=%v", i)
 }
 
-func assertSetNotHas(t *testing.T, s Set, i interface{}) bool { //nolint:unparam
+func assertSetNotHas[T any](t *testing.T, s Set[T], i T) bool { //nolint:unparam
 	t.Helper()
 
 	return assert.False(t, s.Has(i), "i=%v", i)
 }
 
-func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{}) bool { //nolint:unparam
+func assertMapEqual[K, V any](
+	t *testing.T,
+	expected, actual Map[K, V],
+	msgAndArgs ...any,
+) bool { //nolint:unparam
 	t.Helper()
 
 	format := "\nexpected %v != \nactual   %v"
-	args := []interface{}{}
+	args := []any{}
 	if len(msgAndArgs) > 0 {
 		format = msgAndArgs[0].(string) + format
 		args = append(append(args, format), msgAndArgs[1:]...)
@@ -80,16 +84,17 @@ func assertMapEqual(t *testing.T, expected, actual Map, msgAndArgs ...interface{
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertMapHas(t *testing.T, m Map, i, expected interface{}) bool { //nolint:unparam
+func assertMapHas[K, V any](t *testing.T, m Map[K, V], i K, expected V) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
-	ok1 := assert.Equal(t, has, m.Has(i))
-	ok2 := assert.True(t, has, "i=%v", i) && assert.Equal(t, expected, v, "i=%v", i)
+	ok1 := assert.Equal(t, has, m.Has(i), "has != Has(): i=%v", i)
+	ok2 := assert.True(t, has, "!has: i=%v", i) &&
+		assert.Equal(t, expected, v, "expected %v != actual %v: i=%v", expected, v, i)
 	return ok1 && ok2
 }
 
-func assertMapNotHas(t *testing.T, m Map, i interface{}) bool { //nolint:unparam
+func assertMapNotHas[K, V any](t *testing.T, m Map[K, V], i K) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -98,11 +103,11 @@ func assertMapNotHas(t *testing.T, m Map, i interface{}) bool { //nolint:unparam
 	return ok1 && ok2
 }
 
-func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs ...interface{}) bool {
+func assertStringMapEqual[V any](t *testing.T, expected, actual Map[string, V], msgAndArgs ...any) bool {
 	t.Helper()
 
 	format := "\nexpected %v != \nactual   %v"
-	args := []interface{}{}
+	args := []any{}
 	if len(msgAndArgs) > 0 {
 		format = msgAndArgs[0].(string) + format
 		args = append(append(args, format), msgAndArgs[1:]...)
@@ -113,7 +118,7 @@ func assertStringMapEqual(t *testing.T, expected, actual StringMap, msgAndArgs .
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{}) bool { //nolint:unparam
+func assertStringMapHas[V any](t *testing.T, m Map[string, V], i string, expected any) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -122,7 +127,7 @@ func assertStringMapHas(t *testing.T, m StringMap, i string, expected interface{
 	return ok1 && ok2
 }
 
-func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool { //nolint:unparam
+func assertStringMapNotHas[V any](t *testing.T, m Map[string, V], i string) bool { //nolint:unparam
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -131,12 +136,12 @@ func assertStringMapNotHas(t *testing.T, m StringMap, i string) bool { //nolint:
 	return ok1 && ok2
 }
 
-type mapOfSet map[string]Set
+// type mapOfSet map[string]Set
 
-func generateSortedIntArray(start, end, step int) []interface{} {
+func generateSortedIntArray(start, end, step int) []int {
 	if step == 0 {
 		if start == step {
-			return []interface{}{}
+			return []int{}
 		}
 		panic("zero step size")
 	}
@@ -147,7 +152,7 @@ func generateSortedIntArray(start, end, step int) []interface{} {
 	if n < 0 {
 		n *= -1
 	}
-	result := make([]interface{}, n)
+	result := make([]int, n)
 	currentVal := start
 	for i := 0; i < n; i++ {
 		result[i] = currentVal + step*i
