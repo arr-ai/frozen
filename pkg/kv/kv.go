@@ -49,25 +49,25 @@ func KeyValueEqual[K, V any](a, b KeyValue[K, V]) bool {
 	return value.Equal(a.Key, b.Key) && value.Equal(a.Value, b.Value)
 }
 
-type valueEquatable[T any] interface {
+type valueEqualer[T any] interface {
 	Equal(T) bool
 }
 
-var _ valueEquatable[KeyValue[int, int]] = KeyValue[int, int]{}
+var _ valueEqualer[KeyValue[int, int]] = KeyValue[int, int]{}
 
-// Equatable represents a type that can be compared for equality with another
+// Equaler represents a type that can be compared for equality with another
 // value.
-type Equatable[K, V any] interface {
+type Equaler[K, V any] interface {
 	Equal(KeyValue[K, V]) bool
 }
 
 // // Key represents a type that can be used as a key in a Map or a Set.
 // type Key interface {
-// 	Equatable
+// 	Equaler
 // 	hash.Hashable
 // }
 
-// Equal returns true iff a == b. If a or b implements Equatable, that is used
+// Equal returns true iff a == b. If a or b implements Equaler, that is used
 // to perform the test.
 func Equal[K, V any](a, b KeyValue[K, V]) bool {
 	return value.Equal(a.Key, b.Key)

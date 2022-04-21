@@ -39,7 +39,7 @@ type Set interface {
 	// Hash returns a hash derived from the elements of the set.
 	Hash(seed uintptr) uintptr
 
-	// Equal implements value.Equatable, returning true iff this Set and set
+	// Equal implements value.Equaler, returning true iff this Set and set
 	// have all the same elements.
 	Equal(set any) bool
 
