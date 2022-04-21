@@ -11,40 +11,39 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
 	"github.com/arr-ai/frozen/internal/pkg/value"
-	"github.com/arr-ai/frozen/pkg/kv"
 )
 
-func defaultMapNPKeyEqArgs[K, V any]() *tree.EqArgs[kv.KeyValue[K, V]] {
+func defaultMapNPKeyEqArgs[K, V any]() *tree.EqArgs[KeyValue[K, V]] {
 	return newDefaultMapKeyEqArgs[K, V](depth.NonParallel)
 }
 
-func defaultMapNPKeyCombineArgs[K, V any]() *tree.CombineArgs[kv.KeyValue[K, V]] {
-	return tree.NewCombineArgs(defaultMapNPKeyEqArgs[K, V](), tree.UseRHS[kv.KeyValue[K, V]])
+func defaultMapNPKeyCombineArgs[K, V any]() *tree.CombineArgs[KeyValue[K, V]] {
+	return tree.NewCombineArgs(defaultMapNPKeyEqArgs[K, V](), tree.UseRHS[KeyValue[K, V]])
 }
 
-func newDefaultMapKeyEqArgs[K, V any](gauge depth.Gauge) *tree.EqArgs[kv.KeyValue[K, V]] {
+func newDefaultMapKeyEqArgs[K, V any](gauge depth.Gauge) *tree.EqArgs[KeyValue[K, V]] {
 	return tree.NewEqArgs(gauge, mapElementEqual[K, V], mapHashValue[K, V])
 }
 
-func mapElementEqual[K, V any](a, b kv.KeyValue[K, V]) bool {
+func mapElementEqual[K, V any](a, b KeyValue[K, V]) bool {
 	return value.Equal(a.Key, b.Key)
 }
 
-func mapHashValue[K, V any](v kv.KeyValue[K, V], seed uintptr) uintptr {
+func mapHashValue[K, V any](v KeyValue[K, V], seed uintptr) uintptr {
 	return hash.Interface(v.Key, seed)
 }
 
 // Map maps keys to values. The zero value is the empty Map.
 type Map[K any, V any] struct {
-	tree tree.Tree[kv.KeyValue[K, V]]
+	tree tree.Tree[KeyValue[K, V]]
 }
 
-func newMap[K any, V any](tree tree.Tree[kv.KeyValue[K, V]]) Map[K, V] {
+func newMap[K any, V any](tree tree.Tree[KeyValue[K, V]]) Map[K, V] {
 	return Map[K, V]{tree: tree}
 }
 
 // NewMap creates a new Map with kvs as keys and values.
-func NewMap[K any, V any](kvs ...kv.KeyValue[K, V]) Map[K, V] {
+func NewMap[K any, V any](kvs ...KeyValue[K, V]) Map[K, V] {
 	b := NewMapBuilder[K, V](len(kvs))
 	for _, kv := range kvs {
 		b.Put(kv.Key, kv.Value)
@@ -92,7 +91,7 @@ func (m Map[K, V]) Any() (key K, value V) {
 // With returns a new Map with key associated with val and all other keys
 // retained from m.
 func (m Map[K, V]) With(key K, val V) Map[K, V] {
-	kval := kv.KV(key, val)
+	kval := KV(key, val)
 	return newMap(m.tree.With(
 		defaultMapNPKeyCombineArgs[K, V](),
 		kval,
@@ -100,7 +99,7 @@ func (m Map[K, V]) With(key K, val V) Map[K, V] {
 }
 
 // keyHash hashes using the KeyValue's own key.
-func keyHash[K, V any](kv kv.KeyValue[K, V], seed uintptr) uintptr {
+func keyHash[K, V any](kv KeyValue[K, V], seed uintptr) uintptr {
 	return kv.Hash(seed)
 }
 
@@ -109,7 +108,7 @@ func keyHash[K, V any](kv kv.KeyValue[K, V], seed uintptr) uintptr {
 func (m Map[K, V]) Without(keys Set[K]) Map[K, V] {
 	for i := keys.Range(); i.Next(); {
 		var zarro V
-		m.tree = m.tree.Without(defaultMapNPKeyEqArgs[K, V](), kv.KV(i.Value(), zarro))
+		m.tree = m.tree.Without(defaultMapNPKeyEqArgs[K, V](), KV(i.Value(), zarro))
 	}
 	return m
 	// TODO: Reinstate parallelisable implementation below.
@@ -134,7 +133,7 @@ func (m Map[K, V]) Has(key K) bool {
 // Get returns the value associated with key in m and true iff the key is found.
 func (m Map[K, V]) Get(key K) (V, bool) {
 	var zarro V
-	if kv := m.tree.Get(defaultMapNPKeyEqArgs[K, V](), kv.KV(key, zarro)); kv != nil {
+	if kv := m.tree.Get(defaultMapNPKeyEqArgs[K, V](), KV(key, zarro)); kv != nil {
 		return kv.Value, true
 	}
 	return zarro, false
@@ -214,10 +213,10 @@ func MapMap[K, V, U any](m Map[K, V], f func(key K, val V) U) Map[K, U] {
 	return b.Finish()
 }
 
-func (m Map[K, V]) EqArgs() *tree.EqArgs[kv.KeyValue[K, V]] {
+func (m Map[K, V]) EqArgs() *tree.EqArgs[KeyValue[K, V]] {
 	return tree.NewEqArgs(
 		depth.NewGauge(m.Count()),
-		kv.KeyEqual[K, V],
+		KeyEqual[K, V],
 		keyHash[K, V],
 	)
 }
@@ -226,8 +225,8 @@ func (m Map[K, V]) EqArgs() *tree.EqArgs[kv.KeyValue[K, V]] {
 // the value that corresponds to key will be replaced by the value resulted from the
 // provided resolve function.
 func (m Map[K, V]) Merge(n Map[K, V], resolve func(key K, a, b V) V) Map[K, V] {
-	extractAndResolve := func(a, b kv.KeyValue[K, V]) kv.KeyValue[K, V] {
-		return kv.KV(a.Key, resolve(a.Key, a.Value, b.Value))
+	extractAndResolve := func(a, b KeyValue[K, V]) KeyValue[K, V] {
+		return KV(a.Key, resolve(a.Key, a.Value, b.Value))
 	}
 	args := tree.NewCombineArgs(m.EqArgs(), extractAndResolve)
 	return newMap(m.tree.Combine(args, n.tree))
@@ -236,10 +235,10 @@ func (m Map[K, V]) Merge(n Map[K, V], resolve func(key K, a, b V) V) Map[K, V] {
 // Update returns a Map with key-value pairs from n added or replacing existing
 // keys.
 func (m Map[K, V]) Update(n Map[K, V]) Map[K, V] {
-	f := tree.UseRHS[kv.KeyValue[K, V]]
+	f := tree.UseRHS[KeyValue[K, V]]
 	if m.Count() > n.Count() {
 		m, n = n, m
-		f = tree.UseLHS[kv.KeyValue[K, V]]
+		f = tree.UseLHS[KeyValue[K, V]]
 	}
 	args := tree.NewCombineArgs(m.EqArgs(), f)
 	return newMap(m.tree.Combine(args, n.tree))
@@ -259,7 +258,7 @@ func (m Map[K, V]) Hash(seed uintptr) uintptr {
 func (m Map[K, V]) Equal(n Map[K, V]) bool {
 	args := tree.NewEqArgs(
 		depth.NewGauge(m.Count()),
-		kv.KeyValueEqual[K, V],
+		KeyValueEqual[K, V],
 		keyHash[K, V],
 	)
 	return m.tree.Equal(args, n.tree)
@@ -302,8 +301,8 @@ func (m Map[K, V]) DebugReport(debug.Tag) string {
 
 // MapIterator provides for iterating over a Map.
 type MapIterator[K any, V any] struct {
-	i  iterator.Iterator[kv.KeyValue[K, V]]
-	kv kv.KeyValue[K, V]
+	i  iterator.Iterator[KeyValue[K, V]]
+	kv KeyValue[K, V]
 }
 
 // Next moves to the next key-value pair or returns false if there are no more.

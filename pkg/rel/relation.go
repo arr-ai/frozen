@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/pkg/kv"
 )
 
 type (
@@ -13,7 +12,7 @@ type (
 	RelationBuilder = frozen.SetBuilder[Tuple]
 )
 
-func NewTuple(kvs ...kv.KeyValue[string, any]) Tuple {
+func NewTuple(kvs ...frozen.KeyValue[string, any]) Tuple {
 	return frozen.NewMap(kvs...)
 }
 
