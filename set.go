@@ -165,6 +165,12 @@ func (s Set[T]) Equal(t Set[T]) bool {
 	return s.tree.Equal(args, t.tree)
 }
 
+// Same returns true iff a is a Set and s and a have all the same elements.
+func (s Set[T]) Same(a any) bool {
+	t, is := a.(Set[T])
+	return is && s.Equal(t)
+}
+
 // IsSubsetOf returns true iff no element in s is not in t.
 func (s Set[T]) IsSubsetOf(t Set[T]) bool {
 	args := s.eqArgs()

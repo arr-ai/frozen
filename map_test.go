@@ -4,12 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	. "github.com/arr-ai/frozen"
 	"github.com/arr-ai/frozen/internal/pkg/test"
-	"github.com/arr-ai/frozen/internal/pkg/value"
-	"github.com/arr-ai/frozen/pkg/kv"
 )
 
 type mapIntInt = Map[int, int]
@@ -17,7 +14,7 @@ type mapIntInt = Map[int, int]
 func TestKeyValueString(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, "1:2", kv.KV(1, 2).String())
+	assert.Equal(t, "1:2", KV(1, 2).String())
 }
 
 func TestMapEmpty(t *testing.T) {
@@ -80,7 +77,7 @@ func TestMapHas(t *testing.T) {
 	m := NewMap[int, int]()
 	assert.False(t, m.Has(0))
 
-	m = NewMap(kv.KV(0, 1))
+	m = NewMap(KV(0, 1))
 	assert.True(t, m.Has(0))
 	assert.False(t, m.Has(1))
 }
@@ -89,60 +86,17 @@ func TestMapGet(t *testing.T) {
 	t.Parallel()
 
 	m := NewMap(
-		kv.KV(0, 1),
-		kv.KV(1, 1),
-		kv.KV(2, 2),
-		kv.KV(3, 3),
-		kv.KV(4, 5),
+		KV(0, 1),
+		KV(1, 1),
+		KV(2, 2),
+		KV(3, 3),
+		KV(4, 5),
 	)
 	assert.Equal(t, 1, m.MustGet(0))
 	assert.Equal(t, 1, m.MustGet(1))
 	assert.Equal(t, 2, m.MustGet(2))
 	assert.Equal(t, 3, m.MustGet(3))
 	assert.Equal(t, 5, m.MustGet(4))
-}
-
-// Special case for a bug found when testing Nest.
-func TestMapNestBug(t *testing.T) {
-	t.Parallel()
-
-	// Original data:
-	//   (aa: {(a: 11), (a: 10)}):{(c: 3)}
-	//   (aa: {(a: 11), (a: 10)}):{(c: 1)}
-	a := kv.KV(
-		NewMap(
-			kv.KV("aa", NewSet(
-				NewMap(kv.KV("a", 11)),
-				NewMap(kv.KV("a", 10)),
-			)),
-		),
-		NewSet(NewMap(kv.KV("c", 3))),
-	)
-	require.Contains(t,
-		[]string{
-			"(aa: {(a: 10), (a: 11)}):{(c: 3)}",
-			"(aa: {(a: 11), (a: 10)}):{(c: 3)}",
-		}, a.String())
-	b := kv.KV(
-		NewMap(
-			kv.KV("aa", NewSet(
-				NewMap(kv.KV("a", 11)),
-				NewMap(kv.KV("a", 10)),
-			)),
-		),
-		NewSet(NewMap(kv.KV("c", 1))),
-	)
-	require.Contains(t,
-		[]string{
-			"(aa: {(a: 10), (a: 11)}):{(c: 1)}",
-			"(aa: {(a: 11), (a: 10)}):{(c: 1)}",
-		}, b.String())
-	require.True(t, value.Equal(a.Key, b.Key))
-	assert.Equal(t, a.Hash(0) == b.Hash(0), kv.KeyEqual(a, b), "%x %x", a.Hash(0), b.Hash(0))
-
-	// The bug actually caused an endless loop, but there's not way to assert
-	// for that
-	NewMap(a).Update(NewMap(b))
 }
 
 func TestMapRedundantWithWithout(t *testing.T) {
@@ -280,19 +234,19 @@ func TestMapProject(t *testing.T) {
 	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(1, 3)))
 	m = m.With(1, 2)
 	assertMapEqual(t, mapIntInt{}, m.Project(Set[int]{}))
-	assertMapEqual(t, NewMap(kv.KV(1, 2)), m.Project(NewSet(1)))
+	assertMapEqual(t, NewMap(KV(1, 2)), m.Project(NewSet(1)))
 	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(3)))
-	assertMapEqual(t, NewMap(kv.KV(1, 2)), m.Project(NewSet(1, 3)))
+	assertMapEqual(t, NewMap(KV(1, 2)), m.Project(NewSet(1, 3)))
 	m = m.With(3, 4)
 	assertMapEqual(t, mapIntInt{}, m.Project(Set[int]{}))
-	assertMapEqual(t, NewMap(kv.KV(1, 2)), m.Project(NewSet(1)))
-	assertMapEqual(t, NewMap(kv.KV(3, 4)), m.Project(NewSet(3)))
-	assertMapEqual(t, NewMap(kv.KV(1, 2), kv.KV(3, 4)), m.Project(NewSet(1, 3)))
+	assertMapEqual(t, NewMap(KV(1, 2)), m.Project(NewSet(1)))
+	assertMapEqual(t, NewMap(KV(3, 4)), m.Project(NewSet(3)))
+	assertMapEqual(t, NewMap(KV(1, 2), KV(3, 4)), m.Project(NewSet(1, 3)))
 	m = m.Without(NewSet(1))
 	assertMapEqual(t, mapIntInt{}, m.Project(Set[int]{}))
 	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(1)))
-	assertMapEqual(t, NewMap(kv.KV(3, 4)), m.Project(NewSet(3)))
-	assertMapEqual(t, NewMap(kv.KV(3, 4)), m.Project(NewSet(1, 3)))
+	assertMapEqual(t, NewMap(KV(3, 4)), m.Project(NewSet(3)))
+	assertMapEqual(t, NewMap(KV(3, 4)), m.Project(NewSet(1, 3)))
 	m = m.Without(NewSet(3))
 	assertMapEqual(t, mapIntInt{}, m.Project(Set[int]{}))
 	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(1)))
@@ -303,15 +257,15 @@ func TestMapProject(t *testing.T) {
 func TestMapWhere(t *testing.T) {
 	t.Parallel()
 
-	m := NewMap(kv.KV(1, 2), kv.KV(3, 4), kv.KV(4, 5), kv.KV(6, 7))
+	m := NewMap(KV(1, 2), KV(3, 4), KV(4, 5), KV(6, 7))
 	assertMapEqual(t, NewMap[int, int](), m.Where(func(_, _ int) bool { return false }))
 	assertMapEqual(t, m, m.Where(func(_, _ int) bool { return true }))
 	assertMapEqual(t,
-		NewMap(kv.KV(4, 5), kv.KV(6, 7)),
+		NewMap(KV(4, 5), KV(6, 7)),
 		m.Where(func(k, _ int) bool { return k%2 == 0 }),
 	)
 	assertMapEqual(t,
-		NewMap(kv.KV(1, 2), kv.KV(3, 4)),
+		NewMap(KV(1, 2), KV(3, 4)),
 		m.Where(func(_, v int) bool { return v%2 == 0 }),
 	)
 }
@@ -319,9 +273,9 @@ func TestMapWhere(t *testing.T) {
 func TestMapMap(t *testing.T) {
 	t.Parallel()
 
-	m := NewMap(kv.KV(1, 2), kv.KV(3, 4), kv.KV(4, 5), kv.KV(6, 7))
+	m := NewMap(KV(1, 2), KV(3, 4), KV(4, 5), KV(6, 7))
 	assertMapEqual(t,
-		NewMap(kv.KV(1, 3), kv.KV(3, 7), kv.KV(4, 9), kv.KV(6, 13)),
+		NewMap(KV(1, 3), KV(3, 7), KV(4, 9), KV(6, 13)),
 		MapMap(m, func(k, v int) int { return k + v }),
 	)
 }
@@ -329,9 +283,9 @@ func TestMapMap(t *testing.T) {
 func TestMapUpdate(t *testing.T) {
 	t.Parallel()
 
-	m := NewMap(kv.KV(3, 4), kv.KV(4, 5), kv.KV(1, 2))
-	n := NewMap(kv.KV(3, 4), kv.KV(4, 7), kv.KV(6, 7))
-	assertMapEqual(t, NewMap(kv.KV(1, 2), kv.KV(3, 4), kv.KV(4, 7), kv.KV(6, 7)), m.Update(n))
+	m := NewMap(KV(3, 4), KV(4, 5), KV(1, 2))
+	n := NewMap(KV(3, 4), KV(4, 7), KV(6, 7))
+	assertMapEqual(t, NewMap(KV(1, 2), KV(3, 4), KV(4, 7), KV(6, 7)), m.Update(n))
 	oom := 10
 	if testing.Short() {
 		oom = 5
@@ -373,14 +327,14 @@ func TestMapHashAndEqual(t *testing.T) {
 
 	maps := []mapIntInt{
 		{},
-		NewMap(kv.KV(1, 2)),
-		NewMap(kv.KV(1, 3)),
-		NewMap(kv.KV(3, 4)),
-		NewMap(kv.KV(3, 5)),
-		NewMap(kv.KV(1, 2), kv.KV(3, 4)),
-		NewMap(kv.KV(1, 2), kv.KV(3, 5)),
-		NewMap(kv.KV(1, 3), kv.KV(3, 4)),
-		NewMap(kv.KV(1, 3), kv.KV(3, 5)),
+		NewMap(KV(1, 2)),
+		NewMap(KV(1, 3)),
+		NewMap(KV(3, 4)),
+		NewMap(KV(3, 5)),
+		NewMap(KV(1, 2), KV(3, 4)),
+		NewMap(KV(1, 2), KV(3, 5)),
+		NewMap(KV(1, 3), KV(3, 4)),
+		NewMap(KV(1, 3), KV(3, 5)),
 	}
 	for i, a := range maps {
 		for j, b := range maps {
@@ -405,7 +359,7 @@ func TestMapString(t *testing.T) {
 func TestMapRange(t *testing.T) {
 	t.Parallel()
 
-	m := NewMap(kv.KV(1, 2), kv.KV(3, 4), kv.KV(4, 5), kv.KV(6, 7))
+	m := NewMap(KV(1, 2), KV(3, 4), KV(4, 5), KV(6, 7))
 	output := map[int]int{}
 	for i := m.Range(); i.Next(); {
 		k, v := i.Entry()
@@ -418,12 +372,12 @@ func TestMapRange(t *testing.T) {
 func TestMapMergeSameValueType(t *testing.T) {
 	t.Parallel()
 
-	m := NewMap(kv.KV(1, 1), kv.KV(2, 2), kv.KV(3, 3))
-	n := NewMap(kv.KV(1, 2), kv.KV(2, 3), kv.KV(4, 4))
+	m := NewMap(KV(1, 1), KV(2, 2), KV(3, 3))
+	n := NewMap(KV(1, 2), KV(2, 3), KV(4, 4))
 	resolve := func(key, a, b int) int {
 		return key + a + b
 	}
-	expected := NewMap(kv.KV(1, 4), kv.KV(2, 7), kv.KV(3, 3), kv.KV(4, 4))
+	expected := NewMap(KV(1, 4), KV(2, 7), KV(3, 3), KV(4, 4))
 	result := m.Merge(n, resolve)
 	assert.True(t, expected.Equal(result))
 }
@@ -432,7 +386,7 @@ func TestMapMergeEmptyMap(t *testing.T) {
 	t.Parallel()
 
 	empty := NewMap[int, int]()
-	nonEmpty := NewMap(kv.KV(1, 2), kv.KV(2, 3))
+	nonEmpty := NewMap(KV(1, 2), KV(2, 3))
 
 	assert.True(t, nonEmpty.Equal(empty.Merge(nonEmpty, func(key, a, b int) int { return a })))
 	assert.True(t, nonEmpty.Equal(nonEmpty.Merge(empty, func(key, a, b int) int { return a })))

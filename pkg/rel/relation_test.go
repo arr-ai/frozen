@@ -205,52 +205,52 @@ func TestUnnest(t *testing.T) {
 	test.AssertSetEqual(t, expected, actual)
 }
 
-func TestNestImpl(t *testing.T) {
-	t.Parallel()
+// func TestNestImpl(t *testing.T) {
+// 	t.Parallel()
 
-	s := New(
-		[]string{"c", "a"},
-		[]any{1, 10},
-		[]any{1, 11},
-		[]any{3, 11},
-		[]any{3, 10},
-	)
-	// attrAttrs := NewMap(KV("aa", NewSet("a")))
-	keyAttrs := NewSet("a")
+// 	s := New(
+// 		[]string{"c", "a"},
+// 		[]any{1, 10},
+// 		[]any{1, 11},
+// 		[]any{3, 11},
+// 		[]any{3, 10},
+// 	)
+// 	// attrAttrs := NewMap(KV("aa", NewSet("a")))
+// 	keyAttrs := NewSet("a")
 
-	grouped := SetGroupBy(s, func(el Tuple) Tuple {
-		return el.Without(keyAttrs)
-	})
-	t.Log("grouped =", grouped)
+// 	grouped := SetGroupBy(s, func(el Tuple) Tuple {
+// 		return el.Without(keyAttrs)
+// 	})
+// 	t.Log("grouped =", grouped)
 
-	mapped := MapMap(grouped, func(key Tuple, group Relation) Tuple {
-		return NewMap(KV[string, any]("aa", Project(group, keyAttrs)))
-	})
-	t.Log("mapped  =", mapped)
+// 	mapped := MapMap(grouped, func(key Tuple, group Relation) Tuple {
+// 		return NewMap(KV[string, any]("aa", Project(group, keyAttrs)))
+// 	})
+// 	t.Log("mapped  =", mapped)
 
-	result := mapped.Values()
-	t.Logf("result  = %+v", result)
+// 	result := mapped.Values()
+// 	t.Logf("result  = %+v", result)
 
-	s = result
-	keyAttrs = NewSet("c")
+// 	s = result
+// 	keyAttrs = NewSet("c")
 
-	grouped = SetGroupBy(s, func(el Tuple) Tuple {
-		return el.Without(keyAttrs)
-	})
-	t.Log("grouped =", grouped)
+// 	grouped = SetGroupBy(s, func(el Tuple) Tuple {
+// 		return el.Without(keyAttrs)
+// 	})
+// 	t.Log("grouped =", grouped)
 
-	mapped = MapMap(grouped, func(key Tuple, group Relation) Tuple {
-		a := NewMap(KV[string, any]("cc", NewSet(NewMap[string, any]())))
-		return a //.Update(key)
-	})
-	t.Log("mapped  =", mapped)
-	keys := mapped.Keys().Elements()
-	t.Log("keys    =", keys)
-	t.Log("keys[0] == keys[1] =", keys[0].Equal(keys[1]))
-	t.Log("keys[0][aa] == keys[1][aa] =", keys[0].MustGet("aa").(Relation).Equal(keys[1].MustGet("aa").(Relation)))
+// 	mapped = MapMap(grouped, func(key Tuple, group Relation) Tuple {
+// 		a := NewMap(KV[string, any]("cc", NewSet(NewMap[string, any]())))
+// 		return a //.Update(key)
+// 	})
+// 	t.Log("mapped  =", mapped)
+// 	keys := mapped.Keys().Elements()
+// 	t.Log("keys    =", keys)
+// 	// t.Log("keys[0] == keys[1] =", keys[0].Equal(keys[1]))
+// 	// t.Log("keys[0][aa] == keys[1][aa] =", keys[0].MustGet("aa").(Relation).Equal(keys[1].MustGet("aa").(Relation)))
 
-	result = mapped.Values()
-	t.Log("result  =", result)
+// 	result = mapped.Values()
+// 	t.Log("result  =", result)
 
-	t.Fail()
-}
+// 	t.Fail()
+// }

@@ -12,7 +12,6 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/internal/pkg/test"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
-	"github.com/arr-ai/frozen/pkg/kv"
 )
 
 func largeIntSet() Set[int] {
@@ -236,8 +235,8 @@ func TestSetHash(t *testing.T) {
 		NewSet[any](1, 3, 5),
 		NewSet[any](1, 2, 3, 4),
 		NewSet[any](1, 2, 3, 5),
-		NewSet[any](NewMap(kv.KV("cc", NewSet(NewMap(kv.KV("c", 1)))))),
-		NewSet[any](NewMap(kv.KV("cc", NewSet(NewMap(kv.KV("c", 2)))))),
+		NewSet[any](NewMap(KV("cc", NewSet(NewMap(KV("c", 1)))))),
+		NewSet[any](NewMap(KV("cc", NewSet(NewMap(KV("c", 2)))))),
 	}
 	for i, a := range maps {
 		for j, b := range maps {

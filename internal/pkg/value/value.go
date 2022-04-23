@@ -29,7 +29,7 @@ func equalComparable[T any](a, b T) bool {
 	return any(a) == any(b)
 }
 
-func equalAny[T any](a, b T) bool {
+func Equal[T any](a, b T) bool {
 	var i any = a
 	switch a := i.(type) {
 	case Equaler[T]:
@@ -41,7 +41,7 @@ func equalAny[T any](a, b T) bool {
 }
 
 // EqualFunc returns an equality tester optimised for T.
-func EqualFunc[T any]() func(a, b T) bool {
+func EqualFuncFor[T any]() func(a, b T) bool {
 	var t T
 	var i any = t
 	switch i.(type) {
@@ -50,7 +50,7 @@ func EqualFunc[T any]() func(a, b T) bool {
 	case Samer:
 		return equalSamer[T]
 	case nil:
-		return equalAny[T]
+		return Equal[T]
 	}
 	if func() (comp bool) {
 		defer recover()
@@ -59,21 +59,11 @@ func EqualFunc[T any]() func(a, b T) bool {
 	}() {
 		return equalComparable[T]
 	}
-	return equalAny[T]
+	return Equal[T]
 }
 
 // Key represents a type that can be used as a key in a Map or a Set.
 type Key[T any] interface {
 	Equaler[T]
 	hash.Hashable
-}
-
-// Equal returns true iff a == b. If a or b implements Equaler, that is used
-// to perform the test.
-func Equal[T any](a, b T) bool {
-	var i, j any = a, b
-	if a, ok := i.(Equaler[T]); ok {
-		return a.Equal(b)
-	}
-	return i == j
 }

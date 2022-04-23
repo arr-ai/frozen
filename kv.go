@@ -38,37 +38,10 @@ func (kv KeyValue[K, V]) Format(f fmt.State, verb rune) {
 }
 
 func (kv KeyValue[K, V]) Equal(kv2 KeyValue[K, V]) bool {
-	return KeyValueEqual(kv, kv2)
+	return value.Equal(kv.Key, kv2.Key) && value.Equal(kv.Value, kv2.Value)
 }
 
-func KeyEqual[K, V any](a, b KeyValue[K, V]) bool {
-	return value.Equal(a.Key, b.Key)
-}
-
-func KeyValueEqual[K, V any](a, b KeyValue[K, V]) bool {
-	return value.Equal(a.Key, b.Key) && value.Equal(a.Value, b.Value)
-}
-
-type valueEqualer[T any] interface {
-	Equal(T) bool
-}
-
-var _ valueEqualer[KeyValue[int, int]] = KeyValue[int, int]{}
-
-// Equaler represents a type that can be compared for equality with another
-// value.
-type Equaler[K, V any] interface {
-	Equal(KeyValue[K, V]) bool
-}
-
-// // Key represents a type that can be used as a key in a Map or a Set.
-// type Key interface {
-// 	Equaler
-// 	hash.Hashable
-// }
-
-// Equal returns true iff a == b. If a or b implements Equaler, that is used
-// to perform the test.
-func Equal[K, V any](a, b KeyValue[K, V]) bool {
-	return value.Equal(a.Key, b.Key)
+func (kv KeyValue[K, V]) Same(a any) bool {
+	kv2, is := a.(KeyValue[K, V])
+	return is && kv.Equal(kv2)
 }

@@ -6,11 +6,11 @@ import (
 
 // MapBuilder[K, V] provides a more efficient way to build Maps incrementally.
 type MapBuilder[K any, V any] struct {
-	tb tree.Builder[KeyValue[K, V]]
+	tb tree.Builder[mapEntry[K, V]]
 }
 
 func NewMapBuilder[K any, V any](capacity int) *MapBuilder[K, V] {
-	return &MapBuilder[K, V]{tb: *tree.NewBuilder[KeyValue[K, V]](capacity)}
+	return &MapBuilder[K, V]{tb: *tree.NewBuilder[mapEntry[K, V]](capacity)}
 }
 
 // Count returns the number of entries in the Map under construction.
@@ -20,13 +20,12 @@ func (b *MapBuilder[K, V]) Count() int {
 
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder[K, V]) Put(key K, value V) {
-	b.tb.Add(defaultMapNPKeyCombineArgs[K, V](), KV(key, value))
+	b.tb.Add(defaultMapNPKeyCombineArgs[K, V](), newMapEntry(key, value))
 }
 
 // Remove removes an entry from the Map under construction.
 func (b *MapBuilder[K, V]) Remove(key K) {
-	var zarro V
-	b.tb.Remove(defaultMapNPKeyEqArgs[K, V](), KV(key, zarro))
+	b.tb.Remove(defaultMapNPKeyEqArgs[K, V](), newMapKey[K, V](key))
 }
 
 func (b *MapBuilder[K, V]) Has(key K) bool {
@@ -37,8 +36,7 @@ func (b *MapBuilder[K, V]) Has(key K) bool {
 // Get returns the value for key from the Map under construction or false if
 // not found.
 func (b *MapBuilder[K, V]) Get(key K) (V, bool) {
-	var zarro V
-	if entry := b.tb.Get(defaultMapNPKeyEqArgs[K, V](), KV(key, zarro)); entry != nil {
+	if entry := b.tb.Get(defaultMapNPKeyEqArgs[K, V](), newMapKey[K, V](key)); entry != nil {
 		return entry.Value, true
 	}
 	var v V
