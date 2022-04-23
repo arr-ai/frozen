@@ -23,7 +23,7 @@ func TestBranchRemove(t *testing.T) {
 		}
 		for i := 0; i < N; i++ {
 			require.False(t, has(i), i)
-			b.Add(tree.DefaultNPCombineArgs[int](), i)
+			b.Add(i)
 			require.True(t, has(i), i)
 		}
 

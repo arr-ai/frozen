@@ -20,7 +20,7 @@ func (b *MapBuilder[K, V]) Count() int {
 
 // Put adds or changes an entry into the Map under construction.
 func (b *MapBuilder[K, V]) Put(key K, value V) {
-	b.tb.Add(defaultMapNPKeyCombineArgs[K, V](), newMapEntry(key, value))
+	b.tb.Add(newMapEntry(key, value))
 }
 
 // Remove removes an entry from the Map under construction.

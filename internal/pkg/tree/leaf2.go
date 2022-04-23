@@ -5,6 +5,7 @@ import (
 
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/internal/pkg/value"
 	"github.com/arr-ai/frozen/pkg/errors"
 )
 
@@ -41,6 +42,19 @@ func (l *leaf2[T]) Add(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T
 		return l, 1
 	case args.eq(l.data[1], v):
 		l.data[1] = args.f(l.data[1], v)
+		return l, 1
+	default:
+		return newBranchFrom(depth, l.data[0], l.data[1], v), 0
+	}
+}
+
+func (l *leaf2[T]) AddFast(v T, depth int, h hasher) (_ node[T], matches int) {
+	switch {
+	case value.Equal(l.data[0], v):
+		l.data[0] = v
+		return l, 1
+	case value.Equal(l.data[1], v):
+		l.data[1] = v
 		return l, 1
 	default:
 		return newBranchFrom(depth, l.data[0], l.data[1], v), 0
@@ -196,6 +210,17 @@ func (l *leaf2[T]) Where(args *WhereArgs[T], depth int) (_ node[T], matches int)
 		return newLeaf1(l.data[1]), 1
 	default:
 		return nil, 0
+	}
+}
+
+func (l *leaf2[T]) FastWith(v T, depth int, h hasher) (_ node[T], matches int) {
+	switch {
+	case value.Equal(l.data[0], v):
+		return newLeaf2(v, l.data[1]), 1
+	case value.Equal(l.data[1], v):
+		return newLeaf2(l.data[0], v), 1
+	default:
+		return newBranchFrom(depth, l.data[0], l.data[1], v), 0
 	}
 }
 

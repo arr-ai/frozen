@@ -83,10 +83,7 @@ func (m Map[K, V]) Any() (key K, value V) {
 // retained from m.
 func (m Map[K, V]) With(key K, val V) Map[K, V] {
 	kval := newMapEntry(key, val)
-	return newMap(m.tree.With(
-		defaultMapNPKeyCombineArgs[K, V](),
-		kval,
-	))
+	return newMap(m.tree.With(kval))
 }
 
 // Without returns a new Map with all keys retained from m except the elements

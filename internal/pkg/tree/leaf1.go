@@ -5,6 +5,7 @@ import (
 
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/internal/pkg/value"
 	"github.com/arr-ai/frozen/pkg/errors"
 )
 
@@ -46,6 +47,14 @@ func (l *leaf1[T]) String() string {
 func (l *leaf1[T]) Add(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
 	if args.eq(l.data, v) {
 		l.data = args.f(l.data, v)
+		return l, 1
+	}
+	return newLeaf2(l.data, v), 0
+}
+
+func (l *leaf1[T]) AddFast(v T, depth int, h hasher) (_ node[T], matches int) {
+	if value.Equal(l.data, v) {
+		l.data = v
 		return l, 1
 	}
 	return newLeaf2(l.data, v), 0
@@ -142,6 +151,13 @@ func (l *leaf1[T]) Where(args *WhereArgs[T], depth int) (_ node[T], matches int)
 		return l, 1
 	}
 	return nil, 0
+}
+
+func (l *leaf1[T]) FastWith(v T, depth int, h hasher) (_ node[T], matches int) {
+	if value.Equal(l.data, v) {
+		return newLeaf1(v), 1
+	}
+	return newLeaf2(l.data, v), 0
 }
 
 func (l *leaf1[T]) With(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {

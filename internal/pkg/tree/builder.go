@@ -31,7 +31,7 @@ func (b *Builder[T]) Count() int {
 	return b.t.count
 }
 
-func (b *Builder[T]) Add(args *CombineArgs[T], v T) {
+func (b *Builder[T]) add(args *CombineArgs[T], v T) {
 	if b.t.root == nil {
 		b.t.root = newLeaf1(v)
 		b.t.count = 1
@@ -39,10 +39,26 @@ func (b *Builder[T]) Add(args *CombineArgs[T], v T) {
 		h := newHasher(v, 0)
 		if vetting {
 			backup := b.clone()
-			defer vet[T](func() { backup.Add(args, v) }, &b.t)(nil)
+			defer vet[T](func() { backup.add(args, v) }, &b.t)(nil)
 		}
 		var matches int
 		b.t.root, matches = b.t.root.Add(args, v, 0, h)
+		b.t.count += 1 - matches
+	}
+}
+
+func (b *Builder[T]) Add(v T) {
+	if b.t.root == nil {
+		b.t.root = newLeaf1(v)
+		b.t.count = 1
+	} else {
+		h := newHasher(v, 0)
+		if vetting {
+			backup := b.clone()
+			defer vet[T](func() { backup.Add(v) }, &b.t)(nil)
+		}
+		var matches int
+		b.t.root, matches = b.t.root.AddFast(v, 0, h)
 		b.t.count += 1 - matches
 	}
 }

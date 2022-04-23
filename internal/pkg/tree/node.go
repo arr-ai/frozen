@@ -11,6 +11,7 @@ type node[T any] interface {
 	fmt.Stringer
 
 	Add(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int)
+	AddFast(v T, depth int, h hasher) (_ node[T], matches int)
 	AppendTo(dest []T) []T
 	Canonical(depth int) node[T]
 	Combine(args *CombineArgs[T], n2 node[T], depth int) (_ node[T], matches int)
@@ -25,6 +26,7 @@ type node[T any] interface {
 	Map(args *CombineArgs[T], depth int, f func(v T) T) (_ node[T], matches int)
 	Vet() int
 	Where(args *WhereArgs[T], depth int) (_ node[T], matches int)
+	FastWith(v T, depth int, h hasher) (_ node[T], matches int)
 	With(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int)
 	Without(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], matches int)
 	Remove(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], matches int)

@@ -151,7 +151,7 @@ func TreeMap[T, U any](t Tree[T], args *CombineArgs[U], f func(v T) U) (out Tree
 	}
 	var b Builder[U]
 	for i := t.Iterator(); i.Next(); {
-		b.Add(args, f(i.Value()))
+		b.add(args, f(i.Value()))
 	}
 	return b.Finish()
 }
@@ -186,15 +186,15 @@ func (t Tree[T]) Where(args *WhereArgs[T]) (out Tree[T]) {
 	return newTree(t.root.Where(args, 0))
 }
 
-func (t Tree[T]) With(args *CombineArgs[T], v T) (out Tree[T]) {
+func (t Tree[T]) With(v T) (out Tree[T]) {
 	if vetting {
-		defer vet[T](func() { t.With(args, v) }, &t)(&out)
+		defer vet[T](func() { t.With(v) }, &t)(&out)
 	}
 	if t.root == nil {
 		return Tree[T]{root: newLeaf1(v), count: 1}
 	}
 	h := newHasher(v, 0)
-	root, matches := t.root.With(args, v, 0, h)
+	root, matches := t.root.FastWith(v, 0, h)
 	return newTree(root, t.count+1-matches)
 }
 

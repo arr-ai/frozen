@@ -5,6 +5,7 @@ import (
 
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/internal/pkg/value"
 	"github.com/arr-ai/frozen/pkg/errors"
 )
 
@@ -56,6 +57,30 @@ func (l *twig[T]) Add(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T]
 		matches += m
 	}
 	_, m := b.Add(args, v, depth, h)
+	matches += m
+
+	return b, matches
+}
+
+func (l *twig[T]) AddFast(v T, depth int, h hasher) (_ node[T], matches int) {
+	for i, e := range l.data {
+		if value.Equal(e, v) {
+			matches++
+			l.data[i] = v
+			return l, matches
+		}
+	}
+	if len(l.data) < cap(l.data) || depth >= maxTreeDepth {
+		l.data = append(l.data, v)
+		return l, matches
+	}
+
+	b := &branch[T]{}
+	for _, e := range l.data {
+		_, m := b.AddFast(e, depth, newHasher(e, depth))
+		matches += m
+	}
+	_, m := b.AddFast(v, depth, h)
 	matches += m
 
 	return b, matches
@@ -220,7 +245,7 @@ func (l *twig[T]) SubsetOf(args *EqArgs[T], n node[T], depth int) bool {
 func (l *twig[T]) Map(args *CombineArgs[T], _ int, f func(e T) T) (_ node[T], matches int) {
 	var nb Builder[T]
 	for _, e := range l.data {
-		nb.Add(args, f(e))
+		nb.add(args, f(e))
 	}
 	t := nb.Finish()
 	return t.root, t.count
@@ -248,6 +273,18 @@ func (l *twig[T]) Where(args *WhereArgs[T], depth int) (_ node[T], matches int) 
 		}
 	}
 	return ret.Canonical(depth), matches
+}
+
+func (l *twig[T]) FastWith(v T, depth int, h hasher) (_ node[T], matches int) {
+	for i, e := range l.data {
+		if value.Equal(e, v) {
+			matches++
+			ret := l.cloneWithExtra(0)
+			ret.data[i] = v
+			return ret, matches
+		}
+	}
+	return newTwig(append(l.data, v)...).Canonical(depth), matches
 }
 
 func (l *twig[T]) With(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {

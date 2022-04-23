@@ -40,7 +40,7 @@ func newBranchFrom[T any](depth int, data ...T) node[T] {
 	b := &branch[T]{}
 	for _, e := range data {
 		h := newHasher(e, depth)
-		b.Add(DefaultNPCombineArgs[T](), e, depth, h)
+		b.AddFast(e, depth, h)
 	}
 	return b
 }
@@ -54,6 +54,20 @@ func (b *branch[T]) Add(args *CombineArgs[T], v T, depth int, h hasher) (_ node[
 		h2 := h.next()
 		var n node[T]
 		n, matches = b.p.data[i].Add(args, v, depth+1, h2)
+		b.p.SetNonNilChild(i, n)
+	}
+	return b, matches
+}
+
+func (b *branch[T]) AddFast(v T, depth int, h hasher) (_ node[T], matches int) {
+	i := h.hash()
+	if b.p.data[i] == nil {
+		l := newLeaf1(v)
+		b.p.SetNonNilChild(i, l)
+	} else {
+		h2 := h.next()
+		var n node[T]
+		n, matches = b.p.data[i].AddFast(v, depth+1, h2)
 		b.p.SetNonNilChild(i, n)
 	}
 	return b, matches
@@ -307,6 +321,19 @@ func (b *branch[T]) Vet() int {
 		}()
 	}
 	return count
+}
+
+func (b *branch[T]) FastWith(v T, depth int, h hasher) (_ node[T], matches int) {
+	i := h.hash()
+	g := h.next()
+	if x := b.p.data[i]; x != nil {
+		x2, matches := x.FastWith(v, depth+1, g)
+		if x2 != x {
+			return newBranch(b.p.WithChild(i, x2)), matches
+		}
+		return b, matches
+	}
+	return newBranch(b.p.WithChild(i, newLeaf1(v))), 0
 }
 
 func (b *branch[T]) With(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {

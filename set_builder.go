@@ -38,7 +38,7 @@ func (b *SetBuilder[T]) Count() int {
 
 // Add adds el to the Set under construction.
 func (b *SetBuilder[T]) Add(v T) {
-	b.b.Add(b.combineArgs(), v)
+	b.b.Add(v)
 }
 
 // Remove removes el to the Set under construction.
