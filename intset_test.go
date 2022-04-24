@@ -255,7 +255,7 @@ func TestIntSetMap(t *testing.T) {
 		mappedArr = append(mappedArr, subtract(i))
 	}
 
-	mappedSet := NewIntSet[int](mappedArr...)
+	mappedSet := NewIntSet(mappedArr...)
 
 	assert.True(t, mappedSet.EqualSet(fullSet.Map(subtract)))
 	assert.True(t, NewIntSet[int]().EqualSet(NewIntSet[int]().Map(subtract)))
@@ -278,7 +278,7 @@ func generateIntArrayAndSet(maxLen int) ([]int, IntSet[int]) {
 			seen[e] = true
 		}
 	}
-	set := NewIntSet[int](out...)
+	set := NewIntSet(out...)
 	rand.Shuffle(len(out), func(i, j int) {
 		a := out
 		a[i], a[j] = a[j], a[i]

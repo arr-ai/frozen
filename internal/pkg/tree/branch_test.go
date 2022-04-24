@@ -19,7 +19,7 @@ func TestBranchRemove(t *testing.T) {
 	test.Replayable(true, func(r *test.Replayer) {
 		var b tree.Builder[int]
 		has := func(i int) bool {
-			return b.Get(tree.DefaultNPEqArgs[int](), i) != nil
+			return b.Get(i) != nil
 		}
 		for i := 0; i < N; i++ {
 			require.False(t, has(i), i)

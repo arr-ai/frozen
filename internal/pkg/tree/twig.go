@@ -193,6 +193,15 @@ func (l *twig[T]) Get(args *EqArgs[T], v T, _ hasher) *T {
 	return nil
 }
 
+func (l *twig[T]) GetFast(v T, _ hasher) *T {
+	for i, e := range l.data {
+		if value.Equal(e, v) {
+			return &l.data[i]
+		}
+	}
+	return nil
+}
+
 func (l *twig[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
 	ret := newTwig[T]()
 	for _, e := range l.data {

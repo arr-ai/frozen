@@ -31,7 +31,9 @@ func benchmarkWithIntSet(b *testing.B, n int) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		set.With(i * multiplier)
+		for j := 0; j < 1000; j++ {
+			set.With(i * multiplier)
+		}
 	}
 }
 

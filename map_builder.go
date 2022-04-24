@@ -36,7 +36,7 @@ func (b *MapBuilder[K, V]) Has(key K) bool {
 // Get returns the value for key from the Map under construction or false if
 // not found.
 func (b *MapBuilder[K, V]) Get(key K) (V, bool) {
-	if entry := b.tb.Get(defaultMapNPKeyEqArgs[K, V](), newMapKey[K, V](key)); entry != nil {
+	if entry := b.tb.Get(newMapKey[K, V](key)); entry != nil {
 		return entry.Value, true
 	}
 	var v V

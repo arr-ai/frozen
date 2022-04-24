@@ -103,41 +103,6 @@ func assertMapNotHas[K, V any](t *testing.T, m Map[K, V], i K) bool { //nolint:u
 	return ok1 && ok2
 }
 
-func assertStringMapEqual[V any](t *testing.T, expected, actual Map[string, V], msgAndArgs ...any) bool {
-	t.Helper()
-
-	format := "\nexpected %v != \nactual   %v"
-	args := []any{}
-	if len(msgAndArgs) > 0 {
-		format = msgAndArgs[0].(string) + format
-		args = append(append(args, format), msgAndArgs[1:]...)
-	} else {
-		args = append(args, format)
-	}
-	args = append(args, expected, actual)
-	return assert.True(t, expected.Equal(actual), args...)
-}
-
-func assertStringMapHas[V any](t *testing.T, m Map[string, V], i string, expected any) bool { //nolint:unparam
-	t.Helper()
-
-	v, has := m.Get(i)
-	ok1 := assert.Equal(t, has, m.Has(i))
-	ok2 := assert.True(t, has, "i=%v", i) && assert.Equal(t, expected, v, "i=%v", i)
-	return ok1 && ok2
-}
-
-func assertStringMapNotHas[V any](t *testing.T, m Map[string, V], i string) bool { //nolint:unparam
-	t.Helper()
-
-	v, has := m.Get(i)
-	ok1 := assert.Equal(t, has, m.Has(i))
-	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
-	return ok1 && ok2
-}
-
-// type mapOfSet map[string]Set
-
 func generateSortedIntArray(start, end, step int) []int {
 	if step == 0 {
 		if start == step {

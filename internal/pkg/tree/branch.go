@@ -179,6 +179,14 @@ func (b *branch[T]) Get(args *EqArgs[T], v T, h hasher) *T {
 	return nil
 }
 
+func (b *branch[T]) GetFast(v T, h hasher) *T {
+	if x := b.p.data[h.hash()]; x != nil {
+		h2 := h.next()
+		return x.GetFast(v, h2)
+	}
+	return nil
+}
+
 func (b *branch[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
 	switch n := n.(type) {
 	case *branch[T]:

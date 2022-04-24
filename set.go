@@ -179,7 +179,7 @@ func (s Set[T]) IsSubsetOf(t Set[T]) bool {
 
 // Has returns the value associated with key and true iff the key was found.
 func (s Set[T]) Has(val T) bool {
-	return s.tree.Get(tree.DefaultNPEqArgs[T](), val) != nil
+	return s.tree.Get(val) != nil
 }
 
 // With returns a new Set retaining all the elements of the Set as well as values.

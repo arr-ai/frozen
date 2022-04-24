@@ -83,12 +83,12 @@ func (t Tree[T]) Equal(args *EqArgs[T], u Tree[T]) bool {
 	}
 }
 
-func (t Tree[T]) Get(args *EqArgs[T], v T) *T {
+func (t Tree[T]) Get(v T) *T {
 	if t.root == nil {
 		return nil
 	}
 	h := newHasher(v, 0)
-	return t.root.Get(args, v, h)
+	return t.root.GetFast(v, h)
 }
 
 func (t Tree[T]) Intersection(args *EqArgs[T], u Tree[T]) (out Tree[T]) {

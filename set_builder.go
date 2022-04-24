@@ -47,7 +47,7 @@ func (b *SetBuilder[T]) Remove(v T) {
 }
 
 func (b *SetBuilder[T]) Has(v T) bool {
-	return b.b.Get(b.eqArgs(), v) != nil
+	return b.b.Get(v) != nil
 }
 
 // Finish returns a Set containing all elements added since the SetBuilder[T] was

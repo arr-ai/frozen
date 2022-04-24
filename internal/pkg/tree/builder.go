@@ -76,8 +76,8 @@ func (b *Builder[T]) Remove(args *EqArgs[T], v T) {
 	}
 }
 
-func (b *Builder[T]) Get(args *EqArgs[T], el T) *T {
-	return b.t.Get(args, el)
+func (b *Builder[T]) Get(el T) *T {
+	return b.t.Get(el)
 }
 
 func (b *Builder[T]) Finish() Tree[T] {

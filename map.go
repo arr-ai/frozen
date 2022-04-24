@@ -114,7 +114,7 @@ func (m Map[K, V]) Has(key K) bool {
 
 // Get returns the value associated with key in m and true iff the key is found.
 func (m Map[K, V]) Get(key K) (_ V, _ bool) {
-	if kv := m.tree.Get(defaultMapNPKeyEqArgs[K, V](), newMapKey[K, V](key)); kv != nil {
+	if kv := m.tree.Get(newMapKey[K, V](key)); kv != nil {
 		return kv.Value, true
 	}
 	return

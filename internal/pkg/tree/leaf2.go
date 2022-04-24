@@ -146,6 +146,15 @@ func (l *leaf2[T]) Get(args *EqArgs[T], v T, _ hasher) *T {
 	return nil
 }
 
+func (l *leaf2[T]) GetFast(v T, _ hasher) *T {
+	for i, e := range l.data {
+		if value.Equal(e, v) {
+			return &l.data[i]
+		}
+	}
+	return nil
+}
+
 func (l *leaf2[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
 	g0 := n.Get(args, l.data[0], newHasher(l.data[0], depth)) != nil
 	g1 := n.Get(args, l.data[1], newHasher(l.data[1], depth)) != nil

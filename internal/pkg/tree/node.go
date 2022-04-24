@@ -19,6 +19,7 @@ type node[T any] interface {
 	Empty() bool
 	Equal(args *EqArgs[T], n2 node[T], depth int) bool
 	Get(args *EqArgs[T], v T, h hasher) *T
+	GetFast(v T, h hasher) *T
 	Intersection(args *EqArgs[T], n2 node[T], depth int) (_ node[T], matches int)
 	Iterator(buf [][]node[T]) iterator.Iterator[T]
 	Reduce(args NodeArgs, depth int, r func(values ...T) T) T
