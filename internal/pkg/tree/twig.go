@@ -3,6 +3,7 @@ package tree
 import (
 	"fmt"
 
+	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/internal/pkg/value"
@@ -152,11 +153,11 @@ func (l *twig[T]) AppendTo(dest []T) []T {
 	return append(dest, l.data...)
 }
 
-func (l *twig[T]) Difference(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
+func (l *twig[T]) Difference(gauge depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
 	ret := newTwig[T]()
 	for _, e := range l.data {
 		h := newHasher(e, depth)
-		if n.Get(args, e, h) == nil {
+		if n.Get(e, h) == nil {
 			ret.data = append(ret.data, e)
 		} else {
 			matches++
@@ -174,26 +175,21 @@ func (l *twig[T]) Equal(args *EqArgs[T], n node[T], depth int) bool {
 		if len(l.data) != len(n.data) {
 			return false
 		}
+	outer:
 		for _, e := range l.data {
-			if n.Get(args, e, 0) == nil {
-				return false
+			for _, f := range n.data {
+				if args.eq(e, f) {
+					continue outer
+				}
 			}
+			return false
 		}
 		return true
 	}
 	return false
 }
 
-func (l *twig[T]) Get(args *EqArgs[T], v T, _ hasher) *T {
-	for i, e := range l.data {
-		if args.eq(e, v) {
-			return &l.data[i]
-		}
-	}
-	return nil
-}
-
-func (l *twig[T]) GetFast(v T, _ hasher) *T {
+func (l *twig[T]) Get(v T, _ hasher) *T {
 	for i, e := range l.data {
 		if value.Equal(e, v) {
 			return &l.data[i]
@@ -202,11 +198,11 @@ func (l *twig[T]) GetFast(v T, _ hasher) *T {
 	return nil
 }
 
-func (l *twig[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
+func (l *twig[T]) Intersection(gauge depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
 	ret := newTwig[T]()
 	for _, e := range l.data {
 		h := newHasher(e, depth)
-		if n.Get(args, e, h) != nil {
+		if n.Get(e, h) != nil {
 			matches++
 			ret.data = append(ret.data, e)
 		}
@@ -222,10 +218,10 @@ func (l *twig[T]) Reduce(_ NodeArgs, _ int, r func(values ...T) T) T {
 	return r(l.data...)
 }
 
-func (l *twig[T]) Remove(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *twig[T]) Remove(v T, depth int, h hasher) (_ node[T], matches int) {
 	// log.Printf("(*twig[%T]).Remove(%[1]v)", v)
 	for i, e := range l.data {
-		if args.eq(e, v) {
+		if value.Equal(e, v) {
 			matches++
 			last := len(l.data) - 1
 			if last == 0 {
@@ -241,10 +237,10 @@ func (l *twig[T]) Remove(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], 
 	return l, matches
 }
 
-func (l *twig[T]) SubsetOf(args *EqArgs[T], n node[T], depth int) bool {
+func (l *twig[T]) SubsetOf(gauge depth.Gauge, n node[T], depth int) bool {
 	for _, e := range l.data {
 		h := newHasher(e, depth)
-		if n.Get(args, e, h) == nil {
+		if n.Get(e, h) == nil {
 			return false
 		}
 	}
@@ -284,18 +280,6 @@ func (l *twig[T]) Where(args *WhereArgs[T], depth int) (_ node[T], matches int) 
 	return ret.Canonical(depth), matches
 }
 
-func (l *twig[T]) FastWith(v T, depth int, h hasher) (_ node[T], matches int) {
-	for i, e := range l.data {
-		if value.Equal(e, v) {
-			matches++
-			ret := l.cloneWithExtra(0)
-			ret.data[i] = v
-			return ret, matches
-		}
-	}
-	return newTwig(append(l.data, v)...).Canonical(depth), matches
-}
-
 func (l *twig[T]) With(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
 	for i, e := range l.data {
 		if args.eq(e, v) {
@@ -308,9 +292,21 @@ func (l *twig[T]) With(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T
 	return newTwig(append(l.data, v)...).Canonical(depth), matches
 }
 
-func (l *twig[T]) Without(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *twig[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) {
 	for i, e := range l.data {
-		if args.eq(e, v) {
+		if value.Equal(e, v) {
+			matches++
+			ret := l.cloneWithExtra(0)
+			ret.data[i] = v
+			return ret, matches
+		}
+	}
+	return newTwig(append(l.data, v)...).Canonical(depth), matches
+}
+
+func (l *twig[T]) Without(v T, depth int, h hasher) (_ node[T], matches int) {
+	for i, e := range l.data {
+		if value.Equal(e, v) {
 			matches++
 			ret := newTwig(l.data[:len(l.data)-1]...).cloneWithExtra(0)
 			if i != len(ret.data) {

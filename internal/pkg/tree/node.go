@@ -3,6 +3,7 @@ package tree
 import (
 	"fmt"
 
+	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/iterator"
 )
 
@@ -15,21 +16,20 @@ type node[T any] interface {
 	AppendTo(dest []T) []T
 	Canonical(depth int) node[T]
 	Combine(args *CombineArgs[T], n2 node[T], depth int) (_ node[T], matches int)
-	Difference(args *EqArgs[T], n2 node[T], depth int) (_ node[T], matches int)
+	Difference(gauge depth.Gauge, n2 node[T], depth int) (_ node[T], matches int)
 	Empty() bool
 	Equal(args *EqArgs[T], n2 node[T], depth int) bool
-	Get(args *EqArgs[T], v T, h hasher) *T
-	GetFast(v T, h hasher) *T
-	Intersection(args *EqArgs[T], n2 node[T], depth int) (_ node[T], matches int)
+	Get(v T, h hasher) *T
+	Intersection(gauge depth.Gauge, n2 node[T], depth int) (_ node[T], matches int)
 	Iterator(buf [][]node[T]) iterator.Iterator[T]
 	Reduce(args NodeArgs, depth int, r func(values ...T) T) T
-	SubsetOf(args *EqArgs[T], n2 node[T], depth int) bool
+	SubsetOf(gauge depth.Gauge, n2 node[T], depth int) bool
 	Map(args *CombineArgs[T], depth int, f func(v T) T) (_ node[T], matches int)
 	Vet() int
 	Where(args *WhereArgs[T], depth int) (_ node[T], matches int)
-	FastWith(v T, depth int, h hasher) (_ node[T], matches int)
 	With(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int)
-	Without(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], matches int)
-	Remove(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], matches int)
+	WithFast(v T, depth int, h hasher) (_ node[T], matches int)
+	Without(v T, depth int, h hasher) (_ node[T], matches int)
+	Remove(v T, depth int, h hasher) (_ node[T], matches int)
 	clone() node[T]
 }

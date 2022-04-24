@@ -53,13 +53,13 @@ func memoizePrepop[T any](prepare func(n int) T) func(n int) T {
 // 	return
 // }
 
-func assertSetHas[T any](t *testing.T, s Set[T], i T) bool { //nolint:unparam
+func assertSetHas[T any](t *testing.T, s Set[T], i T) bool {
 	t.Helper()
 
 	return assert.True(t, s.Has(i), "i=%v", i)
 }
 
-func assertSetNotHas[T any](t *testing.T, s Set[T], i T) bool { //nolint:unparam
+func assertSetNotHas[T any](t *testing.T, s Set[T], i T) bool {
 	t.Helper()
 
 	return assert.False(t, s.Has(i), "i=%v", i)
@@ -69,7 +69,7 @@ func assertMapEqual[K, V any](
 	t *testing.T,
 	expected, actual Map[K, V],
 	msgAndArgs ...any,
-) bool { //nolint:unparam
+) bool {
 	t.Helper()
 
 	format := "\nexpected %v != \nactual   %v"
@@ -84,7 +84,7 @@ func assertMapEqual[K, V any](
 	return assert.True(t, expected.Equal(actual), args...)
 }
 
-func assertMapHas[K, V any](t *testing.T, m Map[K, V], i K, expected V) bool { //nolint:unparam
+func assertMapHas[K, V any](t *testing.T, m Map[K, V], i K, expected V) bool {
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -94,7 +94,7 @@ func assertMapHas[K, V any](t *testing.T, m Map[K, V], i K, expected V) bool { /
 	return ok1 && ok2
 }
 
-func assertMapNotHas[K, V any](t *testing.T, m Map[K, V], i K) bool { //nolint:unparam
+func assertMapNotHas[K, V any](t *testing.T, m Map[K, V], i K) bool {
 	t.Helper()
 
 	v, has := m.Get(i)

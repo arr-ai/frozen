@@ -37,7 +37,11 @@ func (s Set[T]) nodeArgs() tree.NodeArgs {
 }
 
 func (s Set[T]) eqArgs() *tree.EqArgs[T] {
-	return tree.NewDefaultEqArgs[T](depth.NewGauge(s.Count()))
+	return tree.NewDefaultEqArgs[T](s.gauge())
+}
+
+func (s Set[T]) gauge() depth.Gauge {
+	return depth.NewGauge(s.Count())
 }
 
 // IsEmpty returns true iff the Set has no elements.
@@ -173,8 +177,7 @@ func (s Set[T]) Same(a any) bool {
 
 // IsSubsetOf returns true iff no element in s is not in t.
 func (s Set[T]) IsSubsetOf(t Set[T]) bool {
-	args := s.eqArgs()
-	return s.tree.SubsetOf(args, t.tree)
+	return s.tree.SubsetOf(s.gauge(), t.tree)
 }
 
 // Has returns the value associated with key and true iff the key was found.
@@ -204,8 +207,7 @@ func (s Set[T]) Where(pred func(elem T) bool) Set[T] {
 
 // // Map returns a Set with all the results of applying f to all elements in s.
 func SetMap[T, U any](s Set[T], f func(elem T) U) Set[U] {
-	args := tree.NewCombineArgs(tree.NewDefaultEqArgs[U](depth.NewGauge(s.Count())), tree.UseRHS[U])
-	return Set[U]{tree: tree.TreeMap(s.tree, args, f)}
+	return Set[U]{tree: tree.TreeMap(s.tree, f)}
 }
 
 // Reduce returns the result of applying reduce to the elements of s or
@@ -239,7 +241,7 @@ func (s Set[T]) Reduce2(reduce func(a, b T) T) (T, bool) {
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set[T]) Intersection(t Set[T]) Set[T] {
-	return Set[T]{tree: s.tree.Intersection(s.eqArgs(), t.tree)}
+	return Set[T]{tree: s.tree.Intersection(s.gauge(), t.tree)}
 }
 
 // Union returns a Set with all elements that are in either s or t.
@@ -250,8 +252,7 @@ func (s Set[T]) Union(t Set[T]) Set[T] {
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set[T]) Difference(t Set[T]) Set[T] {
-	args := s.eqArgs()
-	return Set[T]{tree: s.tree.Difference(args, t.tree)}
+	return Set[T]{tree: s.tree.Difference(depth.NonParallel, t.tree)}
 }
 
 // SymmetricDifference returns a Set with all elements that are s or t, but not

@@ -25,7 +25,7 @@ func (b *MapBuilder[K, V]) Put(key K, value V) {
 
 // Remove removes an entry from the Map under construction.
 func (b *MapBuilder[K, V]) Remove(key K) {
-	b.tb.Remove(defaultMapNPKeyEqArgs[K, V](), newMapKey[K, V](key))
+	b.tb.Remove(newMapKey[K, V](key))
 }
 
 func (b *MapBuilder[K, V]) Has(key K) bool {

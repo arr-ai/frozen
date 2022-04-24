@@ -80,6 +80,7 @@ func TestMapBuilderRemove(t *testing.T) {
 	}
 }
 
+//nolint:funlen
 func TestMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop
 	t.Parallel()
 

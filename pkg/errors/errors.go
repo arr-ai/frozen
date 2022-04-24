@@ -4,7 +4,6 @@ import "github.com/go-errors/errors"
 
 // Wrap wraps errors. Translates backend nil *Error to nil error.
 func Wrap(e any, skip int) error {
-	// nolint:revive
 	if err := errors.Wrap(e, skip+1); err != nil {
 		return err
 	}
@@ -13,7 +12,6 @@ func Wrap(e any, skip int) error {
 
 // WrapPrefix wraps errors. Translates backend nil *Error to nil error.
 func WrapPrefix(e any, prefix string, skip int) error {
-	// nolint:revive
 	if err := errors.WrapPrefix(e, prefix, skip+1); err != nil {
 		return err
 	}

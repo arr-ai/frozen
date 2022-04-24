@@ -12,18 +12,6 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/tree"
 )
 
-func defaultMapNPKeyEqArgs[K, V any]() *tree.EqArgs[mapEntry[K, V]] {
-	return newDefaultMapKeyEqArgs[K, V](depth.NonParallel)
-}
-
-func defaultMapNPKeyCombineArgs[K, V any]() *tree.CombineArgs[mapEntry[K, V]] {
-	return tree.NewCombineArgs(defaultMapNPKeyEqArgs[K, V](), tree.UseRHS[mapEntry[K, V]])
-}
-
-func newDefaultMapKeyEqArgs[K, V any](gauge depth.Gauge) *tree.EqArgs[mapEntry[K, V]] {
-	return tree.NewEqArgs(gauge, mapEntryKeyEqual[K, V], mapEntryKeyHash[K, V])
-}
-
 // Map maps keys to values. The zero value is the empty Map.
 type Map[K any, V any] struct {
 	tree tree.Tree[mapEntry[K, V]]
@@ -90,7 +78,7 @@ func (m Map[K, V]) With(key K, val V) Map[K, V] {
 // of keys.
 func (m Map[K, V]) Without(keys Set[K]) Map[K, V] {
 	for i := keys.Range(); i.Next(); {
-		m.tree = m.tree.Without(defaultMapNPKeyEqArgs[K, V](), newMapKey[K, V](i.Value()))
+		m.tree = m.tree.Without(newMapKey[K, V](i.Value()))
 	}
 	return m
 	// TODO: Reinstate parallelisable implementation below.

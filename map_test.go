@@ -99,6 +99,7 @@ func TestMapGet(t *testing.T) {
 	assert.Equal(t, 5, m.MustGet(4))
 }
 
+//nolint:cyclop
 func TestMapRedundantWithWithout(t *testing.T) {
 	t.Parallel()
 

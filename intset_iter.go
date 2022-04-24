@@ -31,7 +31,7 @@ func (i *intSetIterator[T]) Next() bool {
 		if !i.blockIter.Next() {
 			return false
 		}
-		i.firstIntInCell = i.blockIter.Key() << blockShift
+		i.firstIntInCell = i.blockIter.Key() << blockShift //nolint:govet
 		block := *i.blockIter.Value()
 		for i.block = block[:]; i.block[0] == 0; i.block = i.block[1:] {
 			i.firstIntInCell += cellBits

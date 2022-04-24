@@ -33,7 +33,7 @@ func TestBranchRemove(t *testing.T) {
 			if m.IsTarget() {
 				log.Printf("%+v", b)
 			}
-			b.Remove(tree.DefaultNPEqArgs[int](), i)
+			b.Remove(i)
 			if !assert.False(t, has(i), i) {
 				log.Printf("%+v", b)
 				r.ReplayTo(m)

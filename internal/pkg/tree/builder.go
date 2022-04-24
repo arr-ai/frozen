@@ -63,15 +63,15 @@ func (b *Builder[T]) Add(v T) {
 	}
 }
 
-func (b *Builder[T]) Remove(args *EqArgs[T], v T) {
+func (b *Builder[T]) Remove(v T) {
 	if b.t.root != nil {
 		h := newHasher(v, 0)
 		if vetting {
 			backup := b.clone()
-			defer vet[T](func() { backup.Remove(args, v) }, &b.t)(nil)
+			defer vet[T](func() { backup.Remove(v) }, &b.t)(nil)
 		}
 		var matches int
-		b.t.root, matches = b.t.root.Remove(args, v, 0, h)
+		b.t.root, matches = b.t.root.Remove(v, 0, h)
 		b.t.count -= matches
 	}
 }

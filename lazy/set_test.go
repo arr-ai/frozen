@@ -129,12 +129,3 @@ func TestSet(t *testing.T) { //nolint:funlen,cyclop
 	close(pairCh)
 	close(workCh)
 }
-
-func ConvertSlice[T, U any](slice []T) []U {
-	result := make([]U, len(slice))
-	for _, t := range slice {
-		var a any = t
-		result = append(result, a.(U))
-	}
-	return result
-}

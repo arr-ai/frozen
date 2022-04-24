@@ -53,7 +53,7 @@ func EqualFuncFor[T any]() func(a, b T) bool {
 		return Equal[T]
 	}
 	if func() (comp bool) {
-		defer recover()
+		defer recover() //nolint:errcheck
 		_ = map[any]struct{}{i: {}}
 		return true
 	}() {

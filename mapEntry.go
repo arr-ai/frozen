@@ -42,7 +42,3 @@ func mapEntryKeyEqual[K, V any](a, b mapEntry[K, V]) bool {
 func mapEntryHash[K, V any](e mapEntry[K, V], seed uintptr) uintptr {
 	return e.Hash(seed)
 }
-
-func mapEntryKeyHash[K, V any](v mapEntry[K, V], seed uintptr) uintptr {
-	return hash.Interface(v.Key, seed)
-}

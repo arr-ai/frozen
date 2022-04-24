@@ -20,7 +20,6 @@ type cellMask uint64
 const (
 	blockCells = 8 // Tune.
 	cellBits   = 64
-	blockBits  = 512 // cellBits * blockCells
 	blockShift = 9
 )
 
@@ -35,7 +34,7 @@ func (b *cellBlock) isSubsetOf(c *cellBlock) bool {
 }
 
 func locateBlock[I constraints.Integer](i I) (blockIndex, cellIndex I, bitMask cellMask) {
-	return i >> blockShift, (i - i>>blockShift<<blockShift) / cellBits, cellMask(1) << uint(i%cellBits)
+	return i >> blockShift, (i - i>>blockShift<<blockShift) / cellBits, cellMask(1) << uint(i%cellBits) //nolint:govet
 }
 
 // NewIntSet returns an IntSet with the values provided.
@@ -91,7 +90,7 @@ func (s IntSet[I]) Any() I {
 	for cellIndex, cell := range block {
 		if cell != 0 {
 			bit := iterator.BitIterator(cell).Index()
-			return blockIndex<<blockShift + I(cellBits*cellIndex) + I(bit)
+			return blockIndex<<blockShift + I(cellBits*cellIndex) + I(bit) //nolint:govet
 		}
 	}
 	panic("empty block")
@@ -199,7 +198,7 @@ func (s IntSet[I]) Where(pred func(elem I) bool) IntSet[I] {
 	count := 0
 	for r := s.data.Range(); r.Next(); {
 		blockIndex, block := r.Entry()
-		blockOffset := blockIndex << blockShift
+		blockOffset := blockIndex << blockShift //nolint:govet
 		newBlock := &cellBlock{}
 		for cellIndex, bitMask := range block {
 			cellOffset := blockOffset + I(cellIndex*cellBits)

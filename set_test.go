@@ -485,7 +485,42 @@ func TestSetReduceHuge(t *testing.T) {
 	_ = assert.True(t, ok) && assert.Equal(t, (n-1)*n/2, actual)
 }
 
-func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop func(a, b Set[int]) Set[int]) { //nolint:cyclop
+func testSetBinaryOperatorPair(
+	t *testing.T,
+	bitop func(a, b uint64) uint64,
+	setop func(a, b Set[int]) Set[int],
+	x, y uint64,
+) {
+	t.Helper()
+
+	sx := NewSetFromMask64(x)
+	sy := NewSetFromMask64(y)
+	bxy := bitop(x, y)
+	sxy := NewSetFromMask64(bxy)
+	sxsy := setop(sx, sy)
+	if !assert.Equal(t, bits.OnesCount64(bxy), sxsy.Count()) ||
+		!test.AssertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
+		log.Print("sx:   ", sx)
+		log.Print("sy:   ", sy)
+		log.Print("bxy:  ", bxy)
+		log.Print("sxy:  ", sxy)
+		log.Print("sxsy: ", sxsy)
+		log.Print("==:   ", sxy.Equal(sxsy))
+		if bits.OnesCount64(x) < 4 && bits.OnesCount64(y) < 4 {
+			NewSetFromMask64(x)
+			NewSetFromMask64(y)
+			setop(sx, sy)
+			sxy.Equal(sxsy)
+		}
+		return
+	}
+}
+
+func testSetBinaryOperator(
+	t *testing.T,
+	bitop func(a, b uint64) uint64,
+	setop func(a, b Set[int]) Set[int],
+) {
 	t.Helper()
 
 	m := map[uint64]struct{}{
@@ -523,27 +558,7 @@ func testSetBinaryOperator(t *testing.T, bitop func(a, b uint64) uint64, setop f
 
 	for _, x := range sets {
 		for _, y := range sets {
-			sx := NewSetFromMask64(x)
-			sy := NewSetFromMask64(y)
-			bxy := bitop(x, y)
-			sxy := NewSetFromMask64(bxy)
-			sxsy := setop(sx, sy)
-			if !assert.Equal(t, bits.OnesCount64(bxy), sxsy.Count()) ||
-				!test.AssertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
-				log.Print("sx:   ", sx)
-				log.Print("sy:   ", sy)
-				log.Print("bxy:  ", bxy)
-				log.Print("sxy:  ", sxy)
-				log.Print("sxsy: ", sxsy)
-				log.Print("==:   ", sxy.Equal(sxsy))
-				if bits.OnesCount64(x) < 4 && bits.OnesCount64(y) < 4 {
-					NewSetFromMask64(x)
-					NewSetFromMask64(y)
-					setop(sx, sy)
-					sxy.Equal(sxsy)
-				}
-				return
-			}
+			testSetBinaryOperatorPair(t, bitop, setop, x, y)
 		}
 	}
 }

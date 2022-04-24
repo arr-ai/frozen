@@ -1,4 +1,4 @@
-//nolint:unused,deadcode,unparam
+//nolint:deadcode
 package lazy_test
 
 import (
