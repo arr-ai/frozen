@@ -18,9 +18,8 @@ jobs:
 
     - name: Install go bits
       run: |
-        go install \
-          github.com/golangci/golangci-lint/cmd/golangci-lint@latest \
-          golang.org/x/tools/cmd/goimports@latest
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+        go install golang.org/x/tools/cmd/goimports@latest
         export PATH=$PATH:$(go env GOPATH)/bin
         ls $(go env GOPATH)/bin
         golangci-lint version
