@@ -20,6 +20,7 @@ jobs:
       run: |
         go get github.com/golangci/golangci-lint/cmd/golangci-lint golang.org/x/tools/cmd/goimports
         export PATH=$PATH:$(go env GOPATH)/bin
+        ls $(go env GOPATH)/bin
         golangci-lint version
 
     - name: Build
