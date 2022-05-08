@@ -17,11 +17,11 @@ func difference(a, b Set) Set {
 	return memo(s)
 }
 
-func (s *differenceSet) Has(el interface{}) bool {
+func (s *differenceSet) Has(el any) bool {
 	return s.a.Has(el) || s.b.Has(el)
 }
 
-func (s *differenceSet) FastHas(el interface{}) (has, ok bool) {
+func (s *differenceSet) FastHas(el any) (has, ok bool) {
 	if has, ok = s.a.FastHas(el); ok {
 		return
 	}
@@ -48,6 +48,6 @@ func (i *differenceSetIterator) Next() bool {
 	}
 }
 
-func (i *differenceSetIterator) Value() interface{} {
+func (i *differenceSetIterator) Value() any {
 	return i.i.Value()
 }

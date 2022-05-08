@@ -33,10 +33,10 @@ func (EmptySet) FastCountUpTo(limit int) (count int, ok bool) {
 }
 
 func (EmptySet) Freeze() Set {
-	return Frozen(frozen.Set{})
+	return Frozen(frozen.Set[any]{})
 }
 
-func (EmptySet) Equal(set interface{}) bool {
+func (EmptySet) Equal(set any) bool {
 	if set, ok := set.(Set); ok {
 		return set.EqualSet(set)
 	}
@@ -51,11 +51,11 @@ func (EmptySet) Hash(seed uintptr) uintptr {
 	return hash.Uintptr(hashSeed, seed)
 }
 
-func (EmptySet) Has(el interface{}) bool {
+func (EmptySet) Has(el any) bool {
 	return false
 }
 
-func (EmptySet) FastHas(el interface{}) (has, ok bool) {
+func (EmptySet) FastHas(el any) (has, ok bool) {
 	return false, true
 }
 
@@ -71,11 +71,11 @@ func (EmptySet) Where(pred Predicate) Set {
 	return EmptySet{}
 }
 
-func (EmptySet) With(els ...interface{}) Set {
-	return Frozen(frozen.NewSet(els...))
+func (EmptySet) With(v any) Set {
+	return Frozen(frozen.NewSet(v))
 }
 
-func (EmptySet) Without(els ...interface{}) Set {
+func (EmptySet) Without(v any) Set {
 	return EmptySet{}
 }
 
@@ -100,7 +100,7 @@ func (EmptySet) SymmetricDifference(s Set) Set {
 }
 
 func (EmptySet) Powerset() Set {
-	return Frozen(frozen.NewSet(EmptySet{}))
+	return Frozen(frozen.NewSet[any](EmptySet{}))
 }
 
 type emptySetIterator struct{}
@@ -109,6 +109,6 @@ func (emptySetIterator) Next() bool {
 	return false
 }
 
-func (emptySetIterator) Value() interface{} {
+func (emptySetIterator) Value() any {
 	panic("emptySetIterator.Value(): empty set")
 }

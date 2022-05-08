@@ -5,33 +5,25 @@ import (
 
 	"github.com/arr-ai/hash"
 
-	"github.com/arr-ai/frozen/internal/depth"
-	"github.com/arr-ai/frozen/internal/fu"
-	"github.com/arr-ai/frozen/internal/iterator/kvi"
 	"github.com/arr-ai/frozen/internal/pkg/debug"
-	"github.com/arr-ai/frozen/internal/tree/kvt"
-	"github.com/arr-ai/frozen/internal/value"
-	"github.com/arr-ai/frozen/pkg/kv"
+	"github.com/arr-ai/frozen/internal/pkg/depth"
+	"github.com/arr-ai/frozen/internal/pkg/fu"
+	"github.com/arr-ai/frozen/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/internal/pkg/tree"
 )
 
-func KeyEqual(a, b interface{}) bool {
-	return value.Equal(a.(KeyValue).Key, b.(KeyValue).Key)
-}
-
 // Map maps keys to values. The zero value is the empty Map.
-type Map struct {
-	tree kvt.Tree
+type Map[K any, V any] struct {
+	tree tree.Tree[mapEntry[K, V]]
 }
 
-var _ value.Key = Map{}
-
-func newMap(tree kvt.Tree) Map {
-	return Map{tree: tree}
+func newMap[K any, V any](tree tree.Tree[mapEntry[K, V]]) Map[K, V] {
+	return Map[K, V]{tree: tree}
 }
 
 // NewMap creates a new Map with kvs as keys and values.
-func NewMap(kvs ...kv.KeyValue) Map {
-	var b MapBuilder
+func NewMap[K any, V any](kvs ...KeyValue[K, V]) Map[K, V] {
+	b := NewMapBuilder[K, V](len(kvs))
 	for _, kv := range kvs {
 		b.Put(kv.Key, kv.Value)
 	}
@@ -39,8 +31,8 @@ func NewMap(kvs ...kv.KeyValue) Map {
 }
 
 // NewMapFromKeys creates a new Map in which values are computed from keys.
-func NewMapFromKeys(keys Set, f func(key interface{}) interface{}) Map {
-	var b MapBuilder
+func NewMapFromKeys[K any, V any](keys Set[K], f func(key K) V) Map[K, V] {
+	b := NewMapBuilder[K, V](keys.Count())
 	for i := keys.Range(); i.Next(); {
 		val := i.Value()
 		b.Put(val, f(val))
@@ -48,9 +40,9 @@ func NewMapFromKeys(keys Set, f func(key interface{}) interface{}) Map {
 	return b.Finish()
 }
 
-// NewMapFromGoMap takes a map[interface{}]interface{} and returns a frozen Map from it.
-func NewMapFromGoMap(m map[interface{}]interface{}) Map {
-	mb := NewMapBuilder(len(m))
+// NewMapFromGoMap takes a map[K]V and returns a frozen Map from it.
+func NewMapFromGoMap[K comparable, V any](m map[K]V) Map[K, V] {
+	mb := NewMapBuilder[K, V](len(m))
 	for k, v := range m {
 		mb.Put(k, v)
 	}
@@ -58,17 +50,17 @@ func NewMapFromGoMap(m map[interface{}]interface{}) Map {
 }
 
 // IsEmpty returns true if the Map has no entries.
-func (m Map) IsEmpty() bool {
+func (m Map[K, V]) IsEmpty() bool {
 	return m.tree.Count() == 0
 }
 
 // Count returns the number of entries in the Map.
-func (m Map) Count() int {
+func (m Map[K, V]) Count() int {
 	return m.tree.Count()
 }
 
 // Any returns an arbitrary entry from the Map.
-func (m Map) Any() (key, value interface{}) {
+func (m Map[K, V]) Any() (key K, value V) {
 	for i := m.Range(); i.Next(); {
 		return i.Entry()
 	}
@@ -77,49 +69,35 @@ func (m Map) Any() (key, value interface{}) {
 
 // With returns a new Map with key associated with val and all other keys
 // retained from m.
-func (m Map) With(key, val interface{}) Map {
-	kv := KV(key, val)
-	return newMap(m.tree.With(kvt.DefaultNPKeyCombineArgs, kv))
+func (m Map[K, V]) With(key K, val V) Map[K, V] {
+	kval := newMapEntry(key, val)
+	return newMap(m.tree.With(kval))
 }
 
 // Without returns a new Map with all keys retained from m except the elements
 // of keys.
-func (m Map) Without(keys Set) Map {
-	args := kvt.NewEqArgs(
-		m.tree.Gauge(), kvt.KeyEqual, kvt.KeyHash, kvt.KeyHash)
-	for i := keys.Range(); i.Next(); {
-		m.tree = m.tree.Without(args, KV(i.Value(), nil))
-	}
+func (m Map[K, V]) Without(key K) Map[K, V] {
+	m.tree = m.tree.Without(newMapKey[K, V](key))
 	return m
-	// TODO: Reinstate parallelisable implementation below.
-	// return newMap(m.tree.Difference(args, keys.tree))
-}
-
-// Without2 shoves keys into a Set and calls m.Without.
-func (m Map) Without2(keys ...interface{}) Map {
-	var sb SetBuilder
-	for _, key := range keys {
-		sb.Add(key)
-	}
-	return m.Without(sb.Finish())
 }
 
 // Has returns true iff the key exists in the map.
-func (m Map) Has(key interface{}) bool {
-	return m.tree.Get(kvt.DefaultNPKeyEqArgs, KV(key, nil)) != nil
+func (m Map[K, V]) Has(key K) bool {
+	_, has := m.Get(key)
+	return has
 }
 
 // Get returns the value associated with key in m and true iff the key is found.
-func (m Map) Get(key interface{}) (interface{}, bool) {
-	if kv := m.tree.Get(kvt.DefaultNPKeyEqArgs, KV(key, nil)); kv != nil {
+func (m Map[K, V]) Get(key K) (_ V, _ bool) {
+	if kv := m.tree.Get(newMapKey[K, V](key)); kv != nil {
 		return kv.Value, true
 	}
-	return nil, false
+	return
 }
 
 // MustGet returns the value associated with key in m or panics if the key is
 // not found.
-func (m Map) MustGet(key interface{}) interface{} {
+func (m Map[K, V]) MustGet(key K) V {
 	if val, has := m.Get(key); has {
 		return val
 	}
@@ -128,7 +106,7 @@ func (m Map) MustGet(key interface{}) interface{} {
 
 // GetElse returns the value associated with key in m or deflt if the key is not
 // found.
-func (m Map) GetElse(key, deflt interface{}) interface{} {
+func (m Map[K, V]) GetElse(key K, deflt V) V {
 	if val, has := m.Get(key); has {
 		return val
 	}
@@ -137,7 +115,7 @@ func (m Map) GetElse(key, deflt interface{}) interface{} {
 
 // GetElseFunc returns the value associated with key in m or the result of
 // calling deflt if the key is not found.
-func (m Map) GetElseFunc(key interface{}, deflt func() interface{}) interface{} {
+func (m Map[K, V]) GetElseFunc(key K, deflt func() V) V {
 	if val, has := m.Get(key); has {
 		return val
 	}
@@ -145,8 +123,8 @@ func (m Map) GetElseFunc(key interface{}, deflt func() interface{}) interface{} 
 }
 
 // Keys returns a Set with all the keys in the Map.
-func (m Map) Keys() Set {
-	var b SetBuilder
+func (m Map[K, V]) Keys() Set[K] {
+	var b SetBuilder[K]
 	for i := m.Range(); i.Next(); {
 		b.Add(i.Key())
 	}
@@ -154,8 +132,8 @@ func (m Map) Keys() Set {
 }
 
 // Values returns a Set with all the Values in the Map.
-func (m Map) Values() Set {
-	var b SetBuilder
+func (m Map[K, V]) Values() Set[V] {
+	var b SetBuilder[V]
 	for i := m.Range(); i.Next(); {
 		b.Add(i.Value())
 	}
@@ -163,15 +141,19 @@ func (m Map) Values() Set {
 }
 
 // Project returns a Map with only keys included from this Map.
-func (m Map) Project(keys Set) Map {
-	return m.Where(func(key, val interface{}) bool {
-		return keys.Has(key)
-	})
+func (m Map[K, V]) Project(keys ...K) Map[K, V] {
+	var mb MapBuilder[K, V]
+	for _, k := range keys {
+		if v, has := m.Get(k); has {
+			mb.Put(k, v)
+		}
+	}
+	return mb.Finish()
 }
 
 // Where returns a Map with only key-value pairs satisfying pred.
-func (m Map) Where(pred func(key, val interface{}) bool) Map {
-	var b MapBuilder
+func (m Map[K, V]) Where(pred func(key K, val V) bool) Map[K, V] {
+	var b MapBuilder[K, V]
 	for i := m.Range(); i.Next(); {
 		if key, val := i.Entry(); pred(key, val) {
 			b.Put(key, val)
@@ -182,8 +164,8 @@ func (m Map) Where(pred func(key, val interface{}) bool) Map {
 
 // Map returns a Map with keys from this Map, but the values replaced by the
 // result of calling f.
-func (m Map) Map(f func(key, val interface{}) interface{}) Map {
-	var b MapBuilder
+func MapMap[K, V, U any](m Map[K, V], f func(key K, val V) U) Map[K, U] {
+	var b MapBuilder[K, U]
 	for i := m.Range(); i.Next(); {
 		key, val := i.Entry()
 		b.Put(key, f(key, val))
@@ -191,49 +173,47 @@ func (m Map) Map(f func(key, val interface{}) interface{}) Map {
 	return b.Finish()
 }
 
-// Reduce returns the result of applying f to each key-value pair on the Map.
-// The result of each call is used as the acc argument for the next element.
-func (m Map) Reduce(f func(acc, key, val interface{}) interface{}, acc interface{}) interface{} {
-	for i := m.Range(); i.Next(); {
-		acc = f(acc, i.Key(), i.Value())
-	}
-	return acc
+func (m Map[K, V]) EqArgs() *tree.EqArgs[mapEntry[K, V]] {
+	return tree.NewEqArgs(
+		depth.NewGauge(m.Count()),
+		mapEntryEqual[K, V],
+		mapEntryHash[K, V],
+	)
 }
 
-func (m Map) EqArgs() *kvt.EqArgs {
-	return kvt.NewEqArgs(
+func (m Map[K, V]) EqKeyArgs() *tree.EqArgs[mapEntry[K, V]] {
+	return tree.NewEqArgs(
 		depth.NewGauge(m.Count()),
-		kvt.KeyEqual,
-		kvt.KeyHash,
-		kvt.KeyHash,
+		mapEntryKeyEqual[K, V],
+		mapEntryHash[K, V],
 	)
 }
 
 // Merge returns a map from the merging between two maps, should there be a key overlap,
 // the value that corresponds to key will be replaced by the value resulted from the
 // provided resolve function.
-func (m Map) Merge(n Map, resolve func(key, a, b interface{}) interface{}) Map {
-	extractAndResolve := func(a, b KeyValue) KeyValue {
-		return KV(a.Key, resolve(a.Key, a.Value, b.Value))
+func (m Map[K, V]) Merge(n Map[K, V], resolve func(key K, a, b V) V) Map[K, V] {
+	extractAndResolve := func(a, b mapEntry[K, V]) mapEntry[K, V] {
+		return newMapEntry(a.Key, resolve(a.Key, a.Value, b.Value))
 	}
-	args := kvt.NewCombineArgs(m.EqArgs(), extractAndResolve)
+	args := tree.NewCombineArgs(m.EqKeyArgs(), extractAndResolve)
 	return newMap(m.tree.Combine(args, n.tree))
 }
 
 // Update returns a Map with key-value pairs from n added or replacing existing
 // keys.
-func (m Map) Update(n Map) Map {
-	f := kvt.UseRHS
+func (m Map[K, V]) Update(n Map[K, V]) Map[K, V] {
+	f := tree.UseRHS[mapEntry[K, V]]
 	if m.Count() > n.Count() {
 		m, n = n, m
-		f = kvt.UseLHS
+		f = tree.UseLHS[mapEntry[K, V]]
 	}
-	args := kvt.NewCombineArgs(m.EqArgs(), f)
+	args := tree.NewCombineArgs(m.EqKeyArgs(), f)
 	return newMap(m.tree.Combine(args, n.tree))
 }
 
 // Hash computes a hash val for s.
-func (m Map) Hash(seed uintptr) uintptr {
+func (m Map[K, V]) Hash(seed uintptr) uintptr {
 	h := hash.Uintptr(uintptr(3167960924819262823&uint64(^uintptr(0))), seed)
 	for i := m.Range(); i.Next(); {
 		h ^= hash.Interface(i.Value(), hash.Interface(i.Key(), seed))
@@ -243,26 +223,34 @@ func (m Map) Hash(seed uintptr) uintptr {
 
 // Equal returns true iff i is a Map with all the same key-value pairs as this
 // Map.
-func (m Map) Equal(i interface{}) bool {
-	if n, ok := i.(Map); ok {
-		args := kvt.NewEqArgs(
-			depth.NewGauge(m.Count()),
-			kv.KeyValueEqual,
-			kvt.KeyHash,
-			kvt.KeyHash,
-		)
-		return m.tree.Equal(args, n.tree)
-	}
-	return false
+func (m Map[K, V]) Equal(n Map[K, V]) bool {
+	args := tree.NewEqArgs(
+		depth.NewGauge(m.Count()),
+		mapEntryEqual[K, V],
+		mapEntryHash[K, V],
+	)
+	return m.tree.Equal(args, n.tree)
+}
+
+// Same returns true iff a is a Map and m and n have all the same key-values.
+func (m Map[K, V]) Same(a any) bool {
+	n, is := a.(Map[K, V])
+	return is && m.Equal(n)
 }
 
 // String returns a string representatio of the Map.
-func (m Map) String() string {
+func (m Map[K, V]) String() string {
 	return fmt.Sprintf("%v", m)
 }
 
 // Format writes a string representation of the Map into state.
-func (m Map) Format(f fmt.State, verb rune) {
+func (m Map[K, V]) Format(f fmt.State, verb rune) {
+	if verb == 'v' && f.Flag('+') {
+		f.Write([]byte{'M'})
+		m.tree.Format(f, verb)
+		return
+	}
+
 	fu.WriteString(f, "(")
 	for i, n := m.Range(), 0; i.Next(); n++ {
 		if n > 0 {
@@ -276,23 +264,23 @@ func (m Map) Format(f fmt.State, verb rune) {
 }
 
 // Range returns a MapIterator over the Map.
-func (m Map) Range() *MapIterator {
-	return &MapIterator{i: m.tree.Iterator()}
+func (m Map[K, V]) Range() MapIterator[K, V] {
+	return MapIterator[K, V]{i: m.tree.Iterator()}
 }
 
 // DebugReport is for internal use.
-func (m Map) DebugReport(debug.Tag) string {
+func (m Map[K, V]) DebugReport(debug.Tag) string {
 	return m.tree.String()
 }
 
 // MapIterator provides for iterating over a Map.
-type MapIterator struct {
-	i  kvi.Iterator
-	kv KeyValue
+type MapIterator[K any, V any] struct {
+	i  iterator.Iterator[mapEntry[K, V]]
+	kv mapEntry[K, V]
 }
 
 // Next moves to the next key-value pair or returns false if there are no more.
-func (i *MapIterator) Next() bool {
+func (i *MapIterator[K, V]) Next() bool {
 	if i.i.Next() {
 		i.kv = i.i.Value()
 		return true
@@ -301,16 +289,16 @@ func (i *MapIterator) Next() bool {
 }
 
 // Key returns the key for the current entry.
-func (i *MapIterator) Key() interface{} {
+func (i *MapIterator[K, V]) Key() K {
 	return i.kv.Key
 }
 
 // Value returns the value for the current entry.
-func (i *MapIterator) Value() interface{} {
+func (i *MapIterator[K, V]) Value() V {
 	return i.kv.Value
 }
 
 // Entry returns the current key-value pair as two return values.
-func (i *MapIterator) Entry() (key, value interface{}) {
+func (i *MapIterator[K, V]) Entry() (key K, value V) {
 	return i.kv.Key, i.kv.Value
 }

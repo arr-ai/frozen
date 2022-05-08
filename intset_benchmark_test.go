@@ -27,7 +27,9 @@ func benchmarkWithIntSet(b *testing.B, n int) {
 	for i := 0; i < b.N; i++ {
 		withouts = append(withouts, i*multiplier)
 	}
-	set = set.Without(withouts...)
+	for _, i := range withouts {
+		set = set.Without(i)
+	}
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {

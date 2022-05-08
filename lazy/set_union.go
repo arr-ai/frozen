@@ -27,11 +27,11 @@ func (s *unionSet) FastCountUpTo(max int) (count int, ok bool) {
 	return 0, false
 }
 
-func (s *unionSet) Has(el interface{}) bool {
+func (s *unionSet) Has(el any) bool {
 	return s.a.Has(el) || s.b.Has(el)
 }
 
-func (s *unionSet) FastHas(el interface{}) (has, ok bool) {
+func (s *unionSet) FastHas(el any) (has, ok bool) {
 	if has, ok = s.a.FastHas(el); ok {
 		return has, ok
 	}
@@ -60,6 +60,6 @@ func (i *unionSetIterator) Next() bool {
 	}
 }
 
-func (i *unionSetIterator) Value() interface{} {
+func (i *unionSetIterator) Value() any {
 	return i.i.Value()
 }

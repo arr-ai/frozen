@@ -3,7 +3,7 @@ package masker
 import (
 	"math/bits"
 
-	"github.com/arr-ai/frozen/errors"
+	"github.com/arr-ai/frozen/pkg/errors"
 )
 
 // Masker represents a set of one-bits and the ability to enumerate them.

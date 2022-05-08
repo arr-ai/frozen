@@ -1,4 +1,4 @@
-//nolint:unused,deadcode,unparam
+//nolint:deadcode
 package lazy_test
 
 import (
@@ -10,11 +10,11 @@ import (
 	. "github.com/arr-ai/frozen/lazy"
 )
 
-func extraArgs(msgAndArgs []interface{}, msg string, args ...interface{}) []interface{} {
+func extraArgs(msgAndArgs []any, msg string, args ...any) []any {
 	if len(msgAndArgs) == 0 {
-		return append([]interface{}{msg}, args...)
+		return append([]any{msg}, args...)
 	}
-	return append(append([]interface{}{msgAndArgs[0].(string) + msg}, msgAndArgs[1:]...), args...)
+	return append(append([]any{msgAndArgs[0].(string) + msg}, msgAndArgs[1:]...), args...)
 }
 
 func assertFastIsEmpty(t *testing.T, a Set) bool {
@@ -31,14 +31,14 @@ func assertFastNotIsEmpty(t *testing.T, a Set) bool {
 	return assert.True(t, ok) && assert.False(t, empty)
 }
 
-func assertEqualSet(t *testing.T, expected, s Set, msgAndArgs ...interface{}) bool {
+func assertEqualSet(t *testing.T, expected, s Set, msgAndArgs ...any) bool {
 	t.Helper()
 
 	return assert.True(t, expected.EqualSet(s),
 		extraArgs(msgAndArgs, "\nexpected=%v\nactual  =%v", expected.Freeze(), s.Freeze())...)
 }
 
-func assertNotEqualSet(t *testing.T, expected, s Set, msgAndArgs ...interface{}) bool {
+func assertNotEqualSet(t *testing.T, expected, s Set, msgAndArgs ...any) bool {
 	t.Helper()
 
 	return assert.False(t, expected.EqualSet(s),
@@ -73,34 +73,34 @@ func assertFastCountUpToNotEqual(t *testing.T, expected int, a Set, limit int) b
 	return assert.True(t, ok) && assert.NotEqual(t, expected, count)
 }
 
-func assertFastHas(t *testing.T, a Set, el interface{}) bool {
+func assertFastHas(t *testing.T, a Set, el any) bool {
 	t.Helper()
 
 	equal, ok := a.FastHas(el)
 	return assert.True(t, ok) && assert.True(t, equal)
 }
 
-func assertFastNotHas(t *testing.T, a Set, el interface{}) bool {
+func assertFastNotHas(t *testing.T, a Set, el any) bool {
 	t.Helper()
 
 	equal, ok := a.FastHas(el)
 	return assert.True(t, ok) && assert.False(t, equal)
 }
 
-func assertRangeEmits(t *testing.T, expected frozen.Set, a Set) bool {
+func assertRangeEmits(t *testing.T, expected frozen.Set[any], a Set) bool {
 	t.Helper()
 
-	var b frozen.SetBuilder
+	var b frozen.SetBuilder[any]
 	for i := a.Range(); i.Next(); {
 		v := i.Value()
 		if assert.False(t, b.Has(v), "duplicate element: %v", v) {
 			b.Add(v)
 		}
 	}
-	return assert.True(t, expected.EqualSet(b.Finish()))
+	return assert.True(t, expected.Equal(b.Finish()))
 }
 
-func extractInt(i interface{}) int {
+func extractInt(i any) int {
 	switch x := i.(type) {
 	case int:
 		return x
@@ -111,7 +111,7 @@ func extractInt(i interface{}) int {
 	}
 }
 
-func assertSetOps(t *testing.T, golden frozen.Set, s Set) { //nolint:funlen
+func assertSetOps(t *testing.T, golden frozen.Set[any], s Set) { //nolint:funlen
 	t.Helper()
 
 	count := golden.Count()
@@ -134,9 +134,9 @@ func assertSetOps(t *testing.T, golden frozen.Set, s Set) { //nolint:funlen
 	assert.Equal(t, count, s.CountUpTo(count))
 	assert.Equal(t, count, s.CountUpTo(count+1))
 
-	assert.Equal(t, golden.Equal(frozen.Set{}), s.Equal(Frozen(frozen.Set{})))
-	assert.Equal(t, golden.EqualSet(frozen.Set{}), s.EqualSet(Frozen(frozen.Set{})))
-	assert.False(t, golden.EqualSet(frozen.NewSet(1)), s.EqualSet(Frozen(frozen.NewSet(1))))
+	assert.Equal(t, golden.Equal(frozen.Set[any]{}), s.Equal(Frozen(frozen.Set[any]{})))
+	assert.Equal(t, golden.Equal(frozen.Set[any]{}), s.EqualSet(Frozen(frozen.Set[any]{})))
+	assert.False(t, golden.Equal(frozen.NewSet[any](1)), s.EqualSet(Frozen(frozen.NewSet[any](1))))
 
 	assert.NotEqual(t, 0, s.Hash(0))
 
@@ -150,11 +150,11 @@ func assertSetOps(t *testing.T, golden frozen.Set, s Set) { //nolint:funlen
 	assert.False(t, fgolden.With(42).IsSubsetOf(s))
 
 	assertRangeEmits(t, golden, s)
-	for i, pred := range []func(interface{}) bool{
-		func(_ interface{}) bool { return false },
-		func(_ interface{}) bool { return true },
-		func(i interface{}) bool { return extractInt(i)%2 == 0 },
-		func(i interface{}) bool { return extractInt(i) < 3 },
+	for i, pred := range []func(any) bool{
+		func(_ any) bool { return false },
+		func(_ any) bool { return true },
+		func(i any) bool { return extractInt(i)%2 == 0 },
+		func(i any) bool { return extractInt(i) < 3 },
 	} {
 		expected := Frozen(golden.Where(pred))
 		actual := s.Where(pred)
@@ -168,20 +168,20 @@ func assertSetOps(t *testing.T, golden frozen.Set, s Set) { //nolint:funlen
 	assertEqualSet(t, Frozen(golden.Without(42)), s.Without(42))
 	assertEqualSet(t, Frozen(golden.With(42).Without(42)), s.With(42).Without(42))
 
-	for i, m := range []func(interface{}) interface{}{
-		func(_ interface{}) interface{} { return 42 },
-		func(i interface{}) interface{} { return i },
-		func(i interface{}) interface{} { return 2 * extractInt(i) },
-		func(i interface{}) interface{} { return extractInt(i) / 2 },
+	for i, m := range []func(any) any{
+		func(_ any) any { return 42 },
+		func(i any) any { return i },
+		func(i any) any { return 2 * extractInt(i) },
+		func(i any) any { return extractInt(i) / 2 },
 	} {
-		assertEqualSet(t, Frozen(golden.Map(m)), s.Map(m), "i=%v", i)
+		assertEqualSet(t, Frozen(frozen.SetMap(golden, m)), s.Map(m), "i=%v", i)
 	}
 
-	for i, u := range []frozen.Set{
+	for i, u := range []frozen.Set[any]{
 		{},
-		frozen.NewSet(1, 2, 3),
-		frozen.NewSet(1, 2, 3, 4),
-		frozen.NewSet(4, 5),
+		frozen.NewSet[any](1, 2, 3),
+		frozen.NewSet[any](1, 2, 3, 4),
+		frozen.NewSet[any](4, 5),
 	} {
 		assertEqualSet(t, Frozen(golden.Union(u)), s.Union(Frozen(u)), "i=%v", i)
 		assertEqualSet(t, Frozen(golden.Intersection(u)), s.Intersection(Frozen(u)), "i=%v", i)

@@ -2,11 +2,11 @@ package lazy
 
 // Predicate represents a function that returns true iff el satisfies some
 // condition. The function must be pure. That is: a == b => p(a) == p(b).
-type Predicate func(el interface{}) bool
+type Predicate func(el any) bool
 
 // Mapper represents a function that transforms el. The function must be
 // pure. That is: a == b => f(a) == f(b).
-type Mapper func(el interface{}) interface{}
+type Mapper func(el any) any
 
 // Set represents a set of elements.
 type Set interface {
@@ -39,9 +39,9 @@ type Set interface {
 	// Hash returns a hash derived from the elements of the set.
 	Hash(seed uintptr) uintptr
 
-	// Equal implements value.Equatable, returning true iff this Set and set
+	// Equal implements value.Equaler, returning true iff this Set and set
 	// have all the same elements.
-	Equal(set interface{}) bool
+	Equal(set any) bool
 
 	// EqualSet returns true iff this Set and set have all the same elements.
 	EqualSet(set Set) bool
@@ -50,18 +50,18 @@ type Set interface {
 	IsSubsetOf(set Set) bool
 
 	// Has returns true iff el is in this Set.
-	Has(el interface{}) bool
+	Has(el any) bool
 
 	// FastHas returns Has(el) in <= O(log n) time. Otherwise, ok=false.
-	FastHas(el interface{}) (has, ok bool)
+	FastHas(el any) (has, ok bool)
 
 	// With returns a Set containing all the elements from this Set and all the
 	// elements of els.
-	With(els ...interface{}) Set
+	With(v any) Set
 
 	// With returns a Set containing all the elements from this Set except the
 	// elements of els.
-	Without(els ...interface{}) Set
+	Without(v any) Set
 
 	// Where returns a Set containing all the elements from this Set that
 	// satisfy pred.
@@ -94,5 +94,5 @@ type Set interface {
 
 type SetIterator interface {
 	Next() bool
-	Value() interface{}
+	Value() any
 }

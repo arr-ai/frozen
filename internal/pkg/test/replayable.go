@@ -8,7 +8,7 @@ import (
 type markerKey struct {
 	file string
 	line int
-	args []interface{}
+	args []any
 }
 
 type Marker struct {
@@ -21,11 +21,11 @@ func (m *Marker) IsTarget() bool {
 }
 
 type Replayer struct {
-	mark     func(args ...interface{}) *Marker
+	mark     func(args ...any) *Marker
 	replayTo func(m *Marker)
 }
 
-func (r *Replayer) Mark(args ...interface{}) *Marker {
+func (r *Replayer) Mark(args ...any) *Marker {
 	return r.mark(args...)
 }
 
@@ -37,7 +37,7 @@ func Replayable(enabled bool, f func(r *Replayer)) {
 	if !enabled {
 		m := &Marker{}
 		f(&Replayer{
-			mark:     func(_ ...interface{}) *Marker { return m },
+			mark:     func(_ ...any) *Marker { return m },
 			replayTo: func(_ *Marker) {},
 		})
 		return
@@ -45,7 +45,7 @@ func Replayable(enabled bool, f func(r *Replayer)) {
 	var latest *markerKey
 	var target *markerKey
 
-	mark := func(args ...interface{}) *Marker {
+	mark := func(args ...any) *Marker {
 		var pc [1]uintptr
 		if runtime.Callers(2, pc[:]) != 1 {
 			panic("unable to set mark.")

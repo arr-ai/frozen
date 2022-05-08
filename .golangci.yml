@@ -42,7 +42,7 @@ linters:
   - forbidigo
   # - forcetypeassert
   - funlen
-  - gci
+  # - gci  # Broken for Go 1.18
   # - gochecknoglobals
   - gochecknoinits
   - gocognit
@@ -82,7 +82,7 @@ linters:
   - prealloc
   - predeclared
   # - promlinter
-  - revive
+  # - revive  # Broken for Go 1.18
   - rowserrcheck
   # - scopelint
   - sqlclosecheck

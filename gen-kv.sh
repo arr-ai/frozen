@@ -12,7 +12,7 @@ PACKAGE=$(basename $OUTDIR)
 
 mkdir -p $OUTDIR
 
-TYPE=kv.KeyValue
+TYPE=KeyValue
 
 for f in $FILES; do
     if [ -f $OUTDIR/$f ]; then

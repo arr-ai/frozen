@@ -13,14 +13,14 @@ import (
 func TestSetBuilderEmpty(t *testing.T) {
 	t.Parallel()
 
-	var b SetBuilder
-	test.AssertSetEqual(t, Set{}, b.Finish())
+	var b SetBuilder[int]
+	test.AssertSetEqual(t, Set[int]{}, b.Finish())
 }
 
 func TestSetBuilder(t *testing.T) {
 	t.Parallel()
 
-	var b SetBuilder
+	var b SetBuilder[int]
 	for i := 0; i < 10; i++ {
 		b.Add(i)
 	}
@@ -39,7 +39,7 @@ func TestSetBuilderIncremental(t *testing.T) {
 		if testing.Short() {
 			N /= 10
 		}
-		arr := make([]interface{}, 0, N)
+		arr := make([]int, 0, N)
 		for i := 0; i < N; i++ {
 			arr = append(arr, i)
 		}
@@ -56,7 +56,7 @@ func TestSetBuilderRemove(t *testing.T) {
 	t.Parallel()
 
 	test.Replayable(true, func(r *test.Replayer) {
-		var b SetBuilder
+		var b SetBuilder[int]
 		for i := 0; i < 15; i++ {
 			b.Add(i)
 		}
@@ -85,11 +85,11 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop,f
 	t.Parallel()
 
 	test.Replayable(false, func(r *test.Replayer) {
-		var b SetBuilder
+		var b SetBuilder[int]
 
 		s := uint64(0)
 
-		assertMatch := func(format string, args ...interface{}) bool {
+		assertMatch := func(format string, args ...any) bool {
 			for j := 0; j < 60; j++ {
 				if !assert.Equalf(t, s&(uint64(1)<<uint(j)) != 0, b.Has(j), format+" j=%v", append(args, j)...) {
 					return false

@@ -17,11 +17,11 @@ func intersection(a, b Set) Set {
 	return memo(s)
 }
 
-func (s *intersectionSet) Has(el interface{}) bool {
+func (s *intersectionSet) Has(el any) bool {
 	return s.a.Has(el) && s.b.Has(el)
 }
 
-func (s *intersectionSet) FastHas(el interface{}) (has, ok bool) {
+func (s *intersectionSet) FastHas(el any) (has, ok bool) {
 	aHas, aOk := s.a.FastHas(el)
 	if aOk && !aHas {
 		return false, true
@@ -53,6 +53,6 @@ func (i *intersectionSetIterator) Next() bool {
 	}
 }
 
-func (i *intersectionSetIterator) Value() interface{} {
+func (i *intersectionSetIterator) Value() any {
 	return i.i.Value()
 }

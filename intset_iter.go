@@ -1,43 +1,26 @@
 package frozen
 
-// IntLess dictates the order of two elements.
-type IntLess func(a, b int) bool
+import (
+	"golang.org/x/exp/constraints"
+)
 
-type IntIterator interface {
-	Next() bool
-	Value() int
+type intSetIterator[T constraints.Integer] struct {
+	cellIter       MapIterator[T, cellMask]
+	cell           cellMask
+	firstIntInCell T
 }
 
-type intSetIterator struct {
-	blockIter      *MapIterator
-	block          []cellMask
-	firstIntInCell int
-}
-
-func (i *intSetIterator) Next() bool {
-	if len(i.block) > 0 && i.block[0] != 0 {
-		i.block[0] &= i.block[0] - 1
-	}
-
-	if len(i.block) > 0 && i.block[0] == 0 {
-		for ; len(i.block) != 0 && i.block[0] == 0; i.block = i.block[1:] {
-			i.firstIntInCell += cellBits
-		}
-	}
-
-	if len(i.block) == 0 {
-		if !i.blockIter.Next() {
+func (i *intSetIterator[T]) Next() bool {
+	if i.cell = i.cell.next(); i.cell == 0 {
+		if !i.cellIter.Next() {
 			return false
 		}
-		i.firstIntInCell = i.blockIter.Key().(int) * blockBits
-		block := i.blockIter.Value().(*cellBlock)
-		for i.block = block[:]; i.block[0] == 0; i.block = i.block[1:] {
-			i.firstIntInCell += cellBits
-		}
+		i.cell = i.cellIter.Value()
+		i.firstIntInCell = i.cellIter.Key()
 	}
-	return len(i.block) > 0
+	return true
 }
 
-func (i *intSetIterator) Value() int {
-	return i.firstIntInCell + BitIterator(i.block[0]).Index()
+func (i *intSetIterator[T]) Value() T {
+	return i.firstIntInCell<<cellShift + T(i.cell.index())
 }

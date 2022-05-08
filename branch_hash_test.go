@@ -21,7 +21,7 @@ func TestBadHash(t *testing.T) {
 	t.Parallel()
 
 	const N = 10000
-	var b SetBuilder
+	var b SetBuilder[intWithBadHash]
 	for i := 0; i < N; i += 10 {
 		b.Add(intWithBadHash(i))
 	}
@@ -37,7 +37,7 @@ func TestBadHash(t *testing.T) {
 func TestRemoveCollider(t *testing.T) {
 	t.Parallel()
 
-	var b SetBuilder
+	var b SetBuilder[intWithBadHash]
 	b.Add(intWithBadHash(100))
 	b.Add(intWithBadHash(200))
 	b.Remove(intWithBadHash(100))

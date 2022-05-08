@@ -19,7 +19,7 @@ func (s *whereSet) FastIsEmpty() (empty, ok bool) {
 	return false, false
 }
 
-func (s *whereSet) Has(el interface{}) bool {
+func (s *whereSet) Has(el any) bool {
 	return s.pred(el) && s.src.Has(el)
 }
 
@@ -41,6 +41,6 @@ func (s *whereSetIterator) Next() bool {
 	return false
 }
 
-func (s *whereSetIterator) Value() interface{} {
+func (s *whereSetIterator) Value() any {
 	return s.i.Value()
 }
