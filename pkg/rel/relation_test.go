@@ -198,10 +198,10 @@ func TestUnnest(t *testing.T) {
 		[]any{3, 10},
 	)
 
-	actual := Unnest(sharing, NewSet("cc", "aa"))
+	actual := Unnest(Unnest(sharing, "cc"), "aa")
 	test.AssertSetEqual(t, expected, actual)
 
-	actual = Unnest(sharing, NewSet("aa", "cc"))
+	actual = Unnest(Unnest(sharing, "aa"), "cc")
 	test.AssertSetEqual(t, expected, actual)
 }
 

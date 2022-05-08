@@ -70,12 +70,12 @@ func (s *frozenSet) Range() SetIterator {
 	return s.set.Range()
 }
 
-func (s *frozenSet) With(els ...any) Set {
-	return Frozen(s.set.With(els...))
+func (s *frozenSet) With(v any) Set {
+	return Frozen(s.set.With(v))
 }
 
-func (s *frozenSet) Without(els ...any) Set {
-	return Frozen(s.set.Without(els...))
+func (s *frozenSet) Without(v any) Set {
+	return Frozen(s.set.Without(v))
 }
 
 func (s *frozenSet) Map(m Mapper) Set {

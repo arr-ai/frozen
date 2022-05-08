@@ -76,22 +76,9 @@ func (m Map[K, V]) With(key K, val V) Map[K, V] {
 
 // Without returns a new Map with all keys retained from m except the elements
 // of keys.
-func (m Map[K, V]) Without(keys Set[K]) Map[K, V] {
-	for i := keys.Range(); i.Next(); {
-		m.tree = m.tree.Without(newMapKey[K, V](i.Value()))
-	}
+func (m Map[K, V]) Without(key K) Map[K, V] {
+	m.tree = m.tree.Without(newMapKey[K, V](key))
 	return m
-	// TODO: Reinstate parallelisable implementation below.
-	// return newMap(m.tree.Difference(args, keys.tree))
-}
-
-// Without2 shoves keys into a Set and calls m.Without.
-func (m Map[K, V]) Without2(keys ...K) Map[K, V] {
-	var sb SetBuilder[K]
-	for _, key := range keys {
-		sb.Add(key)
-	}
-	return m.Without(sb.Finish())
 }
 
 // Has returns true iff the key exists in the map.
@@ -154,10 +141,14 @@ func (m Map[K, V]) Values() Set[V] {
 }
 
 // Project returns a Map with only keys included from this Map.
-func (m Map[K, V]) Project(keys Set[K]) Map[K, V] {
-	return m.Where(func(key K, val V) bool {
-		return keys.Has(key)
-	})
+func (m Map[K, V]) Project(keys ...K) Map[K, V] {
+	var mb MapBuilder[K, V]
+	for _, k := range keys {
+		if v, has := m.Get(k); has {
+			mb.Put(k, v)
+		}
+	}
+	return mb.Finish()
 }
 
 // Where returns a Map with only key-value pairs satisfying pred.

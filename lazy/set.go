@@ -57,11 +57,11 @@ type Set interface {
 
 	// With returns a Set containing all the elements from this Set and all the
 	// elements of els.
-	With(els ...any) Set
+	With(v any) Set
 
 	// With returns a Set containing all the elements from this Set except the
 	// elements of els.
-	Without(els ...any) Set
+	Without(v any) Set
 
 	// Where returns a Set containing all the elements from this Set that
 	// satisfy pred.

@@ -24,7 +24,7 @@ func TestMapEmpty(t *testing.T) {
 	assert.True(t, m.IsEmpty())
 	m = m.With(1, 2)
 	assert.False(t, m.IsEmpty())
-	m = m.Without(NewSet(1))
+	m = m.Without(1)
 	assert.True(t, m.IsEmpty())
 	assert.Panics(t, func() { m.MustGet(1) })
 }
@@ -56,7 +56,7 @@ func TestMapWithWithout(t *testing.T) {
 		assert.Equal(t, i*i, m.MustGet(i))
 	}
 
-	m = m.Without(Iota2(5, 10))
+	m = mapWithoutKeys(m, Iota2(5, 10))
 
 	assert.Equal(t, 10, m.Count())
 	for i := 0; i < 15; i++ {
@@ -99,6 +99,13 @@ func TestMapGet(t *testing.T) {
 	assert.Equal(t, 5, m.MustGet(4))
 }
 
+func mapWithoutKeys[K, V any](m Map[K, V], keys Set[K]) Map[K, V] {
+	for r := keys.Range(); r.Next(); {
+		m = m.Without(r.Value())
+	}
+	return m
+}
+
 //nolint:cyclop
 func TestMapRedundantWithWithout(t *testing.T) {
 	t.Parallel()
@@ -108,7 +115,7 @@ func TestMapRedundantWithWithout(t *testing.T) {
 		m = m.With(i, i*i)
 	}
 	for i := 10; i < 25; i++ {
-		m = m.Without(Iota2(10, 25))
+		m = mapWithoutKeys(m, Iota2(10, 25))
 	}
 	for i := 5; i < 15; i++ {
 		m = m.With(i, i*i*i)
@@ -117,7 +124,7 @@ func TestMapRedundantWithWithout(t *testing.T) {
 		}
 	}
 	for i := 20; i < 30; i++ {
-		m = m.Without(Iota2(20, 30))
+		m = mapWithoutKeys(m, Iota2(20, 30))
 	}
 
 	for i := 0; i < 35; i++ {
@@ -162,10 +169,10 @@ func TestMapGetElse(t *testing.T) {
 	m = m.With(3, 4)
 	assert.Equal(t, 2, m.GetElse(1, 10))
 	assert.Equal(t, 4, m.GetElse(3, 30))
-	m = m.Without(NewSet(1))
+	m = m.Without(1)
 	assert.Equal(t, 10, m.GetElse(1, 10))
 	assert.Equal(t, 4, m.GetElse(3, 30))
-	m = m.Without(NewSet(3))
+	m = m.Without(3)
 	assert.Equal(t, 10, m.GetElse(1, 10))
 	assert.Equal(t, 30, m.GetElse(3, 30))
 }
@@ -187,10 +194,10 @@ func TestMapGetElseFunc(t *testing.T) {
 	m = m.With(3, 4)
 	assert.Equal(t, 2, m.GetElseFunc(1, val(10)))
 	assert.Equal(t, 4, m.GetElseFunc(3, val(30)))
-	m = m.Without(NewSet(1))
+	m = m.Without(1)
 	assert.Equal(t, 10, m.GetElseFunc(1, val(10)))
 	assert.Equal(t, 4, m.GetElseFunc(3, val(30)))
-	m = m.Without(NewSet(3))
+	m = m.Without(3)
 	assert.Equal(t, 10, m.GetElseFunc(1, val(10)))
 	assert.Equal(t, 30, m.GetElseFunc(3, val(30)))
 }
@@ -204,9 +211,9 @@ func TestMapKeys(t *testing.T) { //nolint:dupl
 	test.AssertSetEqual(t, NewSet(1), m.Keys())
 	m = m.With(3, 4)
 	test.AssertSetEqual(t, NewSet(1, 3), m.Keys())
-	m = m.Without(NewSet(1))
+	m = m.Without(1)
 	test.AssertSetEqual(t, NewSet(3), m.Keys())
-	m = m.Without(NewSet(3))
+	m = m.Without(3)
 	test.AssertSetEqual(t, Set[int]{}, m.Keys())
 }
 
@@ -219,9 +226,9 @@ func TestMapValues(t *testing.T) { //nolint:dupl
 	test.AssertSetEqual(t, NewSet(2), m.Values())
 	m = m.With(3, 4)
 	test.AssertSetEqual(t, NewSet(2, 4), m.Values())
-	m = m.Without(NewSet(1))
+	m = m.Without(1)
 	test.AssertSetEqual(t, NewSet(4), m.Values())
-	m = m.Without(NewSet(3))
+	m = m.Without(3)
 	test.AssertSetEqual(t, Set[int]{}, m.Values())
 }
 
@@ -229,30 +236,30 @@ func TestMapProject(t *testing.T) {
 	t.Parallel()
 
 	var m mapIntInt
-	assertMapEqual(t, mapIntInt{}, m.Project(Set[int]{}))
-	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(1)))
-	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(3)))
-	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(1, 3)))
+	assertMapEqual(t, mapIntInt{}, m.Project())
+	assertMapEqual(t, mapIntInt{}, m.Project(1))
+	assertMapEqual(t, mapIntInt{}, m.Project(3))
+	assertMapEqual(t, mapIntInt{}, m.Project(1, 3))
 	m = m.With(1, 2)
-	assertMapEqual(t, mapIntInt{}, m.Project(Set[int]{}))
-	assertMapEqual(t, NewMap(KV(1, 2)), m.Project(NewSet(1)))
-	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(3)))
-	assertMapEqual(t, NewMap(KV(1, 2)), m.Project(NewSet(1, 3)))
+	assertMapEqual(t, mapIntInt{}, m.Project())
+	assertMapEqual(t, NewMap(KV(1, 2)), m.Project(1))
+	assertMapEqual(t, mapIntInt{}, m.Project(3))
+	assertMapEqual(t, NewMap(KV(1, 2)), m.Project(1, 3))
 	m = m.With(3, 4)
-	assertMapEqual(t, mapIntInt{}, m.Project(Set[int]{}))
-	assertMapEqual(t, NewMap(KV(1, 2)), m.Project(NewSet(1)))
-	assertMapEqual(t, NewMap(KV(3, 4)), m.Project(NewSet(3)))
-	assertMapEqual(t, NewMap(KV(1, 2), KV(3, 4)), m.Project(NewSet(1, 3)))
-	m = m.Without(NewSet(1))
-	assertMapEqual(t, mapIntInt{}, m.Project(Set[int]{}))
-	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(1)))
-	assertMapEqual(t, NewMap(KV(3, 4)), m.Project(NewSet(3)))
-	assertMapEqual(t, NewMap(KV(3, 4)), m.Project(NewSet(1, 3)))
-	m = m.Without(NewSet(3))
-	assertMapEqual(t, mapIntInt{}, m.Project(Set[int]{}))
-	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(1)))
-	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(3)))
-	assertMapEqual(t, mapIntInt{}, m.Project(NewSet(1, 3)))
+	assertMapEqual(t, mapIntInt{}, m.Project())
+	assertMapEqual(t, NewMap(KV(1, 2)), m.Project(1))
+	assertMapEqual(t, NewMap(KV(3, 4)), m.Project(3))
+	assertMapEqual(t, NewMap(KV(1, 2), KV(3, 4)), m.Project(1, 3))
+	m = m.Without(1)
+	assertMapEqual(t, mapIntInt{}, m.Project())
+	assertMapEqual(t, mapIntInt{}, m.Project(1))
+	assertMapEqual(t, NewMap(KV(3, 4)), m.Project(3))
+	assertMapEqual(t, NewMap(KV(3, 4)), m.Project(1, 3))
+	m = m.Without(3)
+	assertMapEqual(t, mapIntInt{}, m.Project())
+	assertMapEqual(t, mapIntInt{}, m.Project(1))
+	assertMapEqual(t, mapIntInt{}, m.Project(3))
+	assertMapEqual(t, mapIntInt{}, m.Project(1, 3))
 }
 
 func TestMapWhere(t *testing.T) {

@@ -35,9 +35,9 @@ func New(header []string, tuples ...[]any) Relation {
 }
 
 // Project returns a Set with the result of projecting each map.
-func Project(s Relation, attrs frozen.Set[string]) Relation {
+func Project(s Relation, attrs ...string) Relation {
 	return frozen.SetMap(s, func(t Tuple) Tuple {
-		return t.Project(attrs)
+		return t.Project(attrs...)
 	})
 }
 
@@ -67,12 +67,12 @@ func join(s, t Relation) Relation {
 	}
 	sAttrs := s.Any().Keys()
 	tAttrs := t.Any().Keys()
-	commonAttrs := sAttrs.Intersection(tAttrs)
-	if commonAttrs.IsEmpty() {
+	commonAttrs := sAttrs.Intersection(tAttrs).Elements()
+	if len(commonAttrs) == 0 {
 		return CartesianProduct(s, t)
 	}
 	projectCommon := func(t Tuple) frozen.Map[string, any] {
-		return t.Project(commonAttrs)
+		return t.Project(commonAttrs...)
 	}
 	sGroup := frozen.SetGroupBy(s, projectCommon)
 	tGroup := frozen.SetGroupBy(t, projectCommon)
@@ -143,7 +143,7 @@ func Nest(s Relation, attrAttrs frozen.Map[string, frozen.Set[string]]) Relation
 	// attrAttrs = {aa: {a}}
 
 	// {a}
-	keyAttrs := frozen.Intersection(attrAttrs.Values().Elements()...)
+	keyAttrs := frozen.Intersection(attrAttrs.Values().Elements()...).Elements()
 	log.Print("keyAttrs = ", keyAttrs)
 
 	// {
@@ -153,7 +153,10 @@ func Nest(s Relation, attrAttrs frozen.Map[string, frozen.Set[string]]) Relation
 	//   {c: 4}: {{a: 13, c: 4}, {a: 14, c: 4}},
 	// }
 	grouped := frozen.SetGroupBy(s, func(el Tuple) Tuple {
-		return el.Without(keyAttrs)
+		for _, attr := range keyAttrs {
+			el = el.Without(attr)
+		}
+		return el
 	})
 	log.Print("grouped = ", grouped)
 
@@ -166,7 +169,7 @@ func Nest(s Relation, attrAttrs frozen.Map[string, frozen.Set[string]]) Relation
 	mapped := frozen.MapMap(grouped, func(key Tuple, group Relation) Tuple {
 		// {c: 1} => {aa: {{a: 10}, {a: 11}}}
 		a := frozen.MapMap(attrAttrs, func(_ string, attrs frozen.Set[string]) any {
-			return Project(group, attrs)
+			return Project(group, attrs.Elements()...)
 		})
 		// {c: 1} => {c: 1, aa: {{a: 10}, {a: 11}}}
 		return a.Update(key)
@@ -186,12 +189,12 @@ func Nest(s Relation, attrAttrs frozen.Map[string, frozen.Set[string]]) Relation
 
 // Unnest returns a relation with some subrelations unnested. This is the
 // reverse of Nest.
-func Unnest(s Relation, attrs frozen.Set[string]) Relation {
+func Unnest(s Relation, attr string) Relation {
 	var b RelationBuilder
 	for i := s.Range(); i.Next(); {
 		t := i.Value()
-		key := t.Without(attrs)
-		nestedValues := frozen.MapMap(t.Project(attrs), func(_ string, val any) Relation {
+		key := t.Without(attr)
+		nestedValues := frozen.MapMap(t.Project(attr), func(_ string, val any) Relation {
 			return val.(Relation)
 		}).Values()
 		all := nestedValues.With(frozen.NewSet(key))

@@ -2,44 +2,25 @@ package frozen
 
 import (
 	"golang.org/x/exp/constraints"
-
-	"github.com/arr-ai/frozen/internal/pkg/iterator"
 )
 
 type intSetIterator[T constraints.Integer] struct {
-	blockIter      MapIterator[T, *cellBlock]
-	block          []cellMask
+	cellIter       MapIterator[T, cellMask]
+	cell           cellMask
 	firstIntInCell T
 }
 
 func (i *intSetIterator[T]) Next() bool {
-	if len(i.block) > 0 {
-		if i.block[0] != 0 {
-			i.block[0] &= i.block[0] - 1
-		}
-
-		for i.block[0] == 0 {
-			i.firstIntInCell += cellBits
-			i.block = i.block[1:]
-			if len(i.block) == 0 {
-				break
-			}
-		}
-	}
-
-	if len(i.block) == 0 {
-		if !i.blockIter.Next() {
+	if i.cell = i.cell.next(); i.cell == 0 {
+		if !i.cellIter.Next() {
 			return false
 		}
-		i.firstIntInCell = i.blockIter.Key() << blockShift //nolint:govet
-		block := *i.blockIter.Value()
-		for i.block = block[:]; i.block[0] == 0; i.block = i.block[1:] {
-			i.firstIntInCell += cellBits
-		}
+		i.cell = i.cellIter.Value()
+		i.firstIntInCell = i.cellIter.Key()
 	}
-	return len(i.block) > 0
+	return true
 }
 
 func (i *intSetIterator[T]) Value() T {
-	return i.firstIntInCell + T(iterator.BitIterator(i.block[0]).Index())
+	return i.firstIntInCell<<cellShift + T(i.cell.index())
 }

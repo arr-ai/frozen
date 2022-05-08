@@ -71,8 +71,8 @@ func (s *memoSet) EqualSet(set Set) bool           { return s.getSet().EqualSet(
 func (s *memoSet) IsSubsetOf(set Set) bool         { return s.getSet().IsSubsetOf(set) }
 func (s *memoSet) Has(el any) bool                 { return s.getSet().Has(el) }
 func (s *memoSet) FastHas(el any) (has, ok bool)   { return s.getSet().FastHas(el) }
-func (s *memoSet) With(els ...any) Set             { return s.getSet().With(els...) }
-func (s *memoSet) Without(els ...any) Set          { return s.getSet().Without(els...) }
+func (s *memoSet) With(v any) Set                  { return s.getSet().With(v) }
+func (s *memoSet) Without(v any) Set               { return s.getSet().Without(v) }
 func (s *memoSet) Where(pred Predicate) Set        { return s.getSet().Where(pred) }
 func (s *memoSet) Map(m Mapper) Set                { return s.getSet().Map(m) }
 func (s *memoSet) Union(set Set) Set               { return s.getSet().Union(set) }

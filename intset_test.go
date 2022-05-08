@@ -3,11 +3,11 @@ package frozen_test
 import (
 	"math"
 	"math/rand"
-	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/slices"
 
 	. "github.com/arr-ai/frozen"
 )
@@ -93,8 +93,8 @@ func TestIntSetIterLarge(t *testing.T) {
 	_, set2 := generateIntArrayAndSet(hugeCollectionSize())
 	assert.True(t, set.EqualSet(set2), "%+v\n%+v", set, set2)
 	distinct := getDistinctInts(arr)
-	sort.Ints(distinct)
-	sort.Ints(container)
+	slices.Sort(distinct)
+	slices.Sort(container)
 	assert.Equal(t, distinct, container)
 }
 
@@ -120,10 +120,12 @@ func TestIntSetWith(t *testing.T) {
 		}
 	}
 
-	set = set.With(arr[len(arr)/2:]...)
+	for _, i := range arr[len(arr)/2:] {
+		set = set.With(i)
+	}
 
 	for _, i := range arr[len(arr)/2:] {
-		if !assert.True(t, set.Has(i), i) {
+		if !assert.True(t, set.Has(i), "%v %v %v", i, set, arr) {
 			break
 		}
 	}
@@ -135,7 +137,10 @@ func TestIntSetWithout(t *testing.T) {
 
 	arr, set := generateIntArrayAndSet(hugeCollectionSize())
 	left, right := arr[:len(arr)/2], arr[len(arr)/2:]
-	wo := set.Without(left...)
+	wo := set
+	for _, i := range left {
+		wo = wo.Without(i)
+	}
 	expectedCount := len(getDistinctInts(arr)) - len(getDistinctInts(left))
 	assert.Equal(t, expectedCount, wo.Count(), "%v\n%+v\n%v\n%v\n%v", arr, set.String(), left, right, wo)
 	for _, i := range left {

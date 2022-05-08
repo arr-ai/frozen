@@ -71,11 +71,11 @@ func (EmptySet) Where(pred Predicate) Set {
 	return EmptySet{}
 }
 
-func (EmptySet) With(els ...any) Set {
-	return Frozen(frozen.NewSet(els...))
+func (EmptySet) With(v any) Set {
+	return Frozen(frozen.NewSet(v))
 }
 
-func (EmptySet) Without(els ...any) Set {
+func (EmptySet) Without(v any) Set {
 	return EmptySet{}
 }
 

@@ -104,12 +104,12 @@ func (s *baseSet) Where(pred Predicate) Set {
 	return where(s.set, pred)
 }
 
-func (s *baseSet) With(els ...any) Set {
-	return union(s.set, Frozen(frozen.NewSet(els...)))
+func (s *baseSet) With(v any) Set {
+	return union(s.set, Frozen(frozen.NewSet(v)))
 }
 
-func (s *baseSet) Without(els ...any) Set {
-	return difference(s.set, Frozen(frozen.NewSet(els...)))
+func (s *baseSet) Without(v any) Set {
+	return difference(s.set, Frozen(frozen.NewSet(v)))
 }
 
 func (s *baseSet) Map(m Mapper) Set {

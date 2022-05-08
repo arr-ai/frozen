@@ -46,7 +46,7 @@ func TestSetFrozenSmall(t *testing.T) {
 	assertFastHas(t, s, 3)
 	assertFastNotHas(t, s, 4)
 	assertFastNotIsEmpty(t, s.With(2))
-	assertFastNotIsEmpty(t, s.Without(1, 2, 4))
-	assertFastIsEmpty(t, s.Without(1, 2, 3))
+	assertFastNotIsEmpty(t, s.Without(1).Without(2).Without(4))
+	assertFastIsEmpty(t, s.Without(1).Without(2).Without(3))
 	assertFastNotIsEmpty(t, s.Map(func(_ any) any { return 42 }))
 }

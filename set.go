@@ -186,13 +186,15 @@ func (s Set[T]) Has(val T) bool {
 }
 
 // With returns a new Set retaining all the elements of the Set as well as values.
-func (s Set[T]) With(values ...T) Set[T] {
-	return s.Union(NewSet(values...))
+func (s Set[T]) With(v T) Set[T] {
+	s.tree = s.tree.With(v)
+	return s
 }
 
 // Without returns a new Set with all values retained from Set except values.
-func (s Set[T]) Without(values ...T) Set[T] {
-	return s.Difference(NewSet(values...))
+func (s Set[T]) Without(v T) Set[T] {
+	s.tree = s.tree.Without(v)
+	return s
 }
 
 // Where returns a Set with all elements that are in s and satisfy pred.
