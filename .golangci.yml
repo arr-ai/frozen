@@ -27,7 +27,7 @@ linters:
   disable-all: true
   enable:
   - asciicheck
-  - bodyclose
+  # - bodyclose  # Broken for Go 1.18
   - cyclop
   - deadcode
   - depguard
@@ -62,7 +62,7 @@ linters:
   - gomodguard
   - goprintffuncname
   - gosec
-  - gosimple
+  # - gosimple  # Broken for Go 1.18
   - govet
   # - ifshort
   - importas
@@ -74,31 +74,31 @@ linters:
   - misspell
   - nakedret
   - nestif
-  - nilerr
+  # - nilerr  # Broken for Go 1.18
   # - nlreturn
-  - noctx
+  # - noctx  # Broken for Go 1.18
   - nolintlint
   - paralleltest
   - prealloc
   - predeclared
   # - promlinter
   # - revive  # Broken for Go 1.18
-  - rowserrcheck
+  # - rowserrcheck  # Broken for Go 1.18
   # - scopelint
-  - sqlclosecheck
-  - staticcheck
-  - structcheck
-  - stylecheck
+  # - sqlclosecheck  # Broken for Go 1.18
+  # - staticcheck  # Broken for Go 1.18
+  # - structcheck  # Broken for Go 1.18
+  # - stylecheck  # Broken for Go 1.18
   - tagliatelle
   # - testpackage
   - thelper
-  - tparallel
+  # - tparallel  # Broken for Go 1.18
   # - typecheck
   - unconvert
-  - unparam
-  - unused
+  # - unparam  # Broken for Go 1.18
+  # - unused  # Broken for Go 1.18
   - varcheck
-  - wastedassign
+  # - wastedassign  # Broken for Go 1.18
   - whitespace
   - wrapcheck
   # - wsl
