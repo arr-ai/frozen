@@ -212,6 +212,7 @@ func (b *branch) Remove(args *EqArgs, v elementT, depth int, h hasher) (_ node, 
 	if n := b.p.data[i]; n != nil {
 		var n node
 		n, matches = b.p.data[i].Remove(args, v, depth+1, h.next())
+		b := *b
 		b.p.data[i] = n
 		if _, is := n.(*branch); !is {
 			var buf [maxLeafLen]elementT
@@ -219,8 +220,9 @@ func (b *branch) Remove(args *EqArgs, v elementT, depth int, h hasher) (_ node, 
 				return newLeaf(data...), matches
 			}
 		}
+		b.p.updateMask()
+		return &b, matches
 	}
-	b.p.updateMask()
 	return b, matches
 }
 
@@ -332,8 +334,9 @@ func (b *branch) Without(args *EqArgs, v elementT, depth int, h hasher) (_ node,
 	if x := b.p.data[i]; x != nil {
 		var x2 node
 		if x2, matches = x.Without(args, v, depth+1, g); x2 != x {
-			b.p.updateMaskBit(masker.NewMasker(i))
-			return newBranch(b.p.WithChild(i, x2)).Canonical(depth), matches
+			p := b.p
+			p.updateMaskBit(masker.NewMasker(i))
+			return newBranch(p.WithChild(i, x2)).Canonical(depth), matches
 		}
 	}
 	return b, matches

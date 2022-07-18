@@ -42,20 +42,20 @@ linters:
   - forbidigo
   # - forcetypeassert
   - funlen
-  - gci
+  # - gci
   # - gochecknoglobals
   - gochecknoinits
-  - gocognit
+  # - gocognit
   - goconst
   # - gocritic
   - gocyclo
   - godot
   # - godox
   - goerr113
-  - gofmt
-  - gofumpt
+  # - gofmt
+  # - gofumpt
   - goheader
-  - goimports
+  # - goimports
   # - golint
   # - gomnd
   - gomoddirectives
@@ -77,7 +77,7 @@ linters:
   - nilerr
   # - nlreturn
   - noctx
-  - nolintlint
+  # - nolintlint
   - paralleltest
   - prealloc
   - predeclared
