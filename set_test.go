@@ -765,6 +765,53 @@ func TestSetUnion_Big(t *testing.T) {
 	test.AssertSetEqual(t, s, s2)
 }
 
+func TestSetStruct(t *testing.T) {
+	t.Parallel()
+
+	type foo struct {
+		Bar string
+		baz string
+	}
+
+	// this fails
+	t.Run("Value", func(t *testing.T) {
+		foos := []foo{
+			{Bar: "quax", baz: "quux"},
+			{Bar: "quix", baz: "quex"},
+		}
+
+		assert.NotPanics(t, func() {
+			NewSet(foos...)
+		})
+	})
+
+	// this succeeds
+	t.Run("Pointer", func(t *testing.T) {
+		foos := []*foo{
+			{Bar: "quax", baz: "quux"},
+			{Bar: "quix", baz: "quex"},
+		}
+
+		assert.NotPanics(t, func() {
+			NewSet(foos...)
+		})
+	})
+}
+
+func TestSetOfIntSet(t *testing.T) {
+	t.Parallel()
+
+	// this fails
+	assert.NotPanics(t, func() {
+		NewSet(NewIntSet(1, 2, 3), NewIntSet(4, 5, 6))
+	})
+
+	// this succeeds
+	assert.NotPanics(t, func() {
+		NewSet(NewSet(1, 2, 3), NewSet(4, 5, 6))
+	})
+}
+
 func intSet(offset, size int) Set[int] {
 	sb := NewSetBuilder[int](size)
 	for i := offset; i < offset+size; i++ {
