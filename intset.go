@@ -6,6 +6,8 @@ import (
 
 	"golang.org/x/exp/constraints"
 
+	"github.com/arr-ai/hash"
+
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/iterator"
 )
@@ -103,13 +105,29 @@ func (s IntSet[I]) Format(f fmt.State, verb rune) {
 	fu.WriteString(f, "]")
 }
 
-// func (s IntSet[I]) OrderedRange(less Less) Iterator      {}
-// func (s IntSet[I]) Hash(seed uint64) uint64            {}
-// func (s IntSet[I]) Equal(t int) bool                     {}
+func (s IntSet[I]) Hash(seed uintptr) uintptr {
+	for i := s.Range(); i.Next(); {
+		seed ^= hash.Interface(i.Value(), 0)
+	}
+	return seed
+}
 
-// EqualSet returns true if both IntSets are equal.
+// EqualSet is deprecated. Use Equal instead.
 func (s IntSet[I]) EqualSet(t IntSet[I]) bool {
+	return s.Equal(t)
+}
+
+// Equal returns true if both IntSets are equal.
+func (s IntSet[I]) Equal(t IntSet[I]) bool {
 	return s.data.Equal(t.data)
+}
+
+// Equal returns true if t is an IntSet and a and b are equal.
+func (s IntSet[I]) Same(t any) bool {
+	if t, is := t.(IntSet[I]); is {
+		return s.Equal(t)
+	}
+	return false
 }
 
 // IsSubsetOf returns true if s is a subset of t and false otherwise.

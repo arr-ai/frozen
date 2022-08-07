@@ -43,9 +43,11 @@ func Project(s Relation, attrs ...string) Relation {
 
 // Join returns all {x, y, z} such that s has {x, y} and t has {y, z}.
 // x, y and z represent sets of keys:
-//   x: keys unique to maps in s
-//   y: keys common to maps in both
-//   z: keys unique to maps in t
+//
+//	x: keys unique to maps in s
+//	y: keys common to maps in both
+//	z: keys unique to maps in t
+//
 // It is assumed that all maps in s have the same keys and likewise for t.
 func Join(relations ...Relation) Relation {
 	s := relations[0]
@@ -114,30 +116,29 @@ func buildCartesianProduct(b *RelationBuilder, t Tuple, relations ...Relation) {
 //
 // Example:
 //
-//   input:
-//      _c_ _a__
-//     |_1_|_10_|
-//     |_1_|_11_|
-//     |_2_|_13_|
-//     |_3_|_11_|
-//     |_4_|_14_|
-//     |_3_|_10_|
-//     |_4_|_13_|
+//	input:
+//	   _c_ _a__
+//	  |_1_|_10_|
+//	  |_1_|_11_|
+//	  |_2_|_13_|
+//	  |_3_|_11_|
+//	  |_4_|_14_|
+//	  |_3_|_10_|
+//	  |_4_|_13_|
 //
-//   nest(input, {aa: {a}}):
-//      _c_ ___aa___
-//     | 1 |  _a__  |
-//     |   | |_10_| |
-//     |___|_|_11_|_|
-//     | 2 |  _a__  |
-//     |___|_|_13_|_|
-//     | 3 |  _a__  |
-//     |   | |_10_| |
-//     |___|_|_11_|_|
-//     | 4 |  _a__  |
-//     |   | |_13_| |
-//     |___|_|_14_|_|
-//
+//	nest(input, {aa: {a}}):
+//	   _c_ ___aa___
+//	  | 1 |  _a__  |
+//	  |   | |_10_| |
+//	  |___|_|_11_|_|
+//	  | 2 |  _a__  |
+//	  |___|_|_13_|_|
+//	  | 3 |  _a__  |
+//	  |   | |_10_| |
+//	  |___|_|_11_|_|
+//	  | 4 |  _a__  |
+//	  |   | |_13_| |
+//	  |___|_|_14_|_|
 func Nest(s Relation, attrAttrs frozen.Map[string, frozen.Set[string]]) Relation {
 	log.Print("s = ", s)
 	// attrAttrs = {aa: {a}}
