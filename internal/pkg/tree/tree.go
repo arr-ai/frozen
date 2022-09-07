@@ -8,7 +8,6 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/pkg/errors"
-	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 func packedIteratorBuf[T any](count int) [][]node[T] {
@@ -105,20 +104,20 @@ func (t Tree[T]) Intersection(gauge depth.Gauge, u Tree[T]) (out Tree[T]) {
 	return newTree(t.root.Intersection(gauge, u.root, 0))
 }
 
-func (t Tree[T]) Iterator() iterator.Iterator[T] {
+func (t Tree[T]) Iterator() Iterator[T] {
 	if t.root == nil {
-		return iterator.Empty[T]()
+		return Empty[T]()
 	}
 	buf := packedIteratorBuf[T](t.count)
 	return t.root.Iterator(buf)
 }
 
-func (t Tree[T]) OrderedIterator(less Less[T], n int) iterator.Iterator[T] {
+func (t Tree[T]) OrderedIterator(less Less[T], n int) Iterator[T] {
 	if n < 0 || n > t.count {
 		n = t.count
 	}
 	if n == 0 {
-		return iterator.Empty[T]()
+		return Empty[T]()
 	}
 	o := &ordered[T]{less: less, elements: make([]T, 0, n)}
 	for i := t.root.Iterator(packedIteratorBuf[T](t.count)); i.Next(); {
@@ -129,7 +128,7 @@ func (t Tree[T]) OrderedIterator(less Less[T], n int) iterator.Iterator[T] {
 	}
 	r := reverseO[T](o)
 	heap.Init(r)
-	return r.(iterator.Iterator[T])
+	return r.(Iterator[T])
 }
 
 func (t Tree[T]) SubsetOf(gauge depth.Gauge, u Tree[T]) bool {

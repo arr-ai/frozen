@@ -1,4 +1,4 @@
-package iterator
+package tree
 
 // Iterator provides for iterating over a Set.
 type Iterator[T any] interface {

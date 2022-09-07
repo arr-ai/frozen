@@ -2,7 +2,6 @@ package tree
 
 import (
 	"github.com/arr-ai/frozen/internal/pkg/masker"
-	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 const maxLeafLen = 2
@@ -47,7 +46,7 @@ func (p *packer[T]) WithChild(i int, n node[T]) *packer[T] {
 	return &ret
 }
 
-func (p *packer[T]) Iterator(buf [][]node[T]) iterator.Iterator[T] {
+func (p *packer[T]) Iterator(buf [][]node[T]) Iterator[T] {
 	return newPackerIterator(buf, p)
 }
 
