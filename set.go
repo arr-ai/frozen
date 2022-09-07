@@ -18,7 +18,13 @@ type Set[T any] struct {
 	tree tree.Tree[T]
 }
 
-var _ value.Key[Set[int]] = Set[int]{}
+// Key represents a type that can be used as a key in a Map or a Set.
+type Key[T any] interface {
+	value.Equaler[T]
+	hash.Hashable
+}
+
+var _ Key[Set[int]] = Set[int]{}
 
 func newSet[T any](tree tree.Tree[T]) Set[T] {
 	return Set[T]{tree: tree}
