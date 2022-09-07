@@ -8,8 +8,8 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/debug"
 	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
+	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 // Map maps keys to values. The zero value is the empty Map.

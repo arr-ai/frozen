@@ -3,8 +3,9 @@ package tree
 import (
 	"github.com/arr-ai/hash"
 
-	"github.com/arr-ai/frozen/internal/pkg/iterator"
+	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 func elementEqual[T any](a, b T) bool {
@@ -16,5 +17,5 @@ func hashValue[T any](i T, seed uintptr) uintptr {
 }
 
 func newSliceIterator[T any](slice []T) iterator.Iterator[T] {
-	return iterator.NewSliceIterator(slice)
+	return internalIterator.NewSliceIterator(slice)
 }

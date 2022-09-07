@@ -3,7 +3,7 @@ package tree
 import (
 	"container/heap"
 
-	"github.com/arr-ai/frozen/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 // Less dictates the order of two elements.

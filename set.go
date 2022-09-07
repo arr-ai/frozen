@@ -7,9 +7,10 @@ import (
 
 	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/iterator"
+	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
 	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 // Set holds a set of values of type T. The zero value is the empty Set.
@@ -290,7 +291,7 @@ func Powerset[T any](s Set[T]) Set[Set[T]] {
 	elems := s.Elements()
 	subset := Set[T]{}
 	result := NewSet(subset)
-	for i := iterator.BitIterator(1); i < 1<<uint(n); i++ {
+	for i := internalIterator.BitIterator(1); i < 1<<uint(n); i++ {
 		// Use a special counting order that flips a single bit at at time. The
 		// bit to flip is the same as the lowest-order 1-bit in the normal
 		// counting order, denoted by `(1)`. The flipped bit's new value is the
