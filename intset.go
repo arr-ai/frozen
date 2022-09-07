@@ -9,7 +9,8 @@ import (
 	"github.com/arr-ai/hash"
 
 	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/iterator"
+	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 type IntSet[I constraints.Integer] struct {
@@ -76,7 +77,7 @@ func (s IntSet[I]) Elements() []I {
 // Any returns a random value from s.
 func (s IntSet[I]) Any() I {
 	cellIndex, cell := s.data.Any()
-	bit := iterator.BitIterator(cell).Index()
+	bit := internalIterator.BitIterator(cell).Index()
 	return cellIndex<<cellShift + I(bit)
 }
 
