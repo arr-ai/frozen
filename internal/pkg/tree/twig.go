@@ -7,7 +7,6 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/value"
 	"github.com/arr-ai/frozen/pkg/errors"
-	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 type twig[T any] struct {
@@ -210,7 +209,7 @@ func (l *twig[T]) Intersection(gauge depth.Gauge, n node[T], depth int) (_ node[
 	return ret.Canonical(depth), matches
 }
 
-func (l *twig[T]) Iterator([][]node[T]) iterator.Iterator[T] {
+func (l *twig[T]) Iterator([][]node[T]) Iterator[T] {
 	return newSliceIterator(l.data)
 }
 

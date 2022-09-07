@@ -10,7 +10,6 @@ import (
 
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
-	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 type IntSet[I constraints.Integer] struct {
@@ -56,7 +55,7 @@ func (s IntSet[I]) Count() int {
 }
 
 // Range returns the iterator for IntSet.
-func (s IntSet[I]) Range() iterator.Iterator[I] {
+func (s IntSet[I]) Range() Iterator[I] {
 	return &intSetIterator[I]{
 		cellIter: s.data.Range(),
 		cell:     1,

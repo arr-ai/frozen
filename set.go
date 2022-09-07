@@ -10,7 +10,6 @@ import (
 	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
 	"github.com/arr-ai/frozen/internal/pkg/value"
-	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 // Set holds a set of values of type T. The zero value is the empty Set.
@@ -62,7 +61,7 @@ func (s Set[T]) Count() int {
 }
 
 // Range returns an Iterator over the Set.
-func (s Set[T]) Range() iterator.Iterator[T] {
+func (s Set[T]) Range() Iterator[T] {
 	return s.tree.Iterator()
 }
 
@@ -157,7 +156,7 @@ func (s Set[T]) Format(f fmt.State, verb rune) {
 
 // OrderedRange returns a SetIterator for the Set that iterates over the elements in
 // a specified order.
-func (s Set[T]) OrderedRange(less tree.Less[T]) iterator.Iterator[T] {
+func (s Set[T]) OrderedRange(less tree.Less[T]) Iterator[T] {
 	return s.tree.OrderedIterator(less, s.Count())
 }
 

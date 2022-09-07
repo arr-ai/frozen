@@ -7,7 +7,6 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/value"
 	"github.com/arr-ai/frozen/pkg/errors"
-	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 type leaf2[T any] struct {
@@ -162,7 +161,7 @@ func (l *leaf2[T]) Intersection(gauge depth.Gauge, n node[T], depth int) (_ node
 	}
 }
 
-func (l *leaf2[T]) Iterator([][]node[T]) iterator.Iterator[T] {
+func (l *leaf2[T]) Iterator([][]node[T]) Iterator[T] {
 	return newSliceIterator(l.data[:])
 }
 

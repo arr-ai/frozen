@@ -2,8 +2,6 @@ package tree
 
 import (
 	"container/heap"
-
-	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 // Less dictates the order of two elements.
@@ -11,13 +9,13 @@ type Less[T any] func(a, b T) bool
 
 type packerIterator[T any] struct {
 	stack [][]node[T]
-	i     iterator.Iterator[T]
+	i     Iterator[T]
 }
 
 func newPackerIterator[T any](buf [][]node[T], p *packer[T]) *packerIterator[T] {
 	buf = append(buf, p.data[:])
 	// TODO: Speed up with mask.
-	return &packerIterator[T]{stack: buf, i: iterator.Empty[T]()}
+	return &packerIterator[T]{stack: buf, i: Empty[T]()}
 }
 
 func (i *packerIterator[T]) Next() bool {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/arr-ai/frozen/internal/pkg/depth"
-	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 type node[T any] interface {
@@ -21,7 +20,7 @@ type node[T any] interface {
 	Equal(args *EqArgs[T], n2 node[T], depth int) bool
 	Get(v T, h hasher) *T
 	Intersection(gauge depth.Gauge, n2 node[T], depth int) (_ node[T], matches int)
-	Iterator(buf [][]node[T]) iterator.Iterator[T]
+	Iterator(buf [][]node[T]) Iterator[T]
 	Reduce(args NodeArgs, depth int, r func(values ...T) T) T
 	SubsetOf(gauge depth.Gauge, n2 node[T], depth int) bool
 	Map(args *CombineArgs[T], depth int, f func(v T) T) (_ node[T], matches int)

@@ -9,7 +9,6 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
-	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 // Map maps keys to values. The zero value is the empty Map.
@@ -275,7 +274,7 @@ func (m Map[K, V]) DebugReport(debug.Tag) string {
 
 // MapIterator provides for iterating over a Map.
 type MapIterator[K any, V any] struct {
-	i  iterator.Iterator[mapEntry[K, V]]
+	i  Iterator[mapEntry[K, V]]
 	kv mapEntry[K, V]
 }
 

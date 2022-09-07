@@ -1,4 +1,4 @@
-package iterator
+package tree
 
 import (
 	"github.com/arr-ai/frozen/pkg/errors"

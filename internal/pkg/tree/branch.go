@@ -7,7 +7,6 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/masker"
 	"github.com/arr-ai/frozen/pkg/errors"
-	"github.com/arr-ai/frozen/pkg/iterator"
 )
 
 const (
@@ -201,7 +200,7 @@ func (b *branch[T]) Intersection(gauge depth.Gauge, n node[T], depth int) (_ nod
 	}
 }
 
-func (b *branch[T]) Iterator(buf [][]node[T]) iterator.Iterator[T] {
+func (b *branch[T]) Iterator(buf [][]node[T]) Iterator[T] {
 	return b.p.Iterator(buf)
 }
 

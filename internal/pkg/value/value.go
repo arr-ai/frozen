@@ -1,9 +1,5 @@
 package value
 
-import (
-	"github.com/arr-ai/hash"
-)
-
 // Equaler supports equality comparison with values of the same type.
 type Equaler[T any] interface {
 	Equal(t T) bool
@@ -60,10 +56,4 @@ func EqualFuncFor[T any]() func(a, b T) bool {
 		return equalComparable[T]
 	}
 	return Equal[T]
-}
-
-// Key represents a type that can be used as a key in a Map or a Set.
-type Key[T any] interface {
-	Equaler[T]
-	hash.Hashable
 }
