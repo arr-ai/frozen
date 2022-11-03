@@ -61,3 +61,4 @@ ok  	github.com/arr-ai/frozen	65.909s
 ```
 
 ![Benchmarks Graph](assets/benchmarks.png)
+
