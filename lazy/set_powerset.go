@@ -89,7 +89,7 @@ func (i *powerSetSetIterator) Next() bool {
 		i.elems = append(i.elems, i.i.Value())
 		i.end <<= 1
 	}
-	// Use a special counting order that flips one bit at at time. See
+	// Use a special counting order that flips one bit at a time. See
 	// (frozen.Set).Powerset() for a detailed explanation.
 	if flip := i.mask.Index(); flip < len(i.elems) {
 		if i.mask.Has(flip + 1) {

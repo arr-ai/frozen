@@ -141,9 +141,9 @@ func (t Tree[T]) SubsetOf(gauge depth.Gauge, u Tree[T]) bool {
 	return t.root.SubsetOf(gauge, u.root, 0)
 }
 
-func TreeMap[T, U any](t Tree[T], f func(v T) U) (out Tree[U]) {
+func Map[T, U any](t Tree[T], f func(v T) U) (out Tree[U]) {
 	if vetting {
-		defer vet[U](func() { TreeMap(t, f) }, &t)(&out)
+		defer vet[U](func() { Map(t, f) }, &t)(&out)
 	}
 	if t.root == nil {
 		return

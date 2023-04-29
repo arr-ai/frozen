@@ -37,8 +37,8 @@ func Replayable(enabled bool, f func(r *Replayer)) {
 	if !enabled {
 		m := &Marker{}
 		f(&Replayer{
-			mark:     func(_ ...any) *Marker { return m },
-			replayTo: func(_ *Marker) {},
+			mark:     func(...any) *Marker { return m },
+			replayTo: func(*Marker) {},
 		})
 		return
 	}
@@ -84,6 +84,6 @@ func Replayable(enabled bool, f func(r *Replayer)) {
 		}()
 		f(&Replayer{mark: mark, replayTo: replayTo})
 		return false
-	}() {
+	}() { //nolint:revive
 	}
 }

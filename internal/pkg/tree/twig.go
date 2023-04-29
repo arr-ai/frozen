@@ -108,7 +108,7 @@ func (l *twig[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T]
 	case *twig[T]:
 		ndata = n.data
 	default:
-		panic(errors.WTF)
+		panic(errors.ErrWTF)
 	}
 
 	cloned := false
@@ -140,7 +140,7 @@ scanning:
 		}
 	}
 	if len(l.data) > maxLeafLen {
-		panic(errors.WTF)
+		panic(errors.ErrWTF)
 	}
 	return l.Canonical(depth), matches
 }
@@ -152,7 +152,7 @@ func (l *twig[T]) AppendTo(dest []T) []T {
 	return append(dest, l.data...)
 }
 
-func (l *twig[T]) Difference(gauge depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
+func (l *twig[T]) Difference(_ depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
 	ret := newTwig[T]()
 	for _, e := range l.data {
 		h := newHasher(e, depth)
@@ -169,7 +169,7 @@ func (l *twig[T]) Empty() bool {
 	return len(l.data) == 0
 }
 
-func (l *twig[T]) Equal(args *EqArgs[T], n node[T], depth int) bool {
+func (l *twig[T]) Equal(args *EqArgs[T], n node[T], _ int) bool {
 	if n, is := n.(*twig[T]); is {
 		if len(l.data) != len(n.data) {
 			return false
@@ -197,7 +197,7 @@ func (l *twig[T]) Get(v T, _ hasher) *T {
 	return nil
 }
 
-func (l *twig[T]) Intersection(gauge depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
+func (l *twig[T]) Intersection(_ depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
 	ret := newTwig[T]()
 	for _, e := range l.data {
 		h := newHasher(e, depth)
@@ -217,7 +217,7 @@ func (l *twig[T]) Reduce(_ NodeArgs, _ int, r func(values ...T) T) T {
 	return r(l.data...)
 }
 
-func (l *twig[T]) Remove(v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *twig[T]) Remove(v T, depth int, _ hasher) (_ node[T], matches int) {
 	// log.Printf("(*twig[%T]).Remove(%[1]v)", v)
 	for i, e := range l.data {
 		if value.Equal(e, v) {
@@ -236,7 +236,7 @@ func (l *twig[T]) Remove(v T, depth int, h hasher) (_ node[T], matches int) {
 	return l, matches
 }
 
-func (l *twig[T]) SubsetOf(gauge depth.Gauge, n node[T], depth int) bool {
+func (l *twig[T]) SubsetOf(_ depth.Gauge, n node[T], depth int) bool {
 	for _, e := range l.data {
 		h := newHasher(e, depth)
 		if n.Get(e, h) == nil {
@@ -279,7 +279,7 @@ func (l *twig[T]) Where(args *WhereArgs[T], depth int) (_ node[T], matches int) 
 	return ret.Canonical(depth), matches
 }
 
-func (l *twig[T]) With(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *twig[T]) With(args *CombineArgs[T], v T, depth int, _ hasher) (_ node[T], matches int) {
 	for i, e := range l.data {
 		if args.eq(e, v) {
 			matches++
@@ -291,7 +291,7 @@ func (l *twig[T]) With(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T
 	return newTwig(append(l.data, v)...).Canonical(depth), matches
 }
 
-func (l *twig[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *twig[T]) WithFast(v T, depth int, _ hasher) (_ node[T], matches int) {
 	for i, e := range l.data {
 		if value.Equal(e, v) {
 			matches++
@@ -303,7 +303,7 @@ func (l *twig[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) {
 	return newTwig(append(l.data, v)...).Canonical(depth), matches
 }
 
-func (l *twig[T]) Without(v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *twig[T]) Without(v T, depth int, _ hasher) (_ node[T], matches int) {
 	for i, e := range l.data {
 		if value.Equal(e, v) {
 			matches++

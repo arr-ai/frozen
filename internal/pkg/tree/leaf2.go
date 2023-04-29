@@ -35,7 +35,7 @@ func (l *leaf2[T]) String() string {
 
 // node[T]
 
-func (l *leaf2[T]) Add(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *leaf2[T]) Add(args *CombineArgs[T], v T, depth int, _ hasher) (_ node[T], matches int) {
 	switch {
 	case args.eq(l.data[0], v):
 		l.data[0] = args.f(l.data[0], v)
@@ -48,7 +48,7 @@ func (l *leaf2[T]) Add(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T
 	}
 }
 
-func (l *leaf2[T]) AddFast(v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *leaf2[T]) AddFast(v T, depth int, _ hasher) (_ node[T], matches int) {
 	switch {
 	case value.Equal(l.data[0], v):
 		l.data[0] = v
@@ -61,7 +61,7 @@ func (l *leaf2[T]) AddFast(v T, depth int, h hasher) (_ node[T], matches int) {
 	}
 }
 
-func (l *leaf2[T]) Canonical(depth int) node[T] {
+func (l *leaf2[T]) Canonical(int) node[T] {
 	return l
 }
 
@@ -101,7 +101,7 @@ func (l *leaf2[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T
 			return newBranchFrom(depth, l0, l1, nd), 0
 		}
 	default:
-		panic(errors.WTF)
+		panic(errors.ErrWTF)
 	}
 }
 
@@ -112,7 +112,7 @@ func (l *leaf2[T]) AppendTo(dest []T) []T {
 	return append(dest, l.data[:]...)
 }
 
-func (l *leaf2[T]) Difference(gauge depth.Gauge, n node[T], depth int) (_ node[T], matches int) { //nolint:dupl
+func (l *leaf2[T]) Difference(_ depth.Gauge, n node[T], depth int) (_ node[T], matches int) { //nolint:dupl
 	a := n.Get(l.data[0], newHasher(l.data[0], depth)) != nil
 	b := n.Get(l.data[1], newHasher(l.data[1], depth)) != nil
 	switch {
@@ -131,7 +131,7 @@ func (l *leaf2[T]) Empty() bool {
 	return false
 }
 
-func (l *leaf2[T]) Equal(args *EqArgs[T], n node[T], depth int) bool {
+func (l *leaf2[T]) Equal(args *EqArgs[T], n node[T], _ int) bool {
 	l2, is := n.(*leaf2[T])
 	return is && (args.eq(l.data[0], l2.data[0]) && args.eq(l.data[1], l2.data[1]) ||
 		args.eq(l.data[0], l2.data[1]) && args.eq(l.data[1], l2.data[0]))
@@ -146,7 +146,7 @@ func (l *leaf2[T]) Get(v T, _ hasher) *T {
 	return nil
 }
 
-func (l *leaf2[T]) Intersection(gauge depth.Gauge, n node[T], depth int) (_ node[T], matches int) { //nolint:dupl
+func (l *leaf2[T]) Intersection(_ depth.Gauge, n node[T], depth int) (_ node[T], matches int) { //nolint:dupl
 	g0 := n.Get(l.data[0], newHasher(l.data[0], depth)) != nil
 	g1 := n.Get(l.data[1], newHasher(l.data[1], depth)) != nil
 	switch {
@@ -169,7 +169,7 @@ func (l *leaf2[T]) Reduce(_ NodeArgs, _ int, r func(values ...T) T) T {
 	return r(l.data[:]...)
 }
 
-func (l *leaf2[T]) Remove(v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *leaf2[T]) Remove(v T, _ int, _ hasher) (_ node[T], matches int) {
 	// log.Printf("(*leaf2[%T]).Remove(%[1]v)", v)
 	switch {
 	case value.Equal(l.data[0], v):
@@ -181,7 +181,7 @@ func (l *leaf2[T]) Remove(v T, depth int, h hasher) (_ node[T], matches int) {
 	}
 }
 
-func (l *leaf2[T]) SubsetOf(gauge depth.Gauge, n node[T], depth int) bool {
+func (l *leaf2[T]) SubsetOf(_ depth.Gauge, n node[T], depth int) bool {
 	return n.Get(l.data[0], newHasher(l.data[0], depth)) != nil &&
 		n.Get(l.data[1], newHasher(l.data[1], depth)) != nil
 }
@@ -198,7 +198,7 @@ func (l *leaf2[T]) Vet() int {
 	return 2
 }
 
-func (l *leaf2[T]) Where(args *WhereArgs[T], depth int) (_ node[T], matches int) {
+func (l *leaf2[T]) Where(args *WhereArgs[T], _ int) (_ node[T], matches int) {
 	p0 := args.Pred(l.data[0])
 	p1 := args.Pred(l.data[1])
 	switch {
@@ -213,7 +213,7 @@ func (l *leaf2[T]) Where(args *WhereArgs[T], depth int) (_ node[T], matches int)
 	}
 }
 
-func (l *leaf2[T]) With(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *leaf2[T]) With(args *CombineArgs[T], v T, depth int, _ hasher) (_ node[T], matches int) {
 	switch {
 	case args.eq(l.data[0], v):
 		return newLeaf2(args.f(l.data[0], v), l.data[1]), 1
@@ -224,7 +224,7 @@ func (l *leaf2[T]) With(args *CombineArgs[T], v T, depth int, h hasher) (_ node[
 	}
 }
 
-func (l *leaf2[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *leaf2[T]) WithFast(v T, depth int, _ hasher) (_ node[T], matches int) {
 	switch {
 	case value.Equal(l.data[0], v):
 		return newLeaf2(v, l.data[1]), 1
@@ -235,7 +235,7 @@ func (l *leaf2[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) {
 	}
 }
 
-func (l *leaf2[T]) Without(v T, depth int, h hasher) (_ node[T], matches int) {
+func (l *leaf2[T]) Without(v T, _ int, _ hasher) (_ node[T], matches int) {
 	if value.Equal(l.data[0], v) {
 		return newLeaf1(l.data[1]), 1
 	}

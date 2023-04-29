@@ -323,7 +323,6 @@ func TestMapUpdate(t *testing.T) {
 				// NewMapFromKeys(s, plus(0))
 				// NewMapFromKeys(u, plus(10))
 				// a.Update(b)
-				// a.Update(b)
 				return
 			}
 		}
