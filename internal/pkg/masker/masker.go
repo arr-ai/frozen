@@ -33,7 +33,7 @@ func (m Masker) Next() Masker {
 }
 
 func (m Masker) String() string {
-	panic(errors.Unimplemented)
+	panic(errors.ErrUnimplemented)
 	// return brailleEncoded(bits.Reverse64(uint64(m)))
 }
 

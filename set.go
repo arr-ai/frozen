@@ -215,7 +215,7 @@ func (s Set[T]) Where(pred func(elem T) bool) Set[T] {
 
 // // Map returns a Set with all the results of applying f to all elements in s.
 func SetMap[T, U any](s Set[T], f func(elem T) U) Set[U] {
-	return Set[U]{tree: tree.TreeMap(s.tree, f)}
+	return Set[U]{tree: tree.Map(s.tree, f)}
 }
 
 // Reduce returns the result of applying reduce to the elements of s or
@@ -297,7 +297,7 @@ func Powerset[T any](s Set[T]) Set[Set[T]] {
 	subset := Set[T]{}
 	result := NewSet(subset)
 	for i := internalIterator.BitIterator(1); i < 1<<uint(n); i++ {
-		// Use a special counting order that flips a single bit at at time. The
+		// Use a special counting order that flips a single bit at a time. The
 		// bit to flip is the same as the lowest-order 1-bit in the normal
 		// counting order, denoted by `(1)`. The flipped bit's new value is the
 		// complement of the bit to the left of the `(1)`, denoted by `^-` and

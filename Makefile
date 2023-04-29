@@ -13,7 +13,7 @@ test:
 
 .PHONY: lint
 lint:
-	golangci-lint run
+	golangci-lint run --max-same-issues 10
 
 .PHONY: bench
 bench:

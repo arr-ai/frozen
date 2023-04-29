@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"math/bits"
 
-	"golang.org/x/exp/constraints"
-
 	"github.com/arr-ai/hash"
+	"golang.org/x/exp/constraints"
 
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
@@ -203,9 +202,6 @@ func (s IntSet[I]) Map(f func(elem I) I) IntSet[I] {
 	return NewIntSet(arr...)
 }
 
-// func (s IntSet[I]) Reduce(reduce func(elems ...I) I) I {}
-// func (s IntSet[I]) Reduce2(reduce func(a, b I) I) I    {}
-
 // Intersection returns an IntSet whose values exists in s and t.
 func (s IntSet[I]) Intersection(t IntSet[I]) IntSet[I] {
 	var intersectMap MapBuilder[I, cellMask]
@@ -238,11 +234,6 @@ func (s IntSet[I]) Union(t IntSet[I]) IntSet[I] {
 	}
 	return IntSet[I]{data: unionMap, count: count}
 }
-
-// func (s IntSet[I]) Difference(t IntSet) IntSet               {}
-// func (s IntSet[I]) SymmetricDifference(t IntSet) IntSet      {}
-// func (s IntSet[I]) Powerset() IntSet                         {}
-// func (s IntSet[I]) GroupBy(key func(el int) int) Map         {}
 
 func (s IntSet[I]) locate(i I) (cell cellMask, cellIndex I, bitMask cellMask) {
 	cellIndex, bitMask = locateCell(i)

@@ -23,7 +23,7 @@ type Builder[T any] struct {
 	t Tree[T]
 }
 
-func NewBuilder[T any](capacity int) *Builder[T] {
+func NewBuilder[T any](int) *Builder[T] {
 	return &Builder[T]{}
 }
 

@@ -70,7 +70,7 @@ func TestIntSetIter(t *testing.T) {
 	}
 
 	// An extra pass to validate repeatability
-	for i := set.Range(); i.Next(); {
+	for i := set.Range(); i.Next(); { //nolint:revive
 	}
 
 	assert.Equal(t, set.Count(), len(container))
@@ -87,7 +87,7 @@ func TestIntSetIterLarge(t *testing.T) {
 	}
 
 	// An extra pass to validate repeatability
-	for i := set.Range(); i.Next(); {
+	for i := set.Range(); i.Next(); { //nolint:revive
 	}
 
 	_, set2 := generateIntArrayAndSet(hugeCollectionSize())

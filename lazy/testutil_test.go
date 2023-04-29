@@ -52,25 +52,11 @@ func assertFastCountEqual(t *testing.T, expected int, a Set) bool {
 	return assert.True(t, ok) && assert.Equal(t, expected, count)
 }
 
-func assertFastCountNotEqual(t *testing.T, expected int, a Set) bool {
-	t.Helper()
-
-	count, ok := a.FastCount()
-	return assert.True(t, ok) && assert.NotEqual(t, expected, count)
-}
-
 func assertFastCountUpToEqual(t *testing.T, expected int, a Set, limit int) bool {
 	t.Helper()
 
 	count, ok := a.FastCountUpTo(limit)
 	return assert.True(t, ok) && assert.Equal(t, expected, count)
-}
-
-func assertFastCountUpToNotEqual(t *testing.T, expected int, a Set, limit int) bool {
-	t.Helper()
-
-	count, ok := a.FastCountUpTo(limit)
-	return assert.True(t, ok) && assert.NotEqual(t, expected, count)
 }
 
 func assertFastHas(t *testing.T, a Set, el any) bool {
@@ -151,8 +137,8 @@ func assertSetOps(t *testing.T, golden frozen.Set[any], s Set) { //nolint:funlen
 
 	assertRangeEmits(t, golden, s)
 	for i, pred := range []func(any) bool{
-		func(_ any) bool { return false },
-		func(_ any) bool { return true },
+		func(any) bool { return false },
+		func(any) bool { return true },
 		func(i any) bool { return extractInt(i)%2 == 0 },
 		func(i any) bool { return extractInt(i) < 3 },
 	} {
@@ -169,7 +155,7 @@ func assertSetOps(t *testing.T, golden frozen.Set[any], s Set) { //nolint:funlen
 	assertEqualSet(t, Frozen(golden.With(42).Without(42)), s.With(42).Without(42))
 
 	for i, m := range []func(any) any{
-		func(_ any) any { return 42 },
+		func(any) any { return 42 },
 		func(i any) any { return i },
 		func(i any) any { return 2 * extractInt(i) },
 		func(i any) any { return extractInt(i) / 2 },

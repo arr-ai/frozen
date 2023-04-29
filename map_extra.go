@@ -30,7 +30,7 @@ var _ json.Marshaler = Map[any, any]{}
 func (m Map[K, V]) marshalJSONArray() ([]byte, error) {
 	proxy := make([]any, 0, m.Count())
 	for i := m.Range(); i.Next(); {
-		proxy = append(proxy, []any{i.Key(), i.Value()})
+		proxy = append(proxy, []any{i.Key(), i.Value()}) //nolint:asasalint
 	}
 	data, err := json.Marshal(proxy)
 	return data, errors.Wrap(err, 0)

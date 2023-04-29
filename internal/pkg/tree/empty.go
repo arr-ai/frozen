@@ -14,5 +14,5 @@ func (empty[T]) Next() bool {
 }
 
 func (empty[T]) Value() T {
-	panic(errors.WTF)
+	panic(errors.ErrWTF)
 }
