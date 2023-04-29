@@ -400,6 +400,15 @@ func TestMapMergeEmptyMap(t *testing.T) {
 	assert.True(t, nonEmpty.Equal(nonEmpty.Merge(empty, func(key, a, b int) int { return a })))
 }
 
+func TestToMap(t *testing.T) {
+	t.Parallel()
+
+	m := NewMap(KV(1, 1), KV(2, 2), KV(3, 3))
+	expected := map[int]int{1: 1, 2: 2, 3: 3}
+	actual := ToMap(m)
+	assert.Equal(t, expected, actual)
+}
+
 var prepopMapInt = memoizePrepop(func(n int) map[int]int {
 	m := make(map[int]int, n)
 	for i := 0; i < n; i++ {
