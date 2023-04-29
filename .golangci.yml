@@ -29,7 +29,7 @@ linters:
   - asciicheck
   # - bodyclose  # Broken for Go 1.18
   - cyclop
-  - deadcode
+  # - deadcode
   - depguard
   - dogsled
   - dupl
@@ -97,7 +97,7 @@ linters:
   - unconvert
   # - unparam  # Broken for Go 1.18
   # - unused  # Broken for Go 1.18
-  - varcheck
+  # - varcheck
   # - wastedassign  # Broken for Go 1.18
   - whitespace
   - wrapcheck

@@ -302,8 +302,8 @@ func (i *MapIterator[K, V]) Entry() (key K, value V) {
 	return i.kv.Key, i.kv.Value
 }
 
-// ToMap transforms a Map[K, V] to a map[K]V. K must be comparable.
-func ToMap[K comparable, V any](m Map[K, V]) map[K]V {
+// MapToGoMap transforms a Map[K, V] to a map[K]V. K must be comparable.
+func MapToGoMap[K comparable, V any](m Map[K, V]) map[K]V {
 	result := make(map[K]V, m.Count())
 	for r := m.Range(); r.Next(); {
 		k, v := r.Entry()
