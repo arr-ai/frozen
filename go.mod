@@ -1,6 +1,6 @@
 module github.com/arr-ai/frozen
 
-go 1.18
+go 1.19
 
 require (
 	github.com/arr-ai/hash v0.8.0
