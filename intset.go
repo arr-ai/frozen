@@ -105,7 +105,7 @@ func (s IntSet[I]) Format(f fmt.State, verb rune) {
 
 func (s IntSet[I]) Hash(seed uintptr) uintptr {
 	for i := s.Range(); i.Next(); {
-		seed ^= hash.Interface(i.Value(), 0)
+		seed ^= hash.Any(i.Value(), 0)
 	}
 	return seed
 }

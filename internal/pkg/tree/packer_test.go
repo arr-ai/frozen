@@ -47,7 +47,7 @@ func assertEqualPacked[T any](t *testing.T, expected, actual *packer[T], msgAndA
 					&branch[T]{p: *expected}, &branch[T]{p: *actual},
 				),
 			},
-			msgAndArgs)...)
+			msgAndArgs...)...)
 		return false
 	}
 	return true

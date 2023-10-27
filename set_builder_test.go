@@ -4,7 +4,7 @@ import (
 	"log"
 	"testing"
 
-	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen"
 	"github.com/arr-ai/frozen/internal/pkg/test"
 	testset "github.com/arr-ai/frozen/internal/pkg/test/set"
 )
@@ -12,14 +12,14 @@ import (
 func TestSetBuilderEmpty(t *testing.T) {
 	t.Parallel()
 
-	var b SetBuilder[int]
-	testset.AssertSetEqual(t, Set[int]{}, b.Finish())
+	var b frozen.SetBuilder[int]
+	testset.AssertSetEqual(t, frozen.Set[int]{}, b.Finish())
 }
 
 func TestSetBuilder(t *testing.T) {
 	t.Parallel()
 
-	var b SetBuilder[int]
+	var b frozen.SetBuilder[int]
 	for i := 0; i < 10; i++ {
 		b.Add(i)
 	}
@@ -46,7 +46,7 @@ func TestSetBuilderIncremental(t *testing.T) {
 		for i := N - 1; i >= 0; i-- {
 			i := i
 			corpus := arr[i:]
-			assertSameElements(t, corpus, NewSet(arr[i:]...).Elements())
+			assertSameElements(t, corpus, frozen.NewSet(arr[i:]...).Elements())
 		}
 	})
 }
@@ -55,7 +55,7 @@ func TestSetBuilderRemove(t *testing.T) {
 	t.Parallel()
 
 	test.Replayable(true, func(r *test.Replayer) {
-		var b SetBuilder[int]
+		var b frozen.SetBuilder[int]
 		for i := 0; i < 15; i++ {
 			b.Add(i)
 		}
@@ -84,14 +84,14 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop,f
 	t.Parallel()
 
 	test.Replayable(false, func(r *test.Replayer) {
-		var b SetBuilder[int]
+		var b frozen.SetBuilder[int]
 
 		s := uint64(0)
 
 		assertMatch := func(format string, args ...any) bool {
 			for j := 0; j < 60; j++ {
 				if !test.Equal(t, s&(uint64(1)<<uint(j)) != 0, b.Has(j),
-					append(append([]any{format + " j=%v"}, args), j)...) {
+					append(append([]any{format + " j=%v"}, args...), j)...) {
 					return false
 				}
 			}

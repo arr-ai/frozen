@@ -12,7 +12,7 @@ func elementEqual[T any](a, b T) bool {
 }
 
 func hashValue[T any](i T, seed uintptr) uintptr {
-	return hash.Interface(i, seed)
+	return hash.Any(i, seed)
 }
 
 func newSliceIterator[T any](slice []T) Iterator[T] {

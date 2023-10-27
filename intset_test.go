@@ -6,7 +6,7 @@ import (
 	"sort"
 	"testing"
 
-	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen"
 	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
@@ -20,7 +20,7 @@ func hugeCollectionSize() int {
 func TestIntSetEmpty(t *testing.T) {
 	t.Parallel()
 
-	var s IntSet[int]
+	var s frozen.IntSet[int]
 	test.True(t, s.IsEmpty())
 	test.False(t, s.Has(0))
 }
@@ -28,17 +28,17 @@ func TestIntSetEmpty(t *testing.T) {
 func TestIntSetNew(t *testing.T) {
 	t.Parallel()
 
-	s := NewIntSet[int]()
+	s := frozen.NewIntSet[int]()
 	test.RequireTrue(t, s.IsEmpty())
 	// test.False(t, s.Has(0))
 	// test.False(t, s.Has(1))
 
-	s = NewIntSet(1)
+	s = frozen.NewIntSet(1)
 	test.RequireFalse(t, s.IsEmpty())
 	// test.False(t, s.Has(0))
 	test.True(t, s.Has(1), "%+v", s)
 
-	s = NewIntSet(1, 2, 3, 4, 5)
+	s = frozen.NewIntSet(1, 2, 3, 4, 5)
 	test.RequireFalse(t, s.IsEmpty())
 	// test.False(t, s.Has(0))
 	// test.True(t, s.Has(1))
@@ -60,7 +60,7 @@ func TestIntSetNewHuge(t *testing.T) {
 func TestIntSetIter(t *testing.T) {
 	t.Parallel()
 
-	set := NewIntSet(1)
+	set := frozen.NewIntSet(1)
 
 	container := []int{}
 	for i := set.Range(); i.Next(); {
@@ -110,7 +110,7 @@ func TestIntSetWith(t *testing.T) {
 	t.Parallel()
 
 	arr, _ := generateIntArrayAndSet(hugeCollectionSize())
-	set := NewIntSet(arr[:len(arr)/2]...)
+	set := frozen.NewIntSet(arr[:len(arr)/2]...)
 
 	for _, i := range arr[len(arr)/2:] {
 		if !test.False(t, set.Has(i), i) {
@@ -160,9 +160,9 @@ func TestIntSetIntersection(t *testing.T) {
 	t.Parallel()
 
 	arr, fullSet := generateIntArrayAndSet(hugeCollectionSize())
-	firstQuartile := NewIntSet(arr[:len(arr)/4]...)
-	secondToFifthDecile := NewIntSet(arr[len(arr)/5 : len(arr)/2]...)
-	thirdQuartile := NewIntSet(arr[len(arr)/2 : 3*len(arr)/4]...)
+	firstQuartile := frozen.NewIntSet(arr[:len(arr)/4]...)
+	secondToFifthDecile := frozen.NewIntSet(arr[len(arr)/5 : len(arr)/2]...)
+	thirdQuartile := frozen.NewIntSet(arr[len(arr)/2 : 3*len(arr)/4]...)
 
 	intersect := fullSet.Intersection(firstQuartile)
 	test.True(t, intersect.EqualSet(firstQuartile))
@@ -184,7 +184,7 @@ func TestIntSetUnion(t *testing.T) {
 	t.Parallel()
 
 	arr, fullSet := generateIntArrayAndSet(hugeCollectionSize())
-	set := NewIntSet(arr[:len(arr)/2]...)
+	set := frozen.NewIntSet(arr[:len(arr)/2]...)
 	distinct := getDistinctInts(arr)
 	for _, i := range arr[len(arr)/2:] {
 		if !test.False(t, set.Has(i), i) {
@@ -213,10 +213,10 @@ func TestIntSetIsSubsetOf(t *testing.T) {
 	t.Parallel()
 
 	arr, fullSet := generateIntArrayAndSet(hugeCollectionSize())
-	test.True(t, NewIntSet[int]().IsSubsetOf(fullSet))
+	test.True(t, frozen.NewIntSet[int]().IsSubsetOf(fullSet))
 	test.True(t, fullSet.IsSubsetOf(fullSet))
-	test.True(t, NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(fullSet))
-	test.False(t, NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(NewIntSet(arr[len(arr)/3:]...)))
+	test.True(t, frozen.NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(fullSet))
+	test.False(t, frozen.NewIntSet(arr[:len(arr)/2]...).IsSubsetOf(frozen.NewIntSet(arr[len(arr)/3:]...)))
 }
 
 func TestIntSetWhere(t *testing.T) {
@@ -235,8 +235,8 @@ func TestIntSetWhere(t *testing.T) {
 		}
 	}
 
-	evenSet := NewIntSet(evens...)
-	oddSet := NewIntSet(odds...)
+	evenSet := frozen.NewIntSet(evens...)
+	oddSet := frozen.NewIntSet(odds...)
 
 	evenPredWhere := fullSet.Where(evenPred)
 	oddPredWhere := fullSet.Where(oddPred)
@@ -244,7 +244,7 @@ func TestIntSetWhere(t *testing.T) {
 	test.Equal(t, evenSet.Count(), evenPredWhere.Count())
 	test.True(t, oddPredWhere.EqualSet(oddSet))
 	test.Equal(t, oddSet.Count(), oddPredWhere.Count())
-	test.True(t, NewIntSet[int]().Where(evenPred).EqualSet(NewIntSet[int]()))
+	test.True(t, frozen.NewIntSet[int]().Where(evenPred).EqualSet(frozen.NewIntSet[int]()))
 }
 
 func TestIntSetMap(t *testing.T) {
@@ -258,10 +258,10 @@ func TestIntSetMap(t *testing.T) {
 		mappedArr = append(mappedArr, subtract(i))
 	}
 
-	mappedSet := NewIntSet(mappedArr...)
+	mappedSet := frozen.NewIntSet(mappedArr...)
 
 	test.True(t, mappedSet.EqualSet(fullSet.Map(subtract)))
-	test.True(t, NewIntSet[int]().EqualSet(NewIntSet[int]().Map(subtract)))
+	test.True(t, frozen.NewIntSet[int]().EqualSet(frozen.NewIntSet[int]().Map(subtract)))
 }
 
 func TestSetOfIntSet(t *testing.T) {
@@ -269,16 +269,16 @@ func TestSetOfIntSet(t *testing.T) {
 
 	// this fails
 	test.NoPanic(t, func() {
-		NewSet(NewIntSet(1, 2, 3), NewIntSet(4, 5, 6))
+		frozen.NewSet(frozen.NewIntSet(1, 2, 3), frozen.NewIntSet(4, 5, 6))
 	})
 
 	// this succeeds
 	test.NoPanic(t, func() {
-		NewSet(NewSet(1, 2, 3), NewSet(4, 5, 6))
+		frozen.NewSet(frozen.NewSet(1, 2, 3), frozen.NewSet(4, 5, 6))
 	})
 }
 
-func generateIntArrayAndSet(maxLen int) ([]int, IntSet[int]) {
+func generateIntArrayAndSet(maxLen int) ([]int, frozen.IntSet[int]) {
 	arr := make([]int, 0, maxLen)
 	curr := float64(1.0)
 	multiplier := math.Pow(2, 64/1e6)
@@ -295,7 +295,7 @@ func generateIntArrayAndSet(maxLen int) ([]int, IntSet[int]) {
 			seen[e] = true
 		}
 	}
-	set := NewIntSet(out...)
+	set := frozen.NewIntSet(out...)
 	rand.Shuffle(len(out), func(i, j int) {
 		a := out
 		a[i], a[j] = a[j], a[i]

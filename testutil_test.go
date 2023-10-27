@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen"
 	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
@@ -23,7 +23,7 @@ func memoizePrepop[T any](prepare func(n int) T) func(n int) T {
 	}
 }
 
-// func intSetToMap(s Set) map[int]bool {
+// func intSetToMap(s frozen.Set) map[int]bool {
 // 	result := make(map[int]bool, s.Count())
 // 	for i := s.Range(); i.Next(); {
 // 		result[i.Value().(int)] = true
@@ -31,7 +31,7 @@ func memoizePrepop[T any](prepare func(n int) T) func(n int) T {
 // 	return result
 // }
 
-// func intSetDiff(a, b Set) (l, m, r []int) {
+// func intSetDiff(a, b frozen.Set) (l, m, r []int) {
 // 	ma := intSetToMap(a)
 // 	mb := intSetToMap(b)
 // 	for e := range ma {
@@ -52,13 +52,13 @@ func memoizePrepop[T any](prepare func(n int) T) func(n int) T {
 // 	return
 // }
 
-func assertSetHas[T any](t *testing.T, s Set[T], i T) bool {
+func assertSetHas[T any](t *testing.T, s frozen.Set[T], i T) bool {
 	t.Helper()
 
 	return test.True(t, s.Has(i), "i=%v", i)
 }
 
-func assertSetNotHas[T any](t *testing.T, s Set[T], i T) bool {
+func assertSetNotHas[T any](t *testing.T, s frozen.Set[T], i T) bool {
 	t.Helper()
 
 	return test.False(t, s.Has(i), "i=%v", i)
@@ -66,7 +66,7 @@ func assertSetNotHas[T any](t *testing.T, s Set[T], i T) bool {
 
 func assertMapEqual[K, V any](
 	t *testing.T,
-	expected, actual Map[K, V],
+	expected, actual frozen.Map[K, V],
 	msgAndArgs ...any,
 ) bool {
 	t.Helper()
@@ -83,7 +83,7 @@ func assertMapEqual[K, V any](
 	return test.True(t, expected.Equal(actual), args...)
 }
 
-func assertMapHas[K, V any](t *testing.T, m Map[K, V], i K, expected V) bool {
+func assertMapHas[K, V any](t *testing.T, m frozen.Map[K, V], i K, expected V) bool {
 	t.Helper()
 
 	v, has := m.Get(i)
@@ -93,7 +93,7 @@ func assertMapHas[K, V any](t *testing.T, m Map[K, V], i K, expected V) bool {
 	return ok1 && ok2
 }
 
-func assertMapNotHas[K, V any](t *testing.T, m Map[K, V], i K) bool {
+func assertMapNotHas[K, V any](t *testing.T, m frozen.Map[K, V], i K) bool {
 	t.Helper()
 
 	v, has := m.Get(i)

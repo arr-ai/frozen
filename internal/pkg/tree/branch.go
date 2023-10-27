@@ -246,11 +246,11 @@ func (b *branch[T]) SubsetOf(gauge depth.Gauge, n node[T], depth int) bool {
 			x, y := b.p.data[i], n.p.data[i]
 			if x == nil {
 				return true, 0
-			} else if y == nil {
-				return false, 0
-			} else {
-				return x.SubsetOf(gauge, y, depth+1), 0
 			}
+			if y == nil {
+				return false, 0
+			}
+			return x.SubsetOf(gauge, y, depth+1), 0
 		})
 		return ok
 	default:
@@ -312,10 +312,9 @@ func (b *branch[T]) Vet() int {
 			defer func() {
 				if r := recover(); r != nil {
 					if err := r.(error); err != nil {
-						r = fmt.Errorf("branch[T][%d]: %w", m.FirstIndex(), err)
-					} else {
-						r = fmt.Errorf("branch[T][%d]: %v", m.FirstIndex(), r)
+						panic(fmt.Errorf("branch[T][%d]: %w", m.FirstIndex(), err))
 					}
+					panic(fmt.Errorf("branch[T][%d]: %v", m.FirstIndex(), r))
 				}
 			}()
 			if n := p.GetChild(m); n != nil {

@@ -22,7 +22,7 @@ func KV[K, V any](k K, v V) KeyValue[K, V] {
 
 // Hash computes a hash for a KeyValue[K, V].
 func (kv KeyValue[K, V]) Hash(seed uintptr) uintptr {
-	return hash.Interface(kv.Key, seed)
+	return hash.Any(kv.Key, seed)
 }
 
 // String returns a string representation of a KeyValue[K, V].

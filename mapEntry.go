@@ -25,7 +25,7 @@ func (e mapEntry[K, V]) Equal(e2 mapEntry[K, V]) bool {
 
 // Hash computes a hash for a mapEntry[K, V].
 func (e mapEntry[K, V]) Hash(seed uintptr) uintptr {
-	return hash.Interface(e.Key, seed)
+	return hash.Any(e.Key, seed)
 }
 
 // mapEntryHash hashes using the KeyValue's own key.

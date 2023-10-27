@@ -3,21 +3,21 @@ package frozen_test
 import (
 	"testing"
 
-	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen"
 	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
 func TestMapBuilderEmpty(t *testing.T) {
 	t.Parallel()
 
-	var b MapBuilder[int, int]
-	assertMapEqual(t, Map[int, int]{}, b.Finish())
+	var b frozen.MapBuilder[int, int]
+	assertMapEqual(t, frozen.Map[int, int]{}, b.Finish())
 }
 
 func TestMapBuilder(t *testing.T) {
 	t.Parallel()
 
-	var b MapBuilder[int, int]
+	var b frozen.MapBuilder[int, int]
 	for i := 0; i < 10; i++ {
 		b.Put(i, i*i)
 	}
@@ -31,7 +31,7 @@ func TestMapBuilder(t *testing.T) {
 func TestMapBuilderSimple(t *testing.T) {
 	t.Parallel()
 
-	var b MapBuilder[int, int]
+	var b frozen.MapBuilder[int, int]
 	b.Put(0, 0)
 	test.Equal(t, 1, b.Count())
 	b.Remove(0)
@@ -53,7 +53,7 @@ func TestMapBuilderSimple(t *testing.T) {
 func TestMapBuilderRemove(t *testing.T) {
 	t.Parallel()
 
-	var b MapBuilder[int, int]
+	var b frozen.MapBuilder[int, int]
 
 	for i := 0; i < 15; i++ {
 		b.Put(i, i*i)
@@ -82,7 +82,7 @@ func TestMapBuilderRemove(t *testing.T) {
 func TestMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop
 	t.Parallel()
 
-	var b MapBuilder[int, int]
+	var b frozen.MapBuilder[int, int]
 	s := make([]*int, 35)
 	requireMatch := func(format string, args ...any) {
 		for j, u := range s {
@@ -90,7 +90,7 @@ func TestMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop
 			if u == nil {
 				test.RequireFalse(t, has, append(append([]any{format + " j=%v v=%v"}, args...), j, v)...)
 			} else {
-				test.RequireTrue(t, has, append(append([]any{format + " j=%v"}, args), j)...)
+				test.RequireTrue(t, has, append(append([]any{format + " j=%v"}, args...), j)...)
 			}
 		}
 	}

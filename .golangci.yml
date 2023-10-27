@@ -34,7 +34,7 @@ linters:
     - contextcheck
     - cyclop
     - decorder
-    - depguard
+    # - depguard
     - dogsled
     - dupl
     - dupword
@@ -61,7 +61,7 @@ linters:
     - gocyclo
     - godot
     # - godox
-    - goerr113
+    # - goerr113
     - gofmt
     - gofumpt
     - goheader
@@ -107,7 +107,7 @@ linters:
     - tenv
     - testableexamples
     # - testpackage
-    - thelper
+    # - thelper
     - tparallel
     - typecheck
     - unconvert
@@ -117,5 +117,5 @@ linters:
     # - varnamelen
     - wastedassign
     - whitespace
-    - wrapcheck
+    # - wrapcheck
     # - wsl

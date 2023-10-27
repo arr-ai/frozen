@@ -5,7 +5,8 @@ import (
 
 	"github.com/arr-ai/hash"
 
-	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen"
+
 	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
@@ -21,7 +22,7 @@ func TestBadHash(t *testing.T) {
 	t.Parallel()
 
 	const N = 10000
-	var b SetBuilder[intWithBadHash]
+	var b frozen.SetBuilder[intWithBadHash]
 	for i := 0; i < N; i += 10 {
 		b.Add(intWithBadHash(i))
 	}
@@ -37,7 +38,7 @@ func TestBadHash(t *testing.T) {
 func TestRemoveCollider(t *testing.T) {
 	t.Parallel()
 
-	var b SetBuilder[intWithBadHash]
+	var b frozen.SetBuilder[intWithBadHash]
 	b.Add(intWithBadHash(100))
 	b.Add(intWithBadHash(200))
 	b.Remove(intWithBadHash(100))

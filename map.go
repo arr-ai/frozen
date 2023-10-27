@@ -215,7 +215,7 @@ func (m Map[K, V]) Update(n Map[K, V]) Map[K, V] {
 func (m Map[K, V]) Hash(seed uintptr) uintptr {
 	h := hash.Uintptr(uintptr(3167960924819262823&uint64(^uintptr(0))), seed)
 	for i := m.Range(); i.Next(); {
-		h ^= hash.Interface(i.Value(), hash.Interface(i.Key(), seed))
+		h ^= hash.Any(i.Value(), hash.Any(i.Key(), seed))
 	}
 	return h
 }

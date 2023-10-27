@@ -58,7 +58,7 @@ func failX(t *testing.T, now bool, msgAndArgs2 []any, msgAndArgs1 ...any) bool {
 	return false
 }
 
-func sameElements(x, y any) bool {
+func sameElements(x, y any) bool { //nolint:cyclop
 	u := deref(x)
 	v := deref(y)
 
@@ -66,7 +66,7 @@ func sameElements(x, y any) bool {
 		return false
 	}
 
-	switch u.Kind() {
+	switch u.Kind() { //nolint:exhaustive
 	case reflect.Array, reflect.Slice:
 		n := v.Len()
 		if n != u.Len() {
