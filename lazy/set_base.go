@@ -76,7 +76,7 @@ func (s *baseSet) EqualSet(t Set) bool {
 func (s *baseSet) Hash(seed uintptr) uintptr {
 	h := hash.Uintptr(hashSeed, seed)
 	for i := s.set.Range(); i.Next(); {
-		h = hash.Interface(i.Value(), h)
+		h = hash.Any(i.Value(), h)
 	}
 	return h
 }

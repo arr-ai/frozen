@@ -5,13 +5,12 @@ import (
 	"math/bits"
 
 	"github.com/arr-ai/hash"
-	"golang.org/x/exp/constraints"
 
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
 )
 
-type IntSet[I constraints.Integer] struct {
+type IntSet[I integer] struct {
 	data  Map[I, cellMask]
 	count int
 }
@@ -23,12 +22,12 @@ const (
 	cellBits  = 1 << cellShift
 )
 
-func locateCell[I constraints.Integer](i I) (cell I, bitMask cellMask) {
+func locateCell[I integer](i I) (cell I, bitMask cellMask) {
 	return i >> cellShift, cellMask(1) << uint(i%cellBits)
 }
 
 // NewIntSet returns an IntSet with the values provided.
-func NewIntSet[I constraints.Integer](is ...I) IntSet[I] {
+func NewIntSet[I integer](is ...I) IntSet[I] {
 	m := map[I]cellMask{}
 	for _, i := range is {
 		cellIndex, bitMask := locateCell(i)
@@ -106,7 +105,7 @@ func (s IntSet[I]) Format(f fmt.State, verb rune) {
 
 func (s IntSet[I]) Hash(seed uintptr) uintptr {
 	for i := s.Range(); i.Next(); {
-		seed ^= hash.Interface(i.Value(), 0)
+		seed ^= hash.Any(i.Value(), 0)
 	}
 	return seed
 }

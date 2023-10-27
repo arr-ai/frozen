@@ -257,12 +257,12 @@ func (l *twig[T]) Map(args *CombineArgs[T], _ int, f func(e T) T) (_ node[T], ma
 
 func (l *twig[T]) Vet() int {
 	if len(l.data) <= 2 {
-		panic(errors.Errorf("twig[T] too small (%d)", len(l.data)))
+		panic(fmt.Errorf("twig[T] too small (%d)", len(l.data)))
 	}
 	h0 := newHasher(l.data[0], 0)
 	for _, e := range l.data[1:] {
 		if newHasher(e, 0) != h0 {
-			panic(errors.Errorf("twig[T] with multiple hashes"))
+			panic(fmt.Errorf("twig[T] with multiple hashes"))
 		}
 	}
 	return len(l.data)

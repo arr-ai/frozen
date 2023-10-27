@@ -4,9 +4,6 @@ import (
 	"log"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/arr-ai/frozen/internal/pkg/test"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
 )
@@ -22,19 +19,19 @@ func TestBranchRemove(t *testing.T) {
 			return b.Get(i) != nil
 		}
 		for i := 0; i < N; i++ {
-			require.False(t, has(i), i)
+			test.RequireFalse(t, has(i), i)
 			b.Add(i)
-			require.True(t, has(i), i)
+			test.RequireTrue(t, has(i), i)
 		}
 
 		for i := 0; i < N; i++ {
-			require.True(t, has(i), i)
+			test.RequireTrue(t, has(i), i)
 			m := r.Mark(i)
 			if m.IsTarget() {
 				log.Printf("%+v", b)
 			}
 			b.Remove(i)
-			if !assert.False(t, has(i), i) {
+			if !test.False(t, has(i), i) {
 				log.Printf("%+v", b)
 				r.ReplayTo(m)
 				return

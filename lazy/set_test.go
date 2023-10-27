@@ -8,13 +8,13 @@ import (
 	"testing"
 
 	"github.com/arr-ai/frozen"
-	. "github.com/arr-ai/frozen/lazy"
+	"github.com/arr-ai/frozen/lazy"
 )
 
 type eagerLazyPair struct {
 	index int
-	eager Set
-	lazy  Set
+	eager lazy.Set
+	lazy  lazy.Set
 }
 
 type eagerLazySlice []eagerLazyPair
@@ -41,8 +41,8 @@ func TestSet(t *testing.T) { //nolint:funlen,cyclop
 	type work struct {
 		line  int
 		index int
-		eager func() Set
-		lazy  Set
+		eager func() lazy.Set
+		lazy  lazy.Set
 	}
 	pairsCh := make(chan eagerLazySlice)
 	pairCh := make(chan eagerLazyPair)
@@ -74,7 +74,7 @@ func TestSet(t *testing.T) { //nolint:funlen,cyclop
 		}()
 	}
 	workIndex := 0
-	test := func(eager func() Set, lazy Set) {
+	test := func(eager func() lazy.Set, lazy lazy.Set) {
 		atomic.AddUint64(&added, 1)
 		wg.Add(1)
 		_, _, line, _ := runtime.Caller(1)
@@ -88,8 +88,8 @@ func TestSet(t *testing.T) { //nolint:funlen,cyclop
 	}
 
 	for i := uint64(0); i < 1<<3; i++ {
-		f := Frozen(frozen.SetAs[any](frozen.NewSetFromMask64(i)))
-		test(func() Set { return f }, f)
+		f := lazy.Frozen(frozen.SetAs[any](frozen.NewSetFromMask64(i)))
+		test(func() lazy.Set { return f }, f)
 	}
 	for i := 0; i < 2; i++ {
 		wg.Wait()
@@ -104,7 +104,7 @@ func TestSet(t *testing.T) { //nolint:funlen,cyclop
 				func(el any) bool { return extractInt(el)%2 == 0 },
 			} {
 				pred := pred
-				test(func() Set { return p.eager.Where(pred) }, p.lazy.Where(pred))
+				test(func() lazy.Set { return p.eager.Where(pred) }, p.lazy.Where(pred))
 			}
 			for _, m := range []func(any) any{
 				func(el any) any { return 42 },
@@ -113,16 +113,16 @@ func TestSet(t *testing.T) { //nolint:funlen,cyclop
 				func(el any) any { return extractInt(el) % 2 },
 			} {
 				m := m
-				test(func() Set { return p.eager.Map(m) }, p.lazy.Map(m))
+				test(func() lazy.Set { return p.eager.Map(m) }, p.lazy.Map(m))
 			}
 			for _, q := range pairs {
 				q := q
-				test(func() Set { return p.eager.Intersection(q.eager) }, p.lazy.Intersection(q.lazy))
-				test(func() Set { return p.eager.Union(q.eager) }, p.lazy.Union(q.lazy))
-				test(func() Set { return p.eager.Difference(q.eager) }, p.lazy.Difference(q.lazy))
-				test(func() Set { return p.eager.SymmetricDifference(q.eager) }, p.lazy.SymmetricDifference(q.lazy))
+				test(func() lazy.Set { return p.eager.Intersection(q.eager) }, p.lazy.Intersection(q.lazy))
+				test(func() lazy.Set { return p.eager.Union(q.eager) }, p.lazy.Union(q.lazy))
+				test(func() lazy.Set { return p.eager.Difference(q.eager) }, p.lazy.Difference(q.lazy))
+				test(func() lazy.Set { return p.eager.SymmetricDifference(q.eager) }, p.lazy.SymmetricDifference(q.lazy))
 			}
-			test(func() Set { return p.eager.Powerset() }, p.lazy.Powerset())
+			test(func() lazy.Set { return p.eager.Powerset() }, p.lazy.Powerset())
 		}
 	}
 	wg.Wait()

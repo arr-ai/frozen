@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	"github.com/arr-ai/frozen"
-	. "github.com/arr-ai/frozen/lazy"
+	"github.com/arr-ai/frozen/lazy"
 )
 
 func TestSetFrozenEmpty(t *testing.T) {
 	t.Parallel()
 
 	f := frozen.Set[any]{}
-	s := Frozen(f)
+	s := lazy.Frozen(f)
 
 	assertSetOps(t, f, s)
 
@@ -25,8 +25,8 @@ func TestSetFrozenEmpty(t *testing.T) {
 	assertFastIsEmpty(t, s.Without(2))
 	assertFastIsEmpty(t, s.With(2).Without(2))
 	assertFastIsEmpty(t, s.Map(func(any) any { return 42 }))
-	assertFastIsEmpty(t, s.Intersection(Frozen(frozen.NewSet[any](1, 2, 3))))
-	assertFastIsEmpty(t, s.Intersection(Frozen(frozen.NewSet[any](1, 2, 3))))
+	assertFastIsEmpty(t, s.Intersection(lazy.Frozen(frozen.NewSet[any](1, 2, 3))))
+	assertFastIsEmpty(t, s.Intersection(lazy.Frozen(frozen.NewSet[any](1, 2, 3))))
 	assertFastIsEmpty(t, s.Powerset())
 }
 
@@ -34,7 +34,7 @@ func TestSetFrozenSmall(t *testing.T) {
 	t.Parallel()
 
 	f := frozen.NewSet[any](1, 2, 3)
-	s := Frozen(f)
+	s := lazy.Frozen(f)
 
 	assertSetOps(t, f, s)
 

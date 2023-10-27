@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen"
 )
 
 func benchmarkNewIntSet(b *testing.B, n int) {
@@ -14,7 +14,7 @@ func benchmarkNewIntSet(b *testing.B, n int) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		NewIntSet(arr...)
+		frozen.NewIntSet(arr...)
 	}
 }
 

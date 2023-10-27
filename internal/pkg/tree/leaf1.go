@@ -20,7 +20,7 @@ func newLeaf[T any](data ...T) node[T] {
 	case 2:
 		return newLeaf2(data[0], data[1])
 	default:
-		panic(errors.Errorf("data wrong size (%d) for leaf", len(data)))
+		panic(fmt.Errorf("data wrong size (%d) for leaf", len(data)))
 	}
 }
 

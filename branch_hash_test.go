@@ -4,9 +4,10 @@ import (
 	"testing"
 
 	"github.com/arr-ai/hash"
-	"github.com/stretchr/testify/assert"
 
-	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen"
+
+	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
 type intWithBadHash int
@@ -21,25 +22,25 @@ func TestBadHash(t *testing.T) {
 	t.Parallel()
 
 	const N = 10000
-	var b SetBuilder[intWithBadHash]
+	var b frozen.SetBuilder[intWithBadHash]
 	for i := 0; i < N; i += 10 {
 		b.Add(intWithBadHash(i))
 	}
 
 	for i := 0; i < N; i += 10 {
-		assert.True(t, b.Has(intWithBadHash(i)))
+		test.True(t, b.Has(intWithBadHash(i)))
 	}
 	for i := N; i < 2*N; i += 10 {
-		assert.False(t, b.Has(intWithBadHash(i)))
+		test.False(t, b.Has(intWithBadHash(i)))
 	}
 }
 
 func TestRemoveCollider(t *testing.T) {
 	t.Parallel()
 
-	var b SetBuilder[intWithBadHash]
+	var b frozen.SetBuilder[intWithBadHash]
 	b.Add(intWithBadHash(100))
 	b.Add(intWithBadHash(200))
 	b.Remove(intWithBadHash(100))
-	assert.True(t, b.Has(intWithBadHash(200)))
+	test.True(t, b.Has(intWithBadHash(200)))
 }

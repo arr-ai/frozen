@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen"
 )
 
 func benchmarkSequential(b *testing.B, name string, size int) {
@@ -70,7 +70,7 @@ func benchmarkFrozenSetBuilderAddPrealloc(b *testing.B, size int) {
 	b.Helper()
 
 	for n := 0; n < b.N; n++ {
-		sb := NewSetBuilder[int](size)
+		sb := frozen.NewSetBuilder[int](size)
 		for i := 0; i < size; i++ {
 			sb.Add(i)
 		}
@@ -82,7 +82,7 @@ func benchmarkFrozenSetBuilderAdd(b *testing.B, size int) {
 	b.Helper()
 
 	for n := 0; n < b.N; n++ {
-		var sb SetBuilder[int]
+		var sb frozen.SetBuilder[int]
 		for i := 0; i < size; i++ {
 			sb.Add(i)
 		}
@@ -94,7 +94,7 @@ func benchmarkFrozenSetWith(b *testing.B, size int) {
 	b.Helper()
 
 	for n := 0; n < b.N; n++ {
-		var s Set[int]
+		var s frozen.Set[int]
 		for i := 0; i < size; i++ {
 			s = s.With(i)
 		}
@@ -107,7 +107,7 @@ func BenchmarkSequential(b *testing.B) {
 	benchmarkSequential(b, "1Mi", 1<<20)
 }
 
-func parallelUnion(sets []Set[int]) Set[int] {
+func parallelUnion(sets []frozen.Set[int]) frozen.Set[int] {
 	switch len(sets) {
 	case 1:
 		return sets[0]
@@ -115,7 +115,7 @@ func parallelUnion(sets []Set[int]) Set[int] {
 		return sets[0].Union(sets[1])
 	default:
 		half := len(sets) / 2
-		ch := make(chan Set[int])
+		ch := make(chan frozen.Set[int])
 		go func() {
 			ch <- parallelUnion(sets[:half])
 		}()
@@ -126,7 +126,7 @@ func parallelUnion(sets []Set[int]) Set[int] {
 func BenchmarkSetParallelWith1M(b *testing.B) {
 	D := runtime.GOMAXPROCS(0)
 	for n := 0; n < b.N; n++ {
-		sets := make([]Set[int], D)
+		sets := make([]frozen.Set[int], D)
 		var wg sync.WaitGroup
 		wg.Add(D)
 		for d := 0; d < D; d++ {
@@ -148,8 +148,8 @@ func BenchmarkSetParallelWith1M(b *testing.B) {
 }
 
 func BenchmarkSetUnion1M(b *testing.B) {
-	s5 := SetMap(Iota(1<<19), func(i int) int { return 5 * i })
-	s7 := SetMap(Iota(1<<20), func(i int) int { return 7 * i })
+	s5 := frozen.SetMap(frozen.Iota(1<<19), func(i int) int { return 5 * i })
+	s7 := frozen.SetMap(frozen.Iota(1<<20), func(i int) int { return 7 * i })
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		s5.Union(s7)
