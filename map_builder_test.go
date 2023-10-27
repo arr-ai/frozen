@@ -3,10 +3,8 @@ package frozen_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
 func TestMapBuilderEmpty(t *testing.T) {
@@ -24,7 +22,7 @@ func TestMapBuilder(t *testing.T) {
 		b.Put(i, i*i)
 	}
 	m := b.Finish()
-	assert.Equal(t, 10, m.Count())
+	test.Equal(t, 10, m.Count())
 	for i := 0; i < 10; i++ {
 		assertMapHas(t, m, i, i*i)
 	}
@@ -35,21 +33,21 @@ func TestMapBuilderSimple(t *testing.T) {
 
 	var b MapBuilder[int, int]
 	b.Put(0, 0)
-	assert.Equal(t, 1, b.Count())
+	test.Equal(t, 1, b.Count())
 	b.Remove(0)
-	assert.Equal(t, 0, b.Count())
+	test.Equal(t, 0, b.Count())
 
 	b.Put(0, 0)
 	b.Put(1, 1)
 	b.Put(2, 2)
-	assert.Equal(t, 3, b.Count())
+	test.Equal(t, 3, b.Count())
 
 	b.Put(3, 3)
 	b.Put(4, 4)
 	b.Put(5, 5)
-	assert.Equal(t, 6, b.Count())
+	test.Equal(t, 6, b.Count())
 	b.Remove(5)
-	assert.Equal(t, 5, b.Count())
+	test.Equal(t, 5, b.Count())
 }
 
 func TestMapBuilderRemove(t *testing.T) {
@@ -63,11 +61,11 @@ func TestMapBuilderRemove(t *testing.T) {
 	for i := 5; i < 10; i++ {
 		b.Remove(i)
 		v, has := b.Get(i)
-		require.False(t, has, v)
+		test.RequireFalse(t, has, v)
 	}
 	m := b.Finish()
 
-	assert.Equal(t, 10, m.Count(), m)
+	test.Equal(t, 10, m.Count(), m)
 	for i := 0; i < 15; i++ {
 		switch {
 		case i < 5:
@@ -90,9 +88,9 @@ func TestMapBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop
 		for j, u := range s {
 			v, has := b.Get(j)
 			if u == nil {
-				require.Falsef(t, has, format+" j=%v v=%v", append(args, j, v)...)
+				test.RequireFalse(t, has, append(append([]any{format + " j=%v v=%v"}, args...), j, v)...)
 			} else {
-				require.Truef(t, has, format+" j=%v", append(args, j)...)
+				test.RequireTrue(t, has, append(append([]any{format + " j=%v"}, args), j)...)
 			}
 		}
 	}

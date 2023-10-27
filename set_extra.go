@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/arr-ai/frozen/internal/pkg/iterator"
-	"github.com/arr-ai/frozen/pkg/errors"
 )
 
 // Iota returns Iota3(0, stop, 1).
@@ -57,7 +56,7 @@ func (s Set[T]) MarshalJSON() ([]byte, error) {
 		proxy = append(proxy, i.Value())
 	}
 	data, err := json.Marshal(proxy)
-	return data, errors.Wrap(err, 0)
+	return data, err
 }
 
 // Ensure that Set implements json.Marshaler.

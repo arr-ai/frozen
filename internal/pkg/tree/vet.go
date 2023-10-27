@@ -1,10 +1,10 @@
 package tree
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/arr-ai/frozen/internal/pkg/vetctl"
-	"github.com/arr-ai/frozen/pkg/errors"
 )
 
 const (
@@ -16,7 +16,7 @@ var vetFailed = false
 
 func vet[U, T any](rerun func(), ins ...*Tree[T]) func(out *Tree[U]) {
 	if !vetting {
-		panic(errors.Errorf("call to (*Tree[T]).vet() not wrapped in if Vetting { ... }"))
+		panic(fmt.Errorf("call to (*Tree[T]).vet() not wrapped in if Vetting { ... }"))
 	}
 	if vetFailed {
 		return func(out *Tree[U]) {}

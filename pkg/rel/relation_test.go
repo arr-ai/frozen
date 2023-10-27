@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	. "github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/test"
+	testset "github.com/arr-ai/frozen/internal/pkg/test/set"
 	. "github.com/arr-ai/frozen/pkg/rel"
 )
 
@@ -26,7 +26,7 @@ func TestJoinSimple(t *testing.T) {
 		[]any{1, 2, 3},
 	)
 	actual := Join(a, b)
-	test.AssertSetEqual(t, expected, actual)
+	testset.AssertSetEqual(t, expected, actual)
 }
 
 // We use numbers as follows to represent tuples:
@@ -130,7 +130,7 @@ func testJoinExhaustiveCase(t *testing.T, i0 uint64) {
 			setA := a.toRelation()
 			setB := b.toRelation()
 			setC := c.toRelation()
-			if !test.AssertSetEqual(t, setC, Join(setA, setB), "a=%b=%v b=%b=%v", a, setA, b, setB) {
+			if !testset.AssertSetEqual(t, setC, Join(setA, setB), "a=%b=%v b=%b=%v", a, setA, b, setB) {
 				_ = a.join(b)
 				Join(setA, setB)
 				t.FailNow()
@@ -169,7 +169,7 @@ func TestNest(t *testing.T) {
 			New([]string{"c"}, []any{1}, []any{3}),
 		},
 	)
-	test.AssertSetEqual(t, expected, sharing)
+	testset.AssertSetEqual(t, expected, sharing)
 }
 
 func TestUnnest(t *testing.T) {
@@ -199,10 +199,10 @@ func TestUnnest(t *testing.T) {
 	)
 
 	actual := Unnest(Unnest(sharing, "cc"), "aa")
-	test.AssertSetEqual(t, expected, actual)
+	testset.AssertSetEqual(t, expected, actual)
 
 	actual = Unnest(Unnest(sharing, "aa"), "cc")
-	test.AssertSetEqual(t, expected, actual)
+	testset.AssertSetEqual(t, expected, actual)
 }
 
 // func TestNestImpl(t *testing.T) {

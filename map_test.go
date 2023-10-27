@@ -3,10 +3,9 @@ package frozen_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	. "github.com/arr-ai/frozen"
 	"github.com/arr-ai/frozen/internal/pkg/test"
+	testset "github.com/arr-ai/frozen/internal/pkg/test/set"
 )
 
 type mapIntInt = Map[int, int]
@@ -14,19 +13,19 @@ type mapIntInt = Map[int, int]
 func TestKeyValueString(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, "1:2", KV(1, 2).String())
+	test.Equal(t, "1:2", KV(1, 2).String())
 }
 
 func TestMapEmpty(t *testing.T) {
 	t.Parallel()
 
 	var m mapIntInt
-	assert.True(t, m.IsEmpty())
+	test.True(t, m.IsEmpty())
 	m = m.With(1, 2)
-	assert.False(t, m.IsEmpty())
+	test.False(t, m.IsEmpty())
 	m = m.Without(1)
-	assert.True(t, m.IsEmpty())
-	assert.Panics(t, func() { m.MustGet(1) })
+	test.True(t, m.IsEmpty())
+	test.Panic(t, func() { m.MustGet(1) })
 }
 
 func TestMap2(t *testing.T) {
@@ -34,12 +33,12 @@ func TestMap2(t *testing.T) {
 
 	a := NewMap(KV(1, 10), KV(2, 20))
 	b := NewMap(KV(2, 20), KV(1, 10))
-	assert.True(t, a.Equal(b))
+	test.True(t, a.Equal(b))
 
 	var mb MapBuilder[Map[int, int], int]
 	mb.Put(a, 100)
 	mb.Put(a, 101)
-	assert.Equal(t, 1, mb.Finish().Count())
+	test.Equal(t, 1, mb.Finish().Count())
 }
 
 func TestMapWithWithout(t *testing.T) {
@@ -49,16 +48,16 @@ func TestMapWithWithout(t *testing.T) {
 	for i := 0; i < 15; i++ {
 		m = m.With(i, i*i)
 	}
-	assert.NotPanics(t, func() { m.MustGet(14) })
-	assert.Panics(t, func() { m.MustGet(15) })
-	assert.Equal(t, 15, m.Count())
+	test.NoPanic(t, func() { m.MustGet(14) })
+	test.Panic(t, func() { m.MustGet(15) })
+	test.Equal(t, 15, m.Count())
 	for i := 0; i < 10; i++ {
-		assert.Equal(t, i*i, m.MustGet(i))
+		test.Equal(t, i*i, m.MustGet(i))
 	}
 
 	m = mapWithoutKeys(m, Iota2(5, 10))
 
-	assert.Equal(t, 10, m.Count())
+	test.Equal(t, 10, m.Count())
 	for i := 0; i < 15; i++ {
 		switch {
 		case i < 5:
@@ -75,11 +74,11 @@ func TestMapHas(t *testing.T) {
 	t.Parallel()
 
 	m := NewMap[int, int]()
-	assert.False(t, m.Has(0))
+	test.False(t, m.Has(0))
 
 	m = NewMap(KV(0, 1))
-	assert.True(t, m.Has(0))
-	assert.False(t, m.Has(1))
+	test.True(t, m.Has(0))
+	test.False(t, m.Has(1))
 }
 
 func TestMapGet(t *testing.T) {
@@ -92,11 +91,11 @@ func TestMapGet(t *testing.T) {
 		KV(3, 3),
 		KV(4, 5),
 	)
-	assert.Equal(t, 1, m.MustGet(0))
-	assert.Equal(t, 1, m.MustGet(1))
-	assert.Equal(t, 2, m.MustGet(2))
-	assert.Equal(t, 3, m.MustGet(3))
-	assert.Equal(t, 5, m.MustGet(4))
+	test.Equal(t, 1, m.MustGet(0))
+	test.Equal(t, 1, m.MustGet(1))
+	test.Equal(t, 2, m.MustGet(2))
+	test.Equal(t, 3, m.MustGet(3))
+	test.Equal(t, 5, m.MustGet(4))
 }
 
 func mapWithoutKeys[K, V any](m Map[K, V], keys Set[K]) Map[K, V] {
@@ -154,27 +153,27 @@ func TestMapNewMapFromGoMap(t *testing.T) {
 	expected := NewMapFromKeys(Iota(N), func(k int) int {
 		return k * k
 	})
-	assert.True(t, fm.Equal(expected))
+	test.True(t, fm.Equal(expected))
 }
 
 func TestMapGetElse(t *testing.T) {
 	t.Parallel()
 
 	var m mapIntInt
-	assert.Equal(t, 10, m.GetElse(1, 10))
-	assert.Equal(t, 30, m.GetElse(3, 30))
+	test.Equal(t, 10, m.GetElse(1, 10))
+	test.Equal(t, 30, m.GetElse(3, 30))
 	m = m.With(1, 2)
-	assert.Equal(t, 2, m.GetElse(1, 10))
-	assert.Equal(t, 30, m.GetElse(3, 30))
+	test.Equal(t, 2, m.GetElse(1, 10))
+	test.Equal(t, 30, m.GetElse(3, 30))
 	m = m.With(3, 4)
-	assert.Equal(t, 2, m.GetElse(1, 10))
-	assert.Equal(t, 4, m.GetElse(3, 30))
+	test.Equal(t, 2, m.GetElse(1, 10))
+	test.Equal(t, 4, m.GetElse(3, 30))
 	m = m.Without(1)
-	assert.Equal(t, 10, m.GetElse(1, 10))
-	assert.Equal(t, 4, m.GetElse(3, 30))
+	test.Equal(t, 10, m.GetElse(1, 10))
+	test.Equal(t, 4, m.GetElse(3, 30))
 	m = m.Without(3)
-	assert.Equal(t, 10, m.GetElse(1, 10))
-	assert.Equal(t, 30, m.GetElse(3, 30))
+	test.Equal(t, 10, m.GetElse(1, 10))
+	test.Equal(t, 30, m.GetElse(3, 30))
 }
 
 func TestMapGetElseFunc(t *testing.T) {
@@ -186,50 +185,50 @@ func TestMapGetElseFunc(t *testing.T) {
 		}
 	}
 	var m mapIntInt
-	assert.Equal(t, 10, m.GetElseFunc(1, val(10)))
-	assert.Equal(t, 30, m.GetElseFunc(3, val(30)))
+	test.Equal(t, 10, m.GetElseFunc(1, val(10)))
+	test.Equal(t, 30, m.GetElseFunc(3, val(30)))
 	m = m.With(1, 2)
-	assert.Equal(t, 2, m.GetElseFunc(1, val(10)))
-	assert.Equal(t, 30, m.GetElseFunc(3, val(30)))
+	test.Equal(t, 2, m.GetElseFunc(1, val(10)))
+	test.Equal(t, 30, m.GetElseFunc(3, val(30)))
 	m = m.With(3, 4)
-	assert.Equal(t, 2, m.GetElseFunc(1, val(10)))
-	assert.Equal(t, 4, m.GetElseFunc(3, val(30)))
+	test.Equal(t, 2, m.GetElseFunc(1, val(10)))
+	test.Equal(t, 4, m.GetElseFunc(3, val(30)))
 	m = m.Without(1)
-	assert.Equal(t, 10, m.GetElseFunc(1, val(10)))
-	assert.Equal(t, 4, m.GetElseFunc(3, val(30)))
+	test.Equal(t, 10, m.GetElseFunc(1, val(10)))
+	test.Equal(t, 4, m.GetElseFunc(3, val(30)))
 	m = m.Without(3)
-	assert.Equal(t, 10, m.GetElseFunc(1, val(10)))
-	assert.Equal(t, 30, m.GetElseFunc(3, val(30)))
+	test.Equal(t, 10, m.GetElseFunc(1, val(10)))
+	test.Equal(t, 30, m.GetElseFunc(3, val(30)))
 }
 
 func TestMapKeys(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	var m mapIntInt
-	test.AssertSetEqual(t, Set[int]{}, m.Keys())
+	testset.AssertSetEqual(t, Set[int]{}, m.Keys())
 	m = m.With(1, 2)
-	test.AssertSetEqual(t, NewSet(1), m.Keys())
+	testset.AssertSetEqual(t, NewSet(1), m.Keys())
 	m = m.With(3, 4)
-	test.AssertSetEqual(t, NewSet(1, 3), m.Keys())
+	testset.AssertSetEqual(t, NewSet(1, 3), m.Keys())
 	m = m.Without(1)
-	test.AssertSetEqual(t, NewSet(3), m.Keys())
+	testset.AssertSetEqual(t, NewSet(3), m.Keys())
 	m = m.Without(3)
-	test.AssertSetEqual(t, Set[int]{}, m.Keys())
+	testset.AssertSetEqual(t, Set[int]{}, m.Keys())
 }
 
 func TestMapValues(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
 	var m mapIntInt
-	test.AssertSetEqual(t, Set[int]{}, m.Values())
+	testset.AssertSetEqual(t, Set[int]{}, m.Values())
 	m = m.With(1, 2)
-	test.AssertSetEqual(t, NewSet(2), m.Values())
+	testset.AssertSetEqual(t, NewSet(2), m.Values())
 	m = m.With(3, 4)
-	test.AssertSetEqual(t, NewSet(2, 4), m.Values())
+	testset.AssertSetEqual(t, NewSet(2, 4), m.Values())
 	m = m.Without(1)
-	test.AssertSetEqual(t, NewSet(4), m.Values())
+	testset.AssertSetEqual(t, NewSet(4), m.Values())
 	m = m.Without(3)
-	test.AssertSetEqual(t, Set[int]{}, m.Values())
+	testset.AssertSetEqual(t, Set[int]{}, m.Values())
 }
 
 func TestMapProject(t *testing.T) {
@@ -345,8 +344,8 @@ func TestMapHashAndEqual(t *testing.T) {
 	}
 	for i, a := range maps {
 		for j, b := range maps {
-			assert.Equal(t, i == j, a.Equal(b), "i=%v j=%v a=%v b=%v", i, j, a, b)
-			assert.Equal(t, i == j, a.Hash(0) == b.Hash(0),
+			test.Equal(t, i == j, a.Equal(b), "i=%v j=%v a=%v b=%v", i, j, a, b)
+			test.Equal(t, i == j, a.Hash(0) == b.Hash(0),
 				"i=%v j=%v a=%v b=%v a.Hash()=%v b.Hash()=%v", i, j, a, b, a.Hash(0), b.Hash(0))
 		}
 	}
@@ -356,11 +355,11 @@ func TestMapString(t *testing.T) {
 	t.Parallel()
 
 	var m mapIntInt
-	assert.Equal(t, "()", m.String())
+	test.Equal(t, "()", m.String())
 	m = m.With(1, 2)
-	assert.Equal(t, "(1: 2)", m.String())
+	test.Equal(t, "(1: 2)", m.String())
 	m = m.With(3, 4)
-	assert.Contains(t, []string{"(1: 2, 3: 4)", "(3: 4, 1: 2)"}, m.String())
+	test.True(t, m.String() == "(1: 2, 3: 4)" || m.String() == "(3: 4, 1: 2)")
 }
 
 func TestMapRange(t *testing.T) {
@@ -373,7 +372,7 @@ func TestMapRange(t *testing.T) {
 		output[k] = v
 	}
 
-	assert.Equal(t, map[int]int{1: 2, 3: 4, 4: 5, 6: 7}, output)
+	test.Equal(t, map[int]int{1: 2, 3: 4, 4: 5, 6: 7}, output)
 }
 
 func TestMapMergeSameValueType(t *testing.T) {
@@ -386,7 +385,7 @@ func TestMapMergeSameValueType(t *testing.T) {
 	}
 	expected := NewMap(KV(1, 4), KV(2, 7), KV(3, 3), KV(4, 4))
 	result := m.Merge(n, resolve)
-	assert.True(t, expected.Equal(result))
+	test.True(t, expected.Equal(result))
 }
 
 func TestMapMergeEmptyMap(t *testing.T) {
@@ -395,8 +394,8 @@ func TestMapMergeEmptyMap(t *testing.T) {
 	empty := NewMap[int, int]()
 	nonEmpty := NewMap(KV(1, 2), KV(2, 3))
 
-	assert.True(t, nonEmpty.Equal(empty.Merge(nonEmpty, func(key, a, b int) int { return a })))
-	assert.True(t, nonEmpty.Equal(nonEmpty.Merge(empty, func(key, a, b int) int { return a })))
+	test.True(t, nonEmpty.Equal(empty.Merge(nonEmpty, func(key, a, b int) int { return a })))
+	test.True(t, nonEmpty.Equal(nonEmpty.Merge(empty, func(key, a, b int) int { return a })))
 }
 
 func TestMapToGoMapEmpty(t *testing.T) {
@@ -405,7 +404,7 @@ func TestMapToGoMapEmpty(t *testing.T) {
 	m := NewMap[int, int]()
 	expected := map[int]int{}
 	actual := MapToGoMap(m)
-	assert.Equal(t, expected, actual)
+	test.Equal(t, expected, actual)
 }
 
 func TestMapToGoMapSmall(t *testing.T) {
@@ -414,7 +413,7 @@ func TestMapToGoMapSmall(t *testing.T) {
 	m := NewMap(KV(1, 1), KV(2, 2), KV(3, 3))
 	expected := map[int]int{1: 1, 2: 2, 3: 3}
 	actual := MapToGoMap(m)
-	assert.Equal(t, expected, actual)
+	test.Equal(t, expected, actual)
 }
 
 func TestMapToGoMapBig(t *testing.T) {
@@ -429,7 +428,7 @@ func TestMapToGoMapBig(t *testing.T) {
 			expected[i] = i * i
 		}
 		actual := MapToGoMap(b.Finish())
-		assert.Equal(t, expected, actual)
+		test.Equal(t, expected, actual)
 	}
 }
 

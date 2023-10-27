@@ -4,17 +4,16 @@ import (
 	"log"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	. "github.com/arr-ai/frozen"
 	"github.com/arr-ai/frozen/internal/pkg/test"
+	testset "github.com/arr-ai/frozen/internal/pkg/test/set"
 )
 
 func TestSetBuilderEmpty(t *testing.T) {
 	t.Parallel()
 
 	var b SetBuilder[int]
-	test.AssertSetEqual(t, Set[int]{}, b.Finish())
+	testset.AssertSetEqual(t, Set[int]{}, b.Finish())
 }
 
 func TestSetBuilder(t *testing.T) {
@@ -25,9 +24,9 @@ func TestSetBuilder(t *testing.T) {
 		b.Add(i)
 	}
 	m := b.Finish()
-	assert.Equal(t, 10, m.Count())
+	test.Equal(t, 10, m.Count())
 	for i := 0; i < 10; i++ {
-		assert.True(t, m.Has(i))
+		test.True(t, m.Has(i))
 	}
 }
 
@@ -65,7 +64,7 @@ func TestSetBuilderRemove(t *testing.T) {
 		}
 		m := b.Finish()
 
-		if !assert.Equal(t, 10, m.Count()) {
+		if !test.Equal(t, 10, m.Count()) {
 			log.Print(m)
 		}
 		for i := 0; i < 15; i++ {
@@ -91,7 +90,8 @@ func TestSetBuilderWithRedundantAddsAndRemoves(t *testing.T) { //nolint:cyclop,f
 
 		assertMatch := func(format string, args ...any) bool {
 			for j := 0; j < 60; j++ {
-				if !assert.Equalf(t, s&(uint64(1)<<uint(j)) != 0, b.Has(j), format+" j=%v", append(args, j)...) {
+				if !test.Equal(t, s&(uint64(1)<<uint(j)) != 0, b.Has(j),
+					append(append([]any{format + " j=%v"}, args), j)...) {
 					return false
 				}
 			}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
 func TestPackedWith(t *testing.T) {
@@ -40,8 +40,14 @@ func assertEqualPacked[T any](t *testing.T, expected, actual *packer[T], msgAndA
 
 	if !expected.EqualPacker(actual) {
 		expected.EqualPacker(actual)
-		assert.Fail(t, fmt.Sprintf("packed unequal\nexpected: %v, actual:   %v",
-			&branch[T]{p: *expected}, &branch[T]{p: *actual}), msgAndArgs...)
+		test.Fail(t, append(
+			[]any{
+				fmt.Sprintf(
+					"packed unequal\nexpected: %v, actual:   %v",
+					&branch[T]{p: *expected}, &branch[T]{p: *actual},
+				),
+			},
+			msgAndArgs)...)
 		return false
 	}
 	return true

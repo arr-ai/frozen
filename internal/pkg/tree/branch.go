@@ -311,13 +311,17 @@ func (b *branch[T]) Vet() int {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					panic(errors.WrapPrefix(r, fmt.Sprintf("branch[T][%d]", m.FirstIndex()), 0))
+					if err := r.(error); err != nil {
+						r = fmt.Errorf("branch[T][%d]: %w", m.FirstIndex(), err)
+					} else {
+						r = fmt.Errorf("branch[T][%d]: %v", m.FirstIndex(), r)
+					}
 				}
 			}()
 			if n := p.GetChild(m); n != nil {
 				count += p.GetChild(m).Vet()
 			} else {
-				panic(errors.Errorf("nil node[T] for mask %b", b.p.mask))
+				panic(fmt.Errorf("nil node[T] for mask %b", b.p.mask))
 			}
 		}()
 	}
