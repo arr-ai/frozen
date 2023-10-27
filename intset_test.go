@@ -3,7 +3,7 @@ package frozen_test
 import (
 	"math"
 	"math/rand"
-	"slices"
+	"sort"
 	"testing"
 
 	. "github.com/arr-ai/frozen"
@@ -91,8 +91,8 @@ func TestIntSetIterLarge(t *testing.T) {
 	_, set2 := generateIntArrayAndSet(hugeCollectionSize())
 	test.True(t, set.EqualSet(set2), "%+v\n%+v", set, set2)
 	distinct := getDistinctInts(arr)
-	slices.Sort(distinct)
-	slices.Sort(container)
+	sort.Slice(distinct, func(i, j int) bool { return distinct[i] < distinct[j] })
+	sort.Slice(container, func(i, j int) bool { return container[i] < container[j] })
 	test.Equal(t, distinct, container)
 }
 
