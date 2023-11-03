@@ -186,7 +186,7 @@ func (s Set[T]) IsSubsetOf(t Set[T]) bool {
 	return s.tree.SubsetOf(s.gauge(), t.tree)
 }
 
-// Has returns the value associated with key and true iff the key was found.
+// Has returns true iff the key was found.
 func (s Set[T]) Has(val T) bool {
 	return s.tree.Get(val) != nil
 }
