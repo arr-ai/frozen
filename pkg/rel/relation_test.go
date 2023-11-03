@@ -5,28 +5,28 @@ import (
 	"math/bits"
 	"testing"
 
-	. "github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/test"
-	. "github.com/arr-ai/frozen/pkg/rel"
+	"github.com/arr-ai/frozen"
+	testset "github.com/arr-ai/frozen/internal/pkg/test/set"
+	"github.com/arr-ai/frozen/pkg/rel"
 )
 
 func TestJoinSimple(t *testing.T) {
 	t.Parallel()
 
-	a := New(
+	a := rel.New(
 		[]string{"x", "y"},
 		[]any{1, 2},
 	)
-	b := New(
+	b := rel.New(
 		[]string{"y", "z"},
 		[]any{2, 3},
 	)
-	expected := New(
+	expected := rel.New(
 		[]string{"x", "y", "z"},
 		[]any{1, 2, 3},
 	)
-	actual := Join(a, b)
-	test.AssertSetEqual(t, expected, actual)
+	actual := rel.Join(a, b)
+	testset.AssertSetEqual(t, expected, actual)
 }
 
 // We use numbers as follows to represent tuples:
@@ -52,7 +52,7 @@ func expandBinaryToTernaryBitRelation(a, offset uint64) bitRelation {
 	return bitRelation(result << offset)
 }
 
-func (a bitRelation) toRelation() Relation {
+func (a bitRelation) toRelation() rel.Relation {
 	header := []string{"x", "y", "z"}
 
 	lo, hi := 0, len(header)
@@ -74,7 +74,7 @@ func (a bitRelation) toRelation() Relation {
 		}
 		rows = append(rows, row)
 	}
-	return New(h, rows...)
+	return rel.New(h, rows...)
 }
 
 func (a bitRelation) join(b bitRelation) bitRelation {
@@ -130,9 +130,9 @@ func testJoinExhaustiveCase(t *testing.T, i0 uint64) {
 			setA := a.toRelation()
 			setB := b.toRelation()
 			setC := c.toRelation()
-			if !test.AssertSetEqual(t, setC, Join(setA, setB), "a=%b=%v b=%b=%v", a, setA, b, setB) {
+			if !testset.AssertSetEqual(t, setC, rel.Join(setA, setB), "a=%b=%v b=%b=%v", a, setA, b, setB) {
 				_ = a.join(b)
-				Join(setA, setB)
+				rel.Join(setA, setB)
 				t.FailNow()
 			}
 			innerTotal++
@@ -144,7 +144,7 @@ func testJoinExhaustiveCase(t *testing.T, i0 uint64) {
 func TestNest(t *testing.T) {
 	t.Parallel()
 
-	ca := New(
+	ca := rel.New(
 		[]string{"c", "a"},
 		[]any{1, 10},
 		[]any{1, 11},
@@ -154,43 +154,43 @@ func TestNest(t *testing.T) {
 		[]any{3, 10},
 		// []any{4, 13},
 	)
-	sharing := Nest(ca, NewMap(KV("aa", NewSet("a"))))
+	sharing := rel.Nest(ca, frozen.NewMap(frozen.KV("aa", frozen.NewSet("a"))))
 	// t.Log(sharing)
-	sharing = Nest(sharing, NewMap(KV("cc", NewSet("c"))))
+	sharing = rel.Nest(sharing, frozen.NewMap(frozen.KV("cc", frozen.NewSet("c"))))
 	// t.Log(sharing)
-	sharing = sharing.Where(func(t Tuple) bool {
-		return t.MustGet("cc").(Relation).Count() > 1
+	sharing = sharing.Where(func(t rel.Tuple) bool {
+		return t.MustGet("cc").(rel.Relation).Count() > 1
 	})
 	// t.Log(sharing)
-	expected := New(
+	expected := rel.New(
 		[]string{"aa", "cc"},
 		[]any{
-			New([]string{"a"}, []any{10}, []any{11}),
-			New([]string{"c"}, []any{1}, []any{3}),
+			rel.New([]string{"a"}, []any{10}, []any{11}),
+			rel.New([]string{"c"}, []any{1}, []any{3}),
 		},
 	)
-	test.AssertSetEqual(t, expected, sharing)
+	testset.AssertSetEqual(t, expected, sharing)
 }
 
 func TestUnnest(t *testing.T) {
 	t.Parallel()
 
-	sharing := New(
+	sharing := rel.New(
 		[]string{"aa", "cc"},
 		[]any{
-			New(
+			rel.New(
 				[]string{"a"},
 				[]any{10},
 				[]any{11},
 			),
-			New(
+			rel.New(
 				[]string{"c"},
 				[]any{1},
 				[]any{3},
 			),
 		},
 	)
-	expected := New(
+	expected := rel.New(
 		[]string{"c", "a"},
 		[]any{1, 10},
 		[]any{1, 11},
@@ -198,25 +198,25 @@ func TestUnnest(t *testing.T) {
 		[]any{3, 10},
 	)
 
-	actual := Unnest(Unnest(sharing, "cc"), "aa")
-	test.AssertSetEqual(t, expected, actual)
+	actual := rel.Unnest(rel.Unnest(sharing, "cc"), "aa")
+	testset.AssertSetEqual(t, expected, actual)
 
-	actual = Unnest(Unnest(sharing, "aa"), "cc")
-	test.AssertSetEqual(t, expected, actual)
+	actual = rel.Unnest(rel.Unnest(sharing, "aa"), "cc")
+	testset.AssertSetEqual(t, expected, actual)
 }
 
 // func TestNestImpl(t *testing.T) {
 // 	t.Parallel()
 
-// 	s := New(
+// 	s := rel.New(
 // 		[]string{"c", "a"},
 // 		[]any{1, 10},
 // 		[]any{1, 11},
 // 		[]any{3, 11},
 // 		[]any{3, 10},
 // 	)
-// 	// attrAttrs := NewMap(KV("aa", NewSet("a")))
-// 	keyAttrs := NewSet("a")
+// 	// attrAttrs := frozen.NewMap(frozen.KV("aa", frozen.NewSet("a")))
+// 	keyAttrs := frozen.NewSet("a")
 
 // 	grouped := SetGroupBy(s, func(el Tuple) Tuple {
 // 		return el.Without(keyAttrs)
@@ -224,7 +224,7 @@ func TestUnnest(t *testing.T) {
 // 	t.Log("grouped =", grouped)
 
 // 	mapped := MapMap(grouped, func(key Tuple, group Relation) Tuple {
-// 		return NewMap(KV[string, any]("aa", Project(group, keyAttrs)))
+// 		return frozen.NewMap(frozen.KV[string, any]("aa", Project(group, keyAttrs)))
 // 	})
 // 	t.Log("mapped  =", mapped)
 
@@ -232,7 +232,7 @@ func TestUnnest(t *testing.T) {
 // 	t.Logf("result  = %+v", result)
 
 // 	s = result
-// 	keyAttrs = NewSet("c")
+// 	keyAttrs = frozen.NewSet("c")
 
 // 	grouped = SetGroupBy(s, func(el Tuple) Tuple {
 // 		return el.Without(keyAttrs)
@@ -240,7 +240,7 @@ func TestUnnest(t *testing.T) {
 // 	t.Log("grouped =", grouped)
 
 // 	mapped = MapMap(grouped, func(key Tuple, group Relation) Tuple {
-// 		a := NewMap(KV[string, any]("cc", NewSet(NewMap[string, any]())))
+// 		a := frozen.NewMap(frozen.KV[string, any]("cc", frozen.NewSet(frozen.NewMap[string, any]())))
 // 		return a //.Update(key)
 // 	})
 // 	t.Log("mapped  =", mapped)

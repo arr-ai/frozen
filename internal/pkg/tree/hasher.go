@@ -19,7 +19,7 @@ const (
 type hasher uintptr
 
 func newHasher[T any](key T, depth int) hasher {
-	return hasher(hash.Interface(key, 0)) << uint(depth*fanoutBits)
+	return hasher(hash.Any(key, 0)) << uint(depth*fanoutBits)
 }
 
 func (h hasher) next() hasher {

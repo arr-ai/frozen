@@ -5,29 +5,27 @@ import (
 	"math/bits"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen"
 	"github.com/arr-ai/frozen/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/internal/pkg/test"
+	testset "github.com/arr-ai/frozen/internal/pkg/test/set"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
 )
 
-func largeIntSet() Set[int] {
+func largeIntSet() frozen.Set[int] {
 	return intSet(0, 10_000)
 }
 
-func hugeIntSet() Set[int] {
+func hugeIntSet() frozen.Set[int] {
 	return intSet(0, hugeCollectionSize())
 }
 
 func TestSetEmpty(t *testing.T) {
 	t.Parallel()
 
-	var s Set[int]
-	assert.True(t, s.IsEmpty())
-	test.AssertSetEqual(t, Set[int]{}, s)
+	var s frozen.Set[int]
+	test.True(t, s.IsEmpty())
+	testset.AssertSetEqual(t, frozen.Set[int]{}, s)
 }
 
 func compareElements[T comparable](a, b []T) (aOnly, bOnly []T) {
@@ -56,13 +54,13 @@ func compareElements[T comparable](a, b []T) (aOnly, bOnly []T) {
 	return
 }
 
-// faster that assert.ElementsMatch.
+// faster that test.ElementsMatch.
 func assertSameElements[T comparable](t *testing.T, a, b []T, msgAndArgs ...any) bool {
 	t.Helper()
 
 	aOnly, bOnly := compareElements(a, b)
-	aOK := assert.Empty(t, aOnly, msgAndArgs...)
-	bOK := assert.Empty(t, bOnly, msgAndArgs...)
+	aOK := test.Empty(t, aOnly, msgAndArgs...)
+	bOK := test.Empty(t, bOnly, msgAndArgs...)
 	return aOK && bOK
 }
 
@@ -88,8 +86,8 @@ func TestSetNewSet(t *testing.T) {
 
 	for i := N - 1; i >= 0; i-- {
 		expected := arr[i:]
-		actual := NewSet(arr[i:]...)
-		require.Equal(t, len(expected), actual.Count())
+		actual := frozen.NewSet(arr[i:]...)
+		test.RequireEqual(t, len(expected), actual.Count())
 		assertSameElements(t, expected, actual.Elements())
 	}
 }
@@ -97,9 +95,9 @@ func TestSetNewSet(t *testing.T) {
 func TestSetNew2(t *testing.T) {
 	t.Parallel()
 
-	a := NewSet(1, 2)
-	b := NewSet(2, 1)
-	assert.True(t, a.Equal(b))
+	a := frozen.NewSet(1, 2)
+	b := frozen.NewSet(2, 1)
+	test.True(t, a.Equal(b))
 }
 
 func TestSetNewSetFromStrings(t *testing.T) {
@@ -112,38 +110,38 @@ func TestSetNewSetFromStrings(t *testing.T) {
 	}
 
 	for i := N - 1; i >= 0; i-- {
-		assertSameElements(t, arr[i:], NewSet(arr[i:]...).Elements())
+		assertSameElements(t, arr[i:], frozen.NewSet(arr[i:]...).Elements())
 	}
 }
 
 func TestSetWith(t *testing.T) {
 	t.Parallel()
 
-	var s Set[int]
+	var s frozen.Set[int]
 	arr := []int{}
 	n := 1_000
 	if testing.Short() {
 		n /= 10
 	}
 	for i := 0; i < n; i++ {
-		expected := NewSet(arr...)
-		if !test.AssertSetEqual(t, expected, s, "i=%v", i) {
+		expected := frozen.NewSet(arr...)
+		if !testset.AssertSetEqual(t, expected, s, "i=%v", i) {
 			// log.Print("expected: ", expected)
 			// log.Print("actual:   ", s)
 			// expected.Equal(s)
 			break
 		}
-		if !assert.Equal(t, i, s.Count(), "i=%v", i) {
+		if !test.Equal(t, i, s.Count(), "i=%v", i) {
 			break
 		}
-		if !assert.False(t, s.Has(i), "i=%v", i) {
+		if !test.False(t, s.Has(i), "i=%v", i) {
 			break
 		}
 		s = s.With(i)
-		if !assert.True(t, s.Has(i), "i=%v", i) {
+		if !test.True(t, s.Has(i), "i=%v", i) {
 			break
 		}
-		if !assert.False(t, s.IsEmpty(), "i=%v", i) {
+		if !test.False(t, s.IsEmpty(), "i=%v", i) {
 			break
 		}
 		arr = append(arr, i)
@@ -153,7 +151,7 @@ func TestSetWith(t *testing.T) {
 func TestSetWithout(t *testing.T) {
 	t.Parallel()
 
-	var s Set[int]
+	var s frozen.Set[int]
 	arr := []int{}
 	N := 1_000
 	if testing.Short() {
@@ -164,108 +162,109 @@ func TestSetWithout(t *testing.T) {
 		arr = append(arr, i)
 	}
 	for i := 0; i < N; i++ {
-		u := NewSet(arr...)
+		u := frozen.NewSet(arr...)
 		requireSameElements(t, arr, u.Elements(), i)
-		if !test.AssertSetEqual(t, u, s, "i=%v", i) {
+		if !testset.AssertSetEqual(t, u, s, "i=%v", i) {
 			break
 		}
-		if !assert.False(t, s.IsEmpty(), "i=%v", i) {
+		if !test.False(t, s.IsEmpty(), "i=%v", i) {
 			break
 		}
-		if !assert.True(t, s.Has(i), "i=%v", i) {
+		if !test.True(t, s.Has(i), "i=%v", i) {
 			break
 		}
 		s = s.Without(i)
-		if !assert.False(t, s.Has(i), "i=%v", i) {
+		if !test.False(t, s.Has(i), "i=%v", i) {
 			break
 		}
 		arr = arr[1:]
 	}
-	assert.True(t, s.IsEmpty(), "%v %v", s.Count(), s)
+	test.True(t, s.IsEmpty(), "%v %v", s.Count(), s)
 }
 
 func TestSetAny(t *testing.T) {
 	t.Parallel()
 
-	var s Set[int]
-	assert.Panics(t, func() { s.Any() })
+	var s frozen.Set[int]
+	test.Panic(t, func() { s.Any() })
 	s = s.With(1)
-	assert.Equal(t, 1, s.Any())
+	test.Equal(t, 1, s.Any())
 	s = s.With(2)
-	assert.Contains(t, []int{1, 2}, s.Any())
+	i := s.Any()
+	test.True(t, i == 1 || i == 2)
 }
 
 func TestSetAnyN(t *testing.T) {
 	t.Parallel()
 
-	var s Set[int]
-	assert.Equal(t, 0, s.AnyN(0).Count())
+	var s frozen.Set[int]
+	test.Equal(t, 0, s.AnyN(0).Count())
 
 	s = s.With(1)
-	assert.Equal(t, 1, s.AnyN(1).Count())
-	assert.Equal(t, 1, s.AnyN(2).Count())
-	assert.Equal(t, 1, s.AnyN(4<<10-1).Count())
+	test.Equal(t, 1, s.AnyN(1).Count())
+	test.Equal(t, 1, s.AnyN(2).Count())
+	test.Equal(t, 1, s.AnyN(4<<10-1).Count())
 
-	s = Iota(4<<10 - 1)
-	assert.Equal(t, 1, s.AnyN(1).Count())
-	test.AssertSetEqual(t, Iota(4<<10-1), s.AnyN(4<<10-1))
+	s = frozen.Iota(4<<10 - 1)
+	test.Equal(t, 1, s.AnyN(1).Count())
+	testset.AssertSetEqual(t, frozen.Iota(4<<10-1), s.AnyN(4<<10-1))
 }
 
 func TestSetOrderedElements(t *testing.T) {
 	t.Parallel()
 
-	s := Iota(4<<10 - 1)
+	s := frozen.Iota(4<<10 - 1)
 	less := tree.Less[int](func(a, b int) bool { return a < b })
-	assert.Equal(t, generateSortedIntArray(0, 4<<10-1, 1), s.OrderedElements(less))
+	test.Equal(t, generateSortedIntArray(0, 4<<10-1, 1), s.OrderedElements(less))
 
 	less = tree.Less[int](func(a, b int) bool { return a > b })
-	assert.Equal(t, generateSortedIntArray(4<<10-2, -1, -1), s.OrderedElements(less))
+	test.Equal(t, generateSortedIntArray(4<<10-2, -1, -1), s.OrderedElements(less))
 }
 
 func TestSetHash(t *testing.T) {
 	t.Parallel()
 
-	maps := []Set[any]{
+	maps := []frozen.Set[any]{
 		{},
-		NewSet[any](1, 2),
-		NewSet[any](1, 3),
-		NewSet[any](3, 4),
-		NewSet[any](3, 5),
-		NewSet[any](1, 3, 4),
-		NewSet[any](1, 3, 5),
-		NewSet[any](1, 2, 3, 4),
-		NewSet[any](1, 2, 3, 5),
-		NewSet[any](NewMap(KV("cc", NewSet(NewMap(KV("c", 1)))))),
-		NewSet[any](NewMap(KV("cc", NewSet(NewMap(KV("c", 2)))))),
+		frozen.NewSet[any](1, 2),
+		frozen.NewSet[any](1, 3),
+		frozen.NewSet[any](3, 4),
+		frozen.NewSet[any](3, 5),
+		frozen.NewSet[any](1, 3, 4),
+		frozen.NewSet[any](1, 3, 5),
+		frozen.NewSet[any](1, 2, 3, 4),
+		frozen.NewSet[any](1, 2, 3, 5),
+		frozen.NewSet[any](frozen.NewMap(frozen.KV("cc", frozen.NewSet(frozen.NewMap(frozen.KV("c", 1)))))),
+		frozen.NewSet[any](frozen.NewMap(frozen.KV("cc", frozen.NewSet(frozen.NewMap(frozen.KV("c", 2)))))),
 	}
 	for i, a := range maps {
 		for j, b := range maps {
-			assert.Equal(t, i == j, a.Equal(b), "i=%v j=%v a=%v b=%v", i, j, a, b)
-			assert.Equal(t, i == j, a.Hash(0) == b.Hash(0),
+			test.Equal(t, i == j, a.Equal(b), "i=%v j=%v a=%v b=%v", i, j, a, b)
+			test.Equal(t, i == j, a.Hash(0) == b.Hash(0),
 				"i=%d j=%d a=%+v b=%+v a.Hash()=%v b.Hash()=%v", i, j, a, b, a.Hash(0), b.Hash(0))
 		}
-		assert.False(t, a.Equal(NewSet[any](42)))
+		test.False(t, a.Equal(frozen.NewSet[any](42)))
 	}
 }
 
 func TestSetEqual(t *testing.T) {
 	t.Parallel()
 
-	sets := []Set[int]{
+	sets := []frozen.Set[int]{
 		{},
-		NewSet(1),
-		NewSet(2),
-		NewSet(1, 2),
-		NewSet(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
-		Iota(7),
-		Iota(7).AnyN(6),
+		frozen.NewSet(1),
+		frozen.NewSet(2),
+		frozen.NewSet(1, 2),
+		frozen.NewSet(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+		frozen.Iota(7),
+		frozen.Iota(7).AnyN(6),
 	}
 	for i, a := range sets {
 		for j, b := range sets {
-			assert.Equal(t, i == j, a.Equal(b),
+			test.Equal(t, i == j, a.Equal(b),
 				"i=%d, a=%+v\nj=%d, b=%+v", i, a, j, b)
 		}
-		assert.False(t, a.Equal(NewSet(42)), "i=%d", i)
+		test.False(t, a.Equal(frozen.NewSet(42)), "i=%d", i)
 	}
 }
 
@@ -278,31 +277,31 @@ func TestSetEqualLarge(t *testing.T) {
 	}
 	a := intSet(0, n)
 	b := intSet(0, n)
-	// c := SetMap(intSet(n, n), func(e int) int { return e - n })
+	// c := frozen.SetMap(intSet(n, n), func(e int) int { return e - n })
 
-	require.Equal(t, n, a.Count())
-	require.Equal(t, n, b.Count())
-	// require.Equal(t, n, c.Count())
+	test.RequireEqual(t, n, a.Count())
+	test.RequireEqual(t, n, b.Count())
+	// test.RequireEqual(t, n, c.Count())
 	// for i := 0; i < n; i++ {
-	// 	require.True(t, c.Has(i), i)
+	// 	test.RequireTrue(t, c.Has(i), i)
 	// }
 
-	test.AssertSetEqual(t, a, b)
-	// test.AssertSetEqual(t, a, c)
+	testset.AssertSetEqual(t, a, b)
+	// testset.AssertSetEqual(t, a, c)
 }
 
 func TestSetFirst(t *testing.T) {
 	t.Parallel()
 
-	var s Set[int]
+	var s frozen.Set[int]
 	less := tree.Less[int](func(a, b int) bool { return a < b })
-	assert.Panics(t, func() { s.First(less) }, "empty set")
+	test.Panic(t, func() { s.First(less) }, "empty set")
 
-	s = Iota(4<<10 - 1)
-	assert.Equal(t, 0, s.First(less))
+	s = frozen.Iota(4<<10 - 1)
+	test.Equal(t, 0, s.First(less))
 
 	less = tree.Less[int](func(a, b int) bool { return a > b })
-	assert.Equal(t, 4<<10-2, s.First(less))
+	test.Equal(t, 4<<10-2, s.First(less))
 }
 
 func TestSetFirstN(t *testing.T) {
@@ -310,16 +309,16 @@ func TestSetFirstN(t *testing.T) {
 
 	less := tree.Less[int](func(a, b int) bool { return a < b })
 
-	s := NewSet[int]()
-	assert.True(t, NewSet[int]().Equal(s.FirstN(0, less)))
-	assert.True(t, NewSet[int]().Equal(s.FirstN(1, less)))
+	s := frozen.NewSet[int]()
+	test.True(t, frozen.NewSet[int]().Equal(s.FirstN(0, less)))
+	test.True(t, frozen.NewSet[int]().Equal(s.FirstN(1, less)))
 
-	s = Iota(4<<10 - 1)
-	assert.True(t, NewSet(0).Equal(s.FirstN(1, less)))
-	assert.True(t, s.Equal(s.FirstN(4<<10-1, less)))
+	s = frozen.Iota(4<<10 - 1)
+	test.True(t, frozen.NewSet(0).Equal(s.FirstN(1, less)))
+	test.True(t, s.Equal(s.FirstN(4<<10-1, less)))
 
-	s = Iota(5)
-	assert.True(t, NewSet(0, 1, 2, 3, 4).Equal(s.FirstN(10, less)))
+	s = frozen.Iota(5)
+	test.True(t, frozen.NewSet(0, 1, 2, 3, 4).Equal(s.FirstN(10, less)))
 }
 
 func TestSetOrderedFirstN(t *testing.T) {
@@ -327,16 +326,16 @@ func TestSetOrderedFirstN(t *testing.T) {
 
 	less := tree.Less[int](func(a, b int) bool { return a < b })
 
-	s := NewSet[int]()
-	assert.Equal(t, []int{}, s.OrderedFirstN(0, less))
-	assert.Equal(t, []int{}, s.OrderedFirstN(1, less))
+	s := frozen.NewSet[int]()
+	test.Equal(t, []int{}, s.OrderedFirstN(0, less))
+	test.Equal(t, []int{}, s.OrderedFirstN(1, less))
 
-	s = Iota(4<<10 - 1)
-	assert.Equal(t, generateSortedIntArray(0, 4<<10-1, 1), s.OrderedFirstN(4<<10-1, less))
-	assert.Equal(t, []int{0, 1, 2, 3, 4}, s.OrderedFirstN(5, less))
+	s = frozen.Iota(4<<10 - 1)
+	test.Equal(t, generateSortedIntArray(0, 4<<10-1, 1), s.OrderedFirstN(4<<10-1, less))
+	test.Equal(t, []int{0, 1, 2, 3, 4}, s.OrderedFirstN(5, less))
 
-	s = Iota(5)
-	assert.Equal(t, []int{0, 1, 2, 3, 4}, s.OrderedFirstN(10, less))
+	s = frozen.Iota(5)
+	test.Equal(t, []int{0, 1, 2, 3, 4}, s.OrderedFirstN(10, less))
 }
 
 func TestSetIsSubsetOf(t *testing.T) {
@@ -344,14 +343,14 @@ func TestSetIsSubsetOf(t *testing.T) {
 
 	const N = 10
 	for i := iterator.BitIterator(0); i < N; i++ {
-		a := NewSetFromMask64(uint64(i))
+		a := frozen.NewSetFromMask64(uint64(i))
 		for j := iterator.BitIterator(0); j < N; j++ {
-			b := NewSetFromMask64(uint64(j))
-			if !assert.Equal(t, i&^j == 0, a.IsSubsetOf(b)) {
+			b := frozen.NewSetFromMask64(uint64(j))
+			if !test.Equal(t, i&^j == 0, a.IsSubsetOf(b)) {
 				log.Print("a: ", a)
 				log.Print("b: ", b)
-				a = NewSetFromMask64(uint64(i))
-				b = NewSetFromMask64(uint64(j))
+				a = frozen.NewSetFromMask64(uint64(i))
+				b = frozen.NewSetFromMask64(uint64(j))
 				a.IsSubsetOf(b)
 				return
 			}
@@ -369,51 +368,53 @@ func TestSetIsSubsetOfLarge(t *testing.T) {
 	a := intSet(0, n)
 	b := intSet(0, n+1)
 	c := intSet(1, n)
-	assert.True(t, a.IsSubsetOf(a))
-	assert.True(t, a.IsSubsetOf(b))
-	assert.False(t, b.IsSubsetOf(a))
-	assert.False(t, a.IsSubsetOf(c))
-	assert.False(t, c.IsSubsetOf(a))
+	test.True(t, a.IsSubsetOf(a))
+	test.True(t, a.IsSubsetOf(b))
+	test.False(t, b.IsSubsetOf(a))
+	test.False(t, a.IsSubsetOf(c))
+	test.False(t, c.IsSubsetOf(a))
 }
 
 func TestSetString(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, "{}", Set[int]{}.String())
-	assert.Equal(t, "{1}", NewSet(1).String())
-	assert.Contains(t, []string{"{1, 2}", "{2, 1}"}, NewSet(1, 2).String())
-	assert.Contains(t, []string{"{1, 2}", "{2, 1}"}, NewSet(2, 1).String())
+	test.Equal(t, "{}", frozen.Set[int]{}.String())
+	test.Equal(t, "{1}", frozen.NewSet(1).String())
+	s := frozen.NewSet(1, 2).String()
+	test.True(t, s == "{1, 2}" || s == "{2, 1}")
+	s = frozen.NewSet(2, 1).String()
+	test.True(t, s == "{1, 2}" || s == "{2, 1}")
 }
 
 func TestSetWhereEmpty(t *testing.T) {
 	t.Parallel()
 
-	test.AssertSetEqual(t, NewSet[int](), NewSet[int]().Where(func(int) bool { return false }))
-	test.AssertSetEqual(t, NewSet[int](), NewSet[int]().Where(func(int) bool { return true }))
+	testset.AssertSetEqual(t, frozen.NewSet[int](), frozen.NewSet[int]().Where(func(int) bool { return false }))
+	testset.AssertSetEqual(t, frozen.NewSet[int](), frozen.NewSet[int]().Where(func(int) bool { return true }))
 }
 
 func TestSetWhere(t *testing.T) {
 	t.Parallel()
 
-	s := Iota2(1, 10)
+	s := frozen.Iota2(1, 10)
 	multipleOf := func(n int) func(e int) bool {
 		return func(e int) bool { return e%n == 0 }
 	}
 	not := func(f func(e int) bool) func(e int) bool {
 		return func(e int) bool { return !f(e) }
 	}
-	test.AssertSetEqual(t, Iota3(2, 10, 2), s.Where(multipleOf(2)))
-	test.AssertSetEqual(t, Iota3(1, 10, 2), s.Where(not(multipleOf(2))))
-	test.AssertSetEqual(t, Iota3(3, 10, 3), s.Where(multipleOf(3)))
-	test.AssertSetEqual(t, NewSet(1, 2, 4, 5, 7, 8), s.Where(not(multipleOf(3))))
-	test.AssertSetEqual(t, NewSet(6), s.Where(multipleOf(2)).Where(multipleOf(3)))
-	test.AssertSetEqual(t, NewSet(6), s.Where(multipleOf(3)).Where(multipleOf(2)))
-	test.AssertSetEqual(t, NewSet(3, 9), s.Where(not(multipleOf(2))).Where(multipleOf(3)))
-	test.AssertSetEqual(t, NewSet(3, 9), s.Where(multipleOf(3)).Where(not(multipleOf(2))))
-	test.AssertSetEqual(t, NewSet(2, 4, 8), s.Where(multipleOf(2)).Where(not(multipleOf(3))))
-	test.AssertSetEqual(t, NewSet(2, 4, 8), s.Where(not(multipleOf(3))).Where(multipleOf(2)))
-	test.AssertSetEqual(t, NewSet(1, 5, 7), s.Where(not(multipleOf(2))).Where(not(multipleOf(3))))
-	test.AssertSetEqual(t, NewSet(1, 5, 7), s.Where(not(multipleOf(3))).Where(not(multipleOf(2))))
+	testset.AssertSetEqual(t, frozen.Iota3(2, 10, 2), s.Where(multipleOf(2)))
+	testset.AssertSetEqual(t, frozen.Iota3(1, 10, 2), s.Where(not(multipleOf(2))))
+	testset.AssertSetEqual(t, frozen.Iota3(3, 10, 3), s.Where(multipleOf(3)))
+	testset.AssertSetEqual(t, frozen.NewSet(1, 2, 4, 5, 7, 8), s.Where(not(multipleOf(3))))
+	testset.AssertSetEqual(t, frozen.NewSet(6), s.Where(multipleOf(2)).Where(multipleOf(3)))
+	testset.AssertSetEqual(t, frozen.NewSet(6), s.Where(multipleOf(3)).Where(multipleOf(2)))
+	testset.AssertSetEqual(t, frozen.NewSet(3, 9), s.Where(not(multipleOf(2))).Where(multipleOf(3)))
+	testset.AssertSetEqual(t, frozen.NewSet(3, 9), s.Where(multipleOf(3)).Where(not(multipleOf(2))))
+	testset.AssertSetEqual(t, frozen.NewSet(2, 4, 8), s.Where(multipleOf(2)).Where(not(multipleOf(3))))
+	testset.AssertSetEqual(t, frozen.NewSet(2, 4, 8), s.Where(not(multipleOf(3))).Where(multipleOf(2)))
+	testset.AssertSetEqual(t, frozen.NewSet(1, 5, 7), s.Where(not(multipleOf(2))).Where(not(multipleOf(3))))
+	testset.AssertSetEqual(t, frozen.NewSet(1, 5, 7), s.Where(not(multipleOf(3))).Where(not(multipleOf(2))))
 }
 
 func TestSetMap(t *testing.T) {
@@ -421,35 +422,35 @@ func TestSetMap(t *testing.T) {
 
 	square := func(e int) int { return e * e }
 	div2 := func(e int) int { return e / 2 }
-	test.AssertSetEqual(t, Set[int]{}, SetMap(Set[int]{}, square))
-	test.AssertSetEqual(t, NewSet(1, 4, 9, 16, 25), SetMap(NewSet(1, 2, 3, 4, 5), square))
-	test.AssertSetEqual(t, NewSet(0, 1, 3), SetMap(NewSet(1, 2, 3, 6), div2))
+	testset.AssertSetEqual(t, frozen.Set[int]{}, frozen.SetMap(frozen.Set[int]{}, square))
+	testset.AssertSetEqual(t, frozen.NewSet(1, 4, 9, 16, 25), frozen.SetMap(frozen.NewSet(1, 2, 3, 4, 5), square))
+	testset.AssertSetEqual(t, frozen.NewSet(0, 1, 3), frozen.SetMap(frozen.NewSet(1, 2, 3, 6), div2))
 }
 
 func TestSetMapShrunk(t *testing.T) {
 	t.Parallel()
 
 	div2 := func(e int) int { return e / 2 }
-	s := NewSet(1, 2, 3, 6)
-	mapped := SetMap(s, div2)
-	assert.Equal(t, 3, mapped.Count(), "%v", mapped)
+	s := frozen.NewSet(1, 2, 3, 6)
+	mapped := frozen.SetMap(s, div2)
+	test.Equal(t, 3, mapped.Count(), "%v", mapped)
 }
 
 func TestSetMapLarge(t *testing.T) {
 	t.Parallel()
 
 	s := intSet(0, 50)
-	// assertSetEqual(t, NewSet(42), s.Map(func(e any) any { return 42 }))
-	if !test.AssertSetEqual(t, Iota3(0, 2*s.Count(), 2), SetMap(s, func(e int) int { return 2 * e })) {
-		expected := Iota3(0, 2*s.Count(), 2)
-		actual := SetMap(s, func(e int) int { return 2 * e })
+	// assertSetEqual(t, frozen.NewSet(42), s.Map(func(e any) any { return 42 }))
+	if !testset.AssertSetEqual(t, frozen.Iota3(0, 2*s.Count(), 2), frozen.SetMap(s, func(e int) int { return 2 * e })) {
+		expected := frozen.Iota3(0, 2*s.Count(), 2)
+		actual := frozen.SetMap(s, func(e int) int { return 2 * e })
 		log.Print(expected)
 		log.Print(actual)
 		for {
-			SetMap(s, func(e int) int { return 2 * e })
+			frozen.SetMap(s, func(e int) int { return 2 * e })
 		}
 	}
-	test.AssertSetEqual(t, Iota(s.Count()/10), SetMap(s, func(e int) int { return e / 10 }))
+	testset.AssertSetEqual(t, frozen.Iota(s.Count()/10), frozen.SetMap(s, func(e int) int { return e / 10 }))
 }
 
 func TestSetReduce(t *testing.T) {
@@ -458,21 +459,21 @@ func TestSetReduce(t *testing.T) {
 	sum := func(acc, b int) int { return acc + b }
 	product := func(acc, b int) int { return acc * b }
 
-	if !assert.NotPanics(t, func() { Iota2(1, 11).Reduce2(sum) }) {
-		i := Iota2(1, 11)
+	if !test.NoPanic(t, func() { frozen.Iota2(1, 11).Reduce2(sum) }) {
+		i := frozen.Iota2(1, 11)
 		i.Reduce2(sum)
 	}
 
-	assertReduce2 := func(expected int, s Set[int], f func(acc, b int) int) bool {
+	assertReduce2 := func(expected int, s frozen.Set[int], f func(acc, b int) int) bool {
 		actual, ok := s.Reduce2(f)
-		return assert.True(t, ok) && assert.Equal(t, expected, actual)
+		return test.True(t, ok) && test.Equal(t, expected, actual)
 	}
-	assertReduce2(42, NewSet(42), sum)
-	assertReduce2(42, NewSet(42), product)
-	assertReduce2(12, NewSet(5, 7), sum)
-	assertReduce2(35, NewSet(5, 7), product)
-	assertReduce2(55, Iota2(1, 11), sum)
-	assertReduce2(720, Iota2(2, 7), product)
+	assertReduce2(42, frozen.NewSet(42), sum)
+	assertReduce2(42, frozen.NewSet(42), product)
+	assertReduce2(12, frozen.NewSet(5, 7), sum)
+	assertReduce2(35, frozen.NewSet(5, 7), product)
+	assertReduce2(55, frozen.Iota2(1, 11), sum)
+	assertReduce2(720, frozen.Iota2(2, 7), product)
 }
 
 func TestSetReduceHuge(t *testing.T) {
@@ -481,25 +482,25 @@ func TestSetReduceHuge(t *testing.T) {
 	sum := func(a, b int) int { return a + b }
 
 	n := hugeCollectionSize()
-	actual, ok := Iota(n).Reduce2(sum)
-	_ = assert.True(t, ok) && assert.Equal(t, (n-1)*n/2, actual)
+	actual, ok := frozen.Iota(n).Reduce2(sum)
+	_ = test.True(t, ok) && test.Equal(t, (n-1)*n/2, actual)
 }
 
 func testSetBinaryOperatorPair(
 	t *testing.T,
 	bitop func(a, b uint64) uint64,
-	setop func(a, b Set[int]) Set[int],
+	setop func(a, b frozen.Set[int]) frozen.Set[int],
 	x, y uint64,
 ) {
 	t.Helper()
 
-	sx := NewSetFromMask64(x)
-	sy := NewSetFromMask64(y)
+	sx := frozen.NewSetFromMask64(x)
+	sy := frozen.NewSetFromMask64(y)
 	bxy := bitop(x, y)
-	sxy := NewSetFromMask64(bxy)
+	sxy := frozen.NewSetFromMask64(bxy)
 	sxsy := setop(sx, sy)
-	if !assert.Equal(t, bits.OnesCount64(bxy), sxsy.Count()) ||
-		!test.AssertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
+	if !test.Equal(t, bits.OnesCount64(bxy), sxsy.Count()) ||
+		!testset.AssertSetEqual(t, sxy, sxsy, "sx=%v sy=%v", sx, sy) {
 		log.Print("sx:   ", sx)
 		log.Print("sy:   ", sy)
 		log.Print("bxy:  ", bxy)
@@ -507,8 +508,8 @@ func testSetBinaryOperatorPair(
 		log.Print("sxsy: ", sxsy)
 		log.Print("==:   ", sxy.Equal(sxsy))
 		if bits.OnesCount64(x) < 4 && bits.OnesCount64(y) < 4 {
-			NewSetFromMask64(x)
-			NewSetFromMask64(y)
+			frozen.NewSetFromMask64(x)
+			frozen.NewSetFromMask64(y)
 			setop(sx, sy)
 			sxy.Equal(sxsy)
 		}
@@ -519,7 +520,7 @@ func testSetBinaryOperatorPair(
 func testSetBinaryOperator(
 	t *testing.T,
 	bitop func(a, b uint64) uint64,
-	setop func(a, b Set[int]) Set[int],
+	setop func(a, b frozen.Set[int]) frozen.Set[int],
 ) {
 	t.Helper()
 
@@ -566,14 +567,14 @@ func testSetBinaryOperator(
 func TestSetIntersection(t *testing.T) {
 	t.Parallel()
 
-	expected := NewSet(3, 5, 6, 10, 11)
-	a := NewSet(3, 5, 6, 7, 10, 11, 12)
-	b := NewSet(3, 5, 6, 8, 9, 10, 11, 15, 19)
-	test.AssertSetEqual(t, expected, a.Intersection(b))
+	expected := frozen.NewSet(3, 5, 6, 10, 11)
+	a := frozen.NewSet(3, 5, 6, 7, 10, 11, 12)
+	b := frozen.NewSet(3, 5, 6, 8, 9, 10, 11, 15, 19)
+	testset.AssertSetEqual(t, expected, a.Intersection(b))
 
 	testSetBinaryOperator(t,
 		func(a, b uint64) uint64 { return a & b },
-		func(a, b Set[int]) Set[int] { return a.Intersection(b) },
+		func(a, b frozen.Set[int]) frozen.Set[int] { return a.Intersection(b) },
 	)
 }
 
@@ -585,10 +586,10 @@ func TestSetIntersectionLarge(t *testing.T) {
 		bits -= 3
 	}
 	for i := 0; i <= bits; i++ {
-		a := Iota2(1<<uint(i), 9<<uint(i))
-		b := Iota(9 << uint(i)).Intersection(Iota2(1<<uint(i), 10<<uint(i)))
-		if !test.AssertSetEqual(t, a, b, "%d", i) {
-			assert.ElementsMatch(t, a.Elements(), b.Elements())
+		a := frozen.Iota2(1<<uint(i), 9<<uint(i))
+		b := frozen.Iota(9 << uint(i)).Intersection(frozen.Iota2(1<<uint(i), 10<<uint(i)))
+		if !testset.AssertSetEqual(t, a, b, "%d", i) {
+			test.ElementsMatch(t, a.Elements(), b.Elements())
 			t.FailNow()
 		}
 	}
@@ -599,7 +600,7 @@ func TestSetUnion(t *testing.T) {
 
 	testSetBinaryOperator(t,
 		func(a, b uint64) uint64 { return a | b },
-		func(a, b Set[int]) Set[int] { return a.Union(b) },
+		func(a, b frozen.Set[int]) frozen.Set[int] { return a.Union(b) },
 	)
 }
 
@@ -608,7 +609,7 @@ func TestSetDifference(t *testing.T) {
 
 	testSetBinaryOperator(t,
 		func(a, b uint64) uint64 { return a &^ b },
-		func(a, b Set[int]) Set[int] { return a.Difference(b) },
+		func(a, b frozen.Set[int]) frozen.Set[int] { return a.Difference(b) },
 	)
 }
 
@@ -617,25 +618,27 @@ func TestSetSymmetricDifference(t *testing.T) {
 
 	testSetBinaryOperator(t,
 		func(a, b uint64) uint64 { return a ^ b },
-		func(a, b Set[int]) Set[int] { return a.SymmetricDifference(b) },
+		func(a, b frozen.Set[int]) frozen.Set[int] { return a.SymmetricDifference(b) },
 	)
 }
 
 func TestSetPowerset(t *testing.T) {
 	t.Parallel()
 
-	expected := NewSet(
-		NewSet[int](),
-		NewSet(3),
-		NewSet(2),
-		NewSet(2, 3),
-		NewSet(1),
-		NewSet(1, 3),
-		NewSet(1, 2),
-		NewSet(1, 2, 3),
+	expected := frozen.NewSet(
+		frozen.NewSet[int](),
+		frozen.NewSet(3),
+		frozen.NewSet(2),
+		frozen.NewSet(2, 3),
+		frozen.NewSet(1),
+		frozen.NewSet(1, 3),
+		frozen.NewSet(1, 2),
+		frozen.NewSet(1, 2, 3),
 	)
-	actual := Powerset(NewSet(1, 2, 3))
-	if !assert.True(t, expected.Equal(actual), "%v", map[string]Set[Set[int]]{"expected": expected, "actual": actual}) {
+	actual := frozen.Powerset(frozen.NewSet(1, 2, 3))
+	if !test.True(t, expected.Equal(actual),
+		"%v", map[string]frozen.Set[frozen.Set[int]]{"expected": expected, "actual": actual},
+	) {
 		log.Print("expected: ", expected)
 		log.Print("actual:   ", actual)
 		expected.Equal(actual)
@@ -645,8 +648,8 @@ func TestSetPowerset(t *testing.T) {
 func TestSetPowersetLarge(t *testing.T) {
 	t.Parallel()
 
-	expected := NewSet[Set[int]]()
-	var b SetBuilder[Set[int]]
+	expected := frozen.NewSet[frozen.Set[int]]()
+	var b frozen.SetBuilder[frozen.Set[int]]
 	bits := 15
 	if testing.Short() {
 		bits -= 3
@@ -654,9 +657,9 @@ func TestSetPowersetLarge(t *testing.T) {
 	for i := iterator.BitIterator(0); i <= 1<<bits; i++ {
 		if i.Count() == 1 {
 			expected = expected.Union(b.Finish())
-			assert.True(t, expected.Equal(Powerset(NewSetFromMask64(uint64(i-1)))), "i=%v", i)
+			test.True(t, expected.Equal(frozen.Powerset(frozen.NewSetFromMask64(uint64(i-1)))), "i=%v", i)
 		}
-		b.Add(NewSetFromMask64(uint64(i)))
+		b.Add(frozen.NewSetFromMask64(uint64(i)))
 	}
 }
 
@@ -665,12 +668,12 @@ func TestSetGroupBy(t *testing.T) {
 
 	const N = 100
 	const D = 7
-	group := SetGroupBy(Iota(N), func(el int) int {
+	group := frozen.SetGroupBy(frozen.Iota(N), func(el int) int {
 		return el % D
 	})
-	var b MapBuilder[int, Set[int]]
+	var b frozen.MapBuilder[int, frozen.Set[int]]
 	for i := 0; i < D; i++ {
-		b.Put(i, Iota3(i, N, D))
+		b.Put(i, frozen.Iota3(i, N, D))
 	}
 	assertMapEqual(t, b.Finish(), group)
 }
@@ -679,10 +682,10 @@ func TestSetRange(t *testing.T) {
 	t.Parallel()
 
 	mask := uint64(0)
-	for i := Iota(64).Range(); i.Next(); {
+	for i := frozen.Iota(64).Range(); i.Next(); {
 		mask |= uint64(1) << uint(i.Value())
 	}
-	assert.Equal(t, ^uint64(0), mask)
+	test.Equal(t, ^uint64(0), mask)
 }
 
 func TestSetOrderedRange(t *testing.T) {
@@ -690,17 +693,17 @@ func TestSetOrderedRange(t *testing.T) {
 
 	output := []int{}
 	less := tree.Less[int](func(a, b int) bool { return a < b })
-	for i := Iota(10).OrderedRange(less); i.Next(); {
+	for i := frozen.Iota(10).OrderedRange(less); i.Next(); {
 		output = append(output, i.Value())
 	}
-	assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, output)
+	test.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, output)
 
 	output = output[:0]
 	less = tree.Less[int](func(a, b int) bool { return a > b })
-	for i := Iota(10).OrderedRange(less); i.Next(); {
+	for i := frozen.Iota(10).OrderedRange(less); i.Next(); {
 		output = append(output, i.Value())
 	}
-	assert.Equal(t, []int{9, 8, 7, 6, 5, 4, 3, 2, 1, 0}, output)
+	test.Equal(t, []int{9, 8, 7, 6, 5, 4, 3, 2, 1, 0}, output)
 }
 
 func TestSetWhere_Big(t *testing.T) {
@@ -708,15 +711,15 @@ func TestSetWhere_Big(t *testing.T) {
 
 	s := largeIntSet()
 	s2 := s.Where(func(e int) bool { return true })
-	test.AssertSetEqual(t, s, s2)
+	testset.AssertSetEqual(t, s, s2)
 
 	s = hugeIntSet()
 	s2 = s.Where(func(e int) bool { return true })
-	test.AssertSetEqual(t, s, s2)
+	testset.AssertSetEqual(t, s, s2)
 
 	s = largeIntSet()
 	s2 = s.Where(func(e int) bool { return false })
-	test.AssertSetEqual(t, NewSet[int](), s2)
+	testset.AssertSetEqual(t, frozen.NewSet[int](), s2)
 }
 
 func TestSetIntersection_Big(t *testing.T) {
@@ -724,12 +727,12 @@ func TestSetIntersection_Big(t *testing.T) {
 
 	s := largeIntSet()
 	s2 := s.Intersection(s)
-	test.AssertSetEqual(t, s, s2)
+	testset.AssertSetEqual(t, s, s2)
 
 	if !testing.Short() {
 		s = hugeIntSet()
 		s2 = s.Intersection(s)
-		test.AssertSetEqual(t, s, s2)
+		testset.AssertSetEqual(t, s, s2)
 	}
 }
 
@@ -738,11 +741,11 @@ func TestSetDifference_Big(t *testing.T) {
 
 	s := largeIntSet()
 	s2 := s.Difference(s)
-	test.AssertSetEqual(t, NewSet[int](), s2)
+	testset.AssertSetEqual(t, frozen.NewSet[int](), s2)
 
 	s = hugeIntSet()
 	s2 = s.Difference(s)
-	test.AssertSetEqual(t, NewSet[int](), s2)
+	testset.AssertSetEqual(t, frozen.NewSet[int](), s2)
 }
 
 func TestSetUnion_Big(t *testing.T) {
@@ -750,7 +753,7 @@ func TestSetUnion_Big(t *testing.T) {
 
 	s := largeIntSet()
 	s2 := s.Union(s)
-	test.AssertSetEqual(t, s, s2)
+	testset.AssertSetEqual(t, s, s2)
 
 	n := 100_000
 	if testing.Short() {
@@ -758,15 +761,15 @@ func TestSetUnion_Big(t *testing.T) {
 	}
 	s = intSet(0, n)
 	s2 = intSet(n/2, n)
-	test.AssertSetEqual(t, intSet(0, n*3/2), s.Union(s2))
+	testset.AssertSetEqual(t, intSet(0, n*3/2), s.Union(s2))
 
 	s = hugeIntSet()
 	s2 = s.Union(s)
-	test.AssertSetEqual(t, s, s2)
+	testset.AssertSetEqual(t, s, s2)
 }
 
-func intSet(offset, size int) Set[int] {
-	sb := NewSetBuilder[int](size)
+func intSet(offset, size int) frozen.Set[int] {
+	sb := frozen.NewSetBuilder[int](size)
 	for i := offset; i < offset+size; i++ {
 		sb.Add(i)
 	}
@@ -834,7 +837,7 @@ func BenchmarkInsertSetInterface1M(b *testing.B) {
 }
 
 var prepopFrozenSet = memoizePrepop(func(n int) any {
-	var s Set[int]
+	var s frozen.Set[int]
 	for i := 0; i < n; i++ {
 		s = s.With(i)
 	}
@@ -844,7 +847,7 @@ var prepopFrozenSet = memoizePrepop(func(n int) any {
 func benchmarkInsertFrozenSet(b *testing.B, n int) {
 	b.Helper()
 
-	s := prepopFrozenSet(n).(Set[int])
+	s := prepopFrozenSet(n).(frozen.Set[int])
 	b.ResetTimer()
 	for i := n; i < n+b.N; i++ {
 		s.With(i)

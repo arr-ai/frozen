@@ -215,7 +215,7 @@ func (m Map[K, V]) Update(n Map[K, V]) Map[K, V] {
 func (m Map[K, V]) Hash(seed uintptr) uintptr {
 	h := hash.Uintptr(uintptr(3167960924819262823&uint64(^uintptr(0))), seed)
 	for i := m.Range(); i.Next(); {
-		h ^= hash.Interface(i.Value(), hash.Interface(i.Key(), seed))
+		h ^= hash.Any(i.Value(), hash.Any(i.Key(), seed))
 	}
 	return h
 }
@@ -300,4 +300,14 @@ func (i *MapIterator[K, V]) Value() V {
 // Entry returns the current key-value pair as two return values.
 func (i *MapIterator[K, V]) Entry() (key K, value V) {
 	return i.kv.Key, i.kv.Value
+}
+
+// MapToGoMap transforms a Map[K, V] to a map[K]V. K must be comparable.
+func MapToGoMap[K comparable, V any](m Map[K, V]) map[K]V {
+	result := make(map[K]V, m.Count())
+	for r := m.Range(); r.Next(); {
+		k, v := r.Entry()
+		result[k] = v
+	}
+	return result
 }

@@ -43,18 +43,19 @@ func (s *baseSet) CountUpTo(limit int) int {
 		return count
 	}
 	n := 0
-	for i := s.set.Range(); n < limit && i.Next(); n++ {
+	for i := s.set.Range(); n < limit && i.Next(); {
+		n++
 	}
 	return n
 }
 
-func (s *baseSet) FastCountUpTo(limit int) (count int, ok bool) {
+func (s *baseSet) FastCountUpTo(int) (count int, ok bool) {
 	return 0, false
 }
 
 func (s *baseSet) Freeze() Set {
 	if m, ok := memo(s.set).(*memoSet); ok {
-		for i := m.Range(); i.Next(); {
+		for i := m.Range(); i.Next(); { //nolint:revive
 		}
 		return m.getSet()
 	}
@@ -75,7 +76,7 @@ func (s *baseSet) EqualSet(t Set) bool {
 func (s *baseSet) Hash(seed uintptr) uintptr {
 	h := hash.Uintptr(hashSeed, seed)
 	for i := s.set.Range(); i.Next(); {
-		h = hash.Interface(i.Value(), h)
+		h = hash.Any(i.Value(), h)
 	}
 	return h
 }
@@ -92,7 +93,7 @@ func (s *baseSet) Has(el any) bool {
 	return false
 }
 
-func (s *baseSet) FastHas(el any) (has, ok bool) {
+func (s *baseSet) FastHas(any) (has, ok bool) {
 	return false, false
 }
 

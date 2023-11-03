@@ -24,11 +24,11 @@ func (EmptySet) FastCount() (count int, ok bool) {
 	return 0, true
 }
 
-func (EmptySet) CountUpTo(limit int) int {
+func (EmptySet) CountUpTo(int) int {
 	return 0
 }
 
-func (EmptySet) FastCountUpTo(limit int) (count int, ok bool) {
+func (EmptySet) FastCountUpTo(int) (count int, ok bool) {
 	return 0, true
 }
 
@@ -51,15 +51,15 @@ func (EmptySet) Hash(seed uintptr) uintptr {
 	return hash.Uintptr(hashSeed, seed)
 }
 
-func (EmptySet) Has(el any) bool {
+func (EmptySet) Has(any) bool {
 	return false
 }
 
-func (EmptySet) FastHas(el any) (has, ok bool) {
+func (EmptySet) FastHas(any) (has, ok bool) {
 	return false, true
 }
 
-func (EmptySet) IsSubsetOf(set Set) bool {
+func (EmptySet) IsSubsetOf(Set) bool {
 	return true
 }
 
@@ -67,7 +67,7 @@ func (EmptySet) Range() SetIterator {
 	return emptySetIterator{}
 }
 
-func (EmptySet) Where(pred Predicate) Set {
+func (EmptySet) Where(Predicate) Set {
 	return EmptySet{}
 }
 
@@ -75,11 +75,11 @@ func (EmptySet) With(v any) Set {
 	return Frozen(frozen.NewSet(v))
 }
 
-func (EmptySet) Without(v any) Set {
+func (EmptySet) Without(any) Set {
 	return EmptySet{}
 }
 
-func (EmptySet) Map(_ Mapper) Set {
+func (EmptySet) Map(Mapper) Set {
 	return EmptySet{}
 }
 
@@ -87,11 +87,11 @@ func (EmptySet) Union(s Set) Set {
 	return s
 }
 
-func (EmptySet) Intersection(_ Set) Set {
+func (EmptySet) Intersection(Set) Set {
 	return EmptySet{}
 }
 
-func (EmptySet) Difference(_ Set) Set {
+func (EmptySet) Difference(Set) Set {
 	return EmptySet{}
 }
 

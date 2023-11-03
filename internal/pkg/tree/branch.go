@@ -83,7 +83,7 @@ func (b *branch[T]) AppendTo(dest []T) []T {
 	return dest
 }
 
-func (b *branch[T]) Canonical(_ int) node[T] {
+func (b *branch[T]) Canonical(int) node[T] {
 	var buf [maxLeafLen]T
 	if data := b.AppendTo(buf[:0]); data != nil {
 		return newTwig(data...).Canonical(0)
@@ -118,7 +118,7 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 		b, m2 = b.with(args, n.data[1], depth, newHasher(n.data[1], depth))
 		return b, m1 + m2
 	default:
-		panic(errors.WTF)
+		panic(errors.ErrWTF)
 	}
 }
 
@@ -148,7 +148,7 @@ func (b *branch[T]) Difference(gauge depth.Gauge, n node[T], depth int) (_ node[
 		ret, m2 = ret.Without(n.data[1], depth, newHasher(n.data[1], depth))
 		return ret, m1 + m2
 	default:
-		panic(errors.WTF)
+		panic(errors.ErrWTF)
 	}
 }
 
@@ -196,7 +196,7 @@ func (b *branch[T]) Intersection(gauge depth.Gauge, n node[T], depth int) (_ nod
 	case *leaf2[T]:
 		return n.Intersection(gauge, b, depth)
 	default:
-		panic(errors.WTF)
+		panic(errors.ErrWTF)
 	}
 }
 
@@ -246,11 +246,11 @@ func (b *branch[T]) SubsetOf(gauge depth.Gauge, n node[T], depth int) bool {
 			x, y := b.p.data[i], n.p.data[i]
 			if x == nil {
 				return true, 0
-			} else if y == nil {
-				return false, 0
-			} else {
-				return x.SubsetOf(gauge, y, depth+1), 0
 			}
+			if y == nil {
+				return false, 0
+			}
+			return x.SubsetOf(gauge, y, depth+1), 0
 		})
 		return ok
 	default:
@@ -311,13 +311,16 @@ func (b *branch[T]) Vet() int {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					panic(errors.WrapPrefix(r, fmt.Sprintf("branch[T][%d]", m.FirstIndex()), 0))
+					if err := r.(error); err != nil {
+						panic(fmt.Errorf("branch[T][%d]: %w", m.FirstIndex(), err))
+					}
+					panic(fmt.Errorf("branch[T][%d]: %v", m.FirstIndex(), r))
 				}
 			}()
 			if n := p.GetChild(m); n != nil {
 				count += p.GetChild(m).Vet()
 			} else {
-				panic(errors.Errorf("nil node[T] for mask %b", b.p.mask))
+				panic(fmt.Errorf("nil node[T] for mask %b", b.p.mask))
 			}
 		}()
 	}

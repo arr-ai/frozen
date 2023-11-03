@@ -1,15 +1,6 @@
 package frozen
 
-import (
-	"encoding/json"
-
-	"github.com/arr-ai/frozen/pkg/errors"
-)
-
-func marshalJSON(v any) ([]byte, error) {
-	data, err := json.Marshal(v)
-	return data, errors.Wrap(err, 0)
-}
+import "encoding/json"
 
 // MarshalJSON implements json.Marshaler.
 func (m Map[K, V]) MarshalJSON() ([]byte, error) {
@@ -19,7 +10,7 @@ func (m Map[K, V]) MarshalJSON() ([]byte, error) {
 		for i := m.Range(); i.Next(); {
 			proxy[i.Key()] = i.Value()
 		}
-		return marshalJSON(proxy)
+		return json.Marshal(proxy)
 	}
 	return m.marshalJSONArray()
 }
@@ -30,8 +21,8 @@ var _ json.Marshaler = Map[any, any]{}
 func (m Map[K, V]) marshalJSONArray() ([]byte, error) {
 	proxy := make([]any, 0, m.Count())
 	for i := m.Range(); i.Next(); {
-		proxy = append(proxy, []any{i.Key(), i.Value()})
+		proxy = append(proxy, []any{i.Key(), i.Value()}) //nolint:asasalint
 	}
 	data, err := json.Marshal(proxy)
-	return data, errors.Wrap(err, 0)
+	return data, err
 }

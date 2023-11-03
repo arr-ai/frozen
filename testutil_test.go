@@ -4,9 +4,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
-	. "github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/internal/pkg/test"
 )
 
 func memoizePrepop[T any](prepare func(n int) T) func(n int) T {
@@ -24,7 +23,7 @@ func memoizePrepop[T any](prepare func(n int) T) func(n int) T {
 	}
 }
 
-// func intSetToMap(s Set) map[int]bool {
+// func intSetToMap(s frozen.Set) map[int]bool {
 // 	result := make(map[int]bool, s.Count())
 // 	for i := s.Range(); i.Next(); {
 // 		result[i.Value().(int)] = true
@@ -32,7 +31,7 @@ func memoizePrepop[T any](prepare func(n int) T) func(n int) T {
 // 	return result
 // }
 
-// func intSetDiff(a, b Set) (l, m, r []int) {
+// func intSetDiff(a, b frozen.Set) (l, m, r []int) {
 // 	ma := intSetToMap(a)
 // 	mb := intSetToMap(b)
 // 	for e := range ma {
@@ -53,21 +52,21 @@ func memoizePrepop[T any](prepare func(n int) T) func(n int) T {
 // 	return
 // }
 
-func assertSetHas[T any](t *testing.T, s Set[T], i T) bool {
+func assertSetHas[T any](t *testing.T, s frozen.Set[T], i T) bool {
 	t.Helper()
 
-	return assert.True(t, s.Has(i), "i=%v", i)
+	return test.True(t, s.Has(i), "i=%v", i)
 }
 
-func assertSetNotHas[T any](t *testing.T, s Set[T], i T) bool {
+func assertSetNotHas[T any](t *testing.T, s frozen.Set[T], i T) bool {
 	t.Helper()
 
-	return assert.False(t, s.Has(i), "i=%v", i)
+	return test.False(t, s.Has(i), "i=%v", i)
 }
 
 func assertMapEqual[K, V any](
 	t *testing.T,
-	expected, actual Map[K, V],
+	expected, actual frozen.Map[K, V],
 	msgAndArgs ...any,
 ) bool {
 	t.Helper()
@@ -81,25 +80,25 @@ func assertMapEqual[K, V any](
 		args = append(args, format)
 	}
 	args = append(args, expected, actual)
-	return assert.True(t, expected.Equal(actual), args...)
+	return test.True(t, expected.Equal(actual), args...)
 }
 
-func assertMapHas[K, V any](t *testing.T, m Map[K, V], i K, expected V) bool {
+func assertMapHas[K, V any](t *testing.T, m frozen.Map[K, V], i K, expected V) bool {
 	t.Helper()
 
 	v, has := m.Get(i)
-	ok1 := assert.Equal(t, has, m.Has(i), "has != Has(): i=%v", i)
-	ok2 := assert.True(t, has, "!has: i=%v", i) &&
-		assert.Equal(t, expected, v, "expected %v != actual %v: i=%v", expected, v, i)
+	ok1 := test.Equal(t, has, m.Has(i), "has != Has(): i=%v", i)
+	ok2 := test.True(t, has, "!has: i=%v", i) &&
+		test.Equal(t, expected, v, "expected %v != actual %v: i=%v", expected, v, i)
 	return ok1 && ok2
 }
 
-func assertMapNotHas[K, V any](t *testing.T, m Map[K, V], i K) bool {
+func assertMapNotHas[K, V any](t *testing.T, m frozen.Map[K, V], i K) bool {
 	t.Helper()
 
 	v, has := m.Get(i)
-	ok1 := assert.Equal(t, has, m.Has(i))
-	ok2 := assert.False(t, has, "i=%v v=%v", i, v)
+	ok1 := test.Equal(t, has, m.Has(i))
+	ok2 := test.False(t, has, "i=%v v=%v", i, v)
 	return ok1 && ok2
 }
 

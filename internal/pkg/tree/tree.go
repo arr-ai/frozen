@@ -7,7 +7,6 @@ import (
 
 	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/pkg/errors"
 )
 
 func packedIteratorBuf[T any](count int) [][]node[T] {
@@ -141,9 +140,9 @@ func (t Tree[T]) SubsetOf(gauge depth.Gauge, u Tree[T]) bool {
 	return t.root.SubsetOf(gauge, u.root, 0)
 }
 
-func TreeMap[T, U any](t Tree[T], f func(v T) U) (out Tree[U]) {
+func Map[T, U any](t Tree[T], f func(v T) U) (out Tree[U]) {
 	if vetting {
-		defer vet[U](func() { TreeMap(t, f) }, &t)(&out)
+		defer vet[U](func() { Map(t, f) }, &t)(&out)
 	}
 	if t.root == nil {
 		return
@@ -165,12 +164,12 @@ func (t Tree[T]) Reduce(args NodeArgs, r func(values ...T) T) (_ T, _ bool) {
 func (t Tree[T]) Vet() {
 	if t.root == nil {
 		if t.count != 0 {
-			panic(errors.Errorf("empty root count > 0 (%d)", t.count))
+			panic(fmt.Errorf("empty root count > 0 (%d)", t.count))
 		}
 	} else {
 		count := t.root.Vet()
 		if count != t.count {
-			panic(errors.Errorf("count mismatch: measured (%d) != tracked (%d)", count, t.count))
+			panic(fmt.Errorf("count mismatch: measured (%d) != tracked (%d)", count, t.count))
 		}
 	}
 }
