@@ -1,4 +1,6 @@
 github.com/arr-ai/hash v1.0.0 h1:S8NW1TzsRv3Jqh6Ik/F3SqX6ZWpx4ZZcL08NYw6sK3I=
 github.com/arr-ai/hash v1.0.0/go.mod h1:t+NkgqdI8scxkER48AXU/QE4NVojIBZKOB/US7mYVxQ=
+github.com/arr-ai/hash v1.1.0 h1:z3fOwpCRUq0uBX81OD8tpLEyOxhf+DeQMdmLvUhZcNI=
+github.com/arr-ai/hash v1.1.0/go.mod h1:t+NkgqdI8scxkER48AXU/QE4NVojIBZKOB/US7mYVxQ=
 golang.org/x/sys v0.13.0 h1:Af8nKPmuFypiUBjVoU9V20FiaFXOcuZI21p0ycVYYGE=
 golang.org/x/sys v0.13.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
