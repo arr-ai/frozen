@@ -1,8 +1,9 @@
+issues:
+  max-same-issues: 0
+
 linters-settings:
   errcheck:
     check-blank: true
-  govet:
-    check-shadowing: true
   golint:
     min-confidence: 0
   goimports:
@@ -43,7 +44,6 @@ linters:
     - errchkjson
     - errname
     - errorlint
-    - execinquery
     - exhaustive
     # - exhaustruct
     - exportloopref

@@ -11,17 +11,17 @@ func union(a, b Set) Set {
 	return memo(s)
 }
 
-func (s *unionSet) FastCountUpTo(max int) (count int, ok bool) {
+func (s *unionSet) FastCountUpTo(limit int) (count int, ok bool) {
 	if empty, ok := s.a.FastIsEmpty(); ok && empty {
-		return s.b.CountUpTo(max), true
+		return s.b.CountUpTo(limit), true
 	}
 	if empty, ok := s.b.FastIsEmpty(); ok && empty {
-		return s.a.CountUpTo(max), true
+		return s.a.CountUpTo(limit), true
 	}
-	if count, ok := s.a.FastCountUpTo(max); ok && count == max {
+	if count, ok := s.a.FastCountUpTo(limit); ok && count == limit {
 		return count, true
 	}
-	if count, ok := s.b.FastCountUpTo(max); ok && count == max {
+	if count, ok := s.b.FastCountUpTo(limit); ok && count == limit {
 		return count, true
 	}
 	return 0, false

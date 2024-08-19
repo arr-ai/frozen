@@ -18,7 +18,7 @@ func vet[U, T any](rerun func(), ins ...*Tree[T]) func(out *Tree[U]) {
 		panic("call to (*Tree[T]).vet() not wrapped in if Vetting { ... }")
 	}
 	if vetFailed {
-		return func(out *Tree[U]) {}
+		return func(*Tree[U]) {}
 	}
 
 	check := func(trees ...*Tree[T]) {
@@ -45,7 +45,7 @@ func vet[U, T any](rerun func(), ins ...*Tree[T]) func(out *Tree[U]) {
 		}
 	}
 	check(ins...)
-	return func(out *Tree[U]) {
+	return func(*Tree[U]) {
 		// TODO: reinstate
 		// if out != nil {
 		// 	ins = append(ins, out)

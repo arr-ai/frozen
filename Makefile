@@ -16,9 +16,19 @@ test:
 		$(GO) test $$length $(TESTFLAGS) ./...; \
 	done
 
+GOCACHE = $(shell go env GOCACHE)
+GOMODCACHE = $(shell go env GOMODCACHE)
+
+DOCKERRUN = docker run --rm \
+	-w /app \
+	-v $(PWD):/app \
+	-v $(GOCACHE):/root/.cache/go-build \
+	-v $(GOMODCACHE):/go/pkg/mod
+
 .PHONY: lint
 lint:
-	golangci-lint run --max-same-issues 10
+	$(DOCKERRUN) golangci/golangci-lint:v1.60.1-alpine \
+		golangci-lint run
 
 .PHONY: bench
 bench:

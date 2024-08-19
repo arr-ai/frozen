@@ -245,7 +245,7 @@ func (m Map[K, V]) String() string {
 // Format writes a string representation of the Map into state.
 func (m Map[K, V]) Format(f fmt.State, verb rune) {
 	if verb == 'v' && f.Flag('+') {
-		f.Write([]byte{'M'})
+		f.Write([]byte{'M'}) //nolint:errcheck
 		m.tree.Format(f, verb)
 		return
 	}

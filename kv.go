@@ -33,7 +33,7 @@ func (kv KeyValue[K, V]) String() string {
 // String returns a string representation of a KeyValue[K, V].
 func (kv KeyValue[K, V]) Format(f fmt.State, verb rune) {
 	fu.Format(kv.Key, f, verb)
-	f.Write([]byte{':'})
+	f.Write([]byte{':'}) //nolint:errcheck
 	fu.Format(kv.Value, f, verb)
 }
 
