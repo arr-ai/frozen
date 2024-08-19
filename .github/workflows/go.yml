@@ -34,30 +34,10 @@ jobs:
         export PATH=$PATH:$(go env GOPATH)/bin
         TESTFLAGS='-cover' make ci
 
-  # Separate lint for now because golangci-lint doesn't seem to like Go 1.23.
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        go: [ '1.19', '1.22' ]
-
-    steps:
-
-    - name: Set up Go ${{ matrix.go }}
-      uses: actions/setup-go@v4
-      with:
-        go-version: '${{ matrix.go }}'
-      id: go
-
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
-
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v6
       with:
-        version: v1.55.1
+        version: v1.60.1
 
   # Much slower, so don't require for PR merge.
   races:
