@@ -3,7 +3,7 @@ module github.com/arr-ai/frozen
 go 1.13
 
 require (
-	github.com/arr-ai/hash v0.8.0
+	github.com/arr-ai/hash v1.1.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-errors/errors v1.4.0
 	github.com/kr/pretty v0.1.0 // indirect
