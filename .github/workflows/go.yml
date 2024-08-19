@@ -32,11 +32,11 @@ jobs:
     - name: Test
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
-        TESTFLAGS='-cover' make
+        TESTFLAGS='-cover' make ci
 
   # Separate lint for now because golangci-lint doesn't seem to like Go 1.23.
   lint:
-    name: Build
+    name: Lint
     runs-on: ubuntu-latest
 
     strategy:

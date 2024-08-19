@@ -1,6 +1,9 @@
 .PHONY: all
 all: lint test
 
+.PHONY: ci
+ci: test
+
 GO ?= go
 
 LENGTHS = -short ""
