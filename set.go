@@ -133,7 +133,7 @@ func (s Set[T]) String() string {
 // Format writes a string representation of the Set into state.
 func (s Set[T]) Format(f fmt.State, verb rune) {
 	if verb == 'v' && f.Flag('+') {
-		f.Write([]byte{'S'})
+		f.Write([]byte{'S'}) //nolint:errcheck
 		s.tree.Format(f, verb)
 		return
 	}

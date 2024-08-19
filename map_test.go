@@ -394,8 +394,8 @@ func TestMapMergeEmptyMap(t *testing.T) {
 	empty := frozen.NewMap[int, int]()
 	nonEmpty := frozen.NewMap(frozen.KV(1, 2), frozen.KV(2, 3))
 
-	test.True(t, nonEmpty.Equal(empty.Merge(nonEmpty, func(key, a, b int) int { return a })))
-	test.True(t, nonEmpty.Equal(nonEmpty.Merge(empty, func(key, a, b int) int { return a })))
+	test.True(t, nonEmpty.Equal(empty.Merge(nonEmpty, func(_, a, _ int) int { return a })))
+	test.True(t, nonEmpty.Equal(nonEmpty.Merge(empty, func(_, a, _ int) int { return a })))
 }
 
 func TestMapToGoMapEmpty(t *testing.T) {

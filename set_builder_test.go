@@ -33,7 +33,7 @@ func TestSetBuilder(t *testing.T) {
 func TestSetBuilderIncremental(t *testing.T) {
 	t.Parallel()
 
-	test.Replayable(false, func(r *test.Replayer) {
+	test.Replayable(false, func(*test.Replayer) {
 		N := 1_000
 		if testing.Short() {
 			N /= 10
@@ -54,7 +54,7 @@ func TestSetBuilderIncremental(t *testing.T) {
 func TestSetBuilderRemove(t *testing.T) {
 	t.Parallel()
 
-	test.Replayable(true, func(r *test.Replayer) {
+	test.Replayable(true, func(*test.Replayer) {
 		var b frozen.SetBuilder[int]
 		for i := 0; i < 15; i++ {
 			b.Add(i)

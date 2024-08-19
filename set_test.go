@@ -710,15 +710,15 @@ func TestSetWhere_Big(t *testing.T) {
 	t.Parallel()
 
 	s := largeIntSet()
-	s2 := s.Where(func(e int) bool { return true })
+	s2 := s.Where(func(int) bool { return true })
 	testset.AssertSetEqual(t, s, s2)
 
 	s = hugeIntSet()
-	s2 = s.Where(func(e int) bool { return true })
+	s2 = s.Where(func(int) bool { return true })
 	testset.AssertSetEqual(t, s, s2)
 
 	s = largeIntSet()
-	s2 = s.Where(func(e int) bool { return false })
+	s2 = s.Where(func(int) bool { return false })
 	testset.AssertSetEqual(t, frozen.NewSet[int](), s2)
 }
 

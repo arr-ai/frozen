@@ -98,8 +98,8 @@ func TestSet(t *testing.T) { //nolint:funlen,cyclop
 		for _, p := range pairs {
 			p := p
 			for _, pred := range []func(any) bool{
-				func(el any) bool { return false },
-				func(el any) bool { return true },
+				func(any) bool { return false },
+				func(any) bool { return true },
 				func(el any) bool { return extractInt(el) < 2 },
 				func(el any) bool { return extractInt(el)%2 == 0 },
 			} {
@@ -107,7 +107,7 @@ func TestSet(t *testing.T) { //nolint:funlen,cyclop
 				test(func() lazy.Set { return p.eager.Where(pred) }, p.lazy.Where(pred))
 			}
 			for _, m := range []func(any) any{
-				func(el any) any { return 42 },
+				func(any) any { return 42 },
 				func(el any) any { return extractInt(el) * 2 },
 				func(el any) any { return extractInt(el) / 2 },
 				func(el any) any { return extractInt(el) % 2 },
