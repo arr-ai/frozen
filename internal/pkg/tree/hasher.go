@@ -13,13 +13,15 @@ import (
 const (
 	hashBits       = 8 * int(unsafe.Sizeof(uintptr(0)))
 	hashBitsOffset = hashBits - fanoutBits
-	maxTreeDepth   = 1 + (hashBits-1)/fanoutBits
+	levelsPerRound = hashBits / fanoutBits
 )
 
 type hasher uintptr
 
 func newHasher[T any](key T, depth int) hasher {
-	return hasher(hash.Any(key, 0)) << uint(depth*fanoutBits)
+	round := depth / levelsPerRound
+	level := depth % levelsPerRound
+	return hasher(hash.Any(key, uintptr(round))) << uint(level*fanoutBits)
 }
 
 func (h hasher) next() hasher {

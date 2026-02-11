@@ -11,10 +11,10 @@ func TestPackedWith(t *testing.T) {
 	t.Parallel()
 
 	p := &packer[int]{}
-	for i := 0; i < maxLeafLen; i++ {
+	for i := 0; i < fanout; i++ {
 		assertEqualPacked(t, p, p.WithChild(i, nil), i)
 	}
-	for i := 0; i < maxLeafLen; i++ {
+	for i := 0; i < fanout; i++ {
 		q := p.WithChild(i, newLeaf1(1)).WithChild(i, nil)
 		assertEqualPacked(t, p, q, i)
 	}
@@ -24,14 +24,14 @@ func TestPackedWithMulti(t *testing.T) {
 	t.Parallel()
 
 	p := (&packer[int]{}).
-		WithChild(1, newLeaf2(1, 2)).
-		WithChild(3, newLeaf2(10, 20)).
+		WithChild(1, newLeaf1(1)).
+		WithChild(3, newLeaf1(10)).
 		WithChild(3, nil).
-		WithChild(5, newLeaf2(3, 4))
+		WithChild(5, newLeaf1(3))
 	q := (&packer[int]{}).
-		WithChild(1, newLeaf2(1, 2)).
+		WithChild(1, newLeaf1(1)).
 		WithChild(3, nil).
-		WithChild(5, newLeaf2(3, 4))
+		WithChild(5, newLeaf1(3))
 	assertEqualPacked(t, p, q)
 }
 

@@ -86,7 +86,7 @@ func (t Tree[T]) Get(v T) *T {
 		return nil
 	}
 	h := newHasher(v, 0)
-	return t.root.Get(v, h)
+	return t.root.Get(v, h, 0)
 }
 
 func (t Tree[T]) Intersection(gauge depth.Gauge, u Tree[T]) (out Tree[T]) {

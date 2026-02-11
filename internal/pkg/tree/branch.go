@@ -2,11 +2,11 @@ package tree
 
 import (
 	"fmt"
+	"math/bits"
 
 	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/masker"
-	"github.com/arr-ai/frozen/pkg/errors"
 )
 
 const (
@@ -32,14 +32,26 @@ func newBranch[T any](p *packer[T]) *branch[T] {
 	return b
 }
 
-func newBranchFrom[T any](depth int, data ...T) node[T] {
-	if depth >= maxTreeDepth {
-		return newTwig(data...)
+// nextHasher advances h for the next depth, recomputing when crossing a round boundary.
+func nextHasher[T any](v T, h hasher, depth int) hasher {
+	if (depth+1)%levelsPerRound == 0 {
+		return newHasher(v, depth+1)
 	}
-	b := &branch[T]{}
-	for _, e := range data {
-		h := newHasher(e, depth)
-		b.AddFast(e, depth, h)
+	return h.next()
+}
+
+// collapse returns a simpler node if possible after child removal.
+// Empty branches become nil; single-leaf branches promote the leaf.
+func (b *branch[T]) collapse() node[T] {
+	count := bits.OnesCount16(uint16(b.p.mask))
+	switch {
+	case count == 0:
+		return nil
+	case count == 1:
+		only := b.p.GetChild(b.p.mask)
+		if _, isLeaf := only.(*leaf1[T]); isLeaf {
+			return only
+		}
 	}
 	return b
 }
@@ -50,7 +62,7 @@ func (b *branch[T]) Add(args *CombineArgs[T], v T, depth int, h hasher) (_ node[
 		l := newLeaf1(v)
 		b.p.SetNonNilChild(i, l)
 	} else {
-		h2 := h.next()
+		h2 := nextHasher(v, h, depth)
 		var n node[T]
 		n, matches = b.p.data[i].Add(args, v, depth+1, h2)
 		b.p.SetNonNilChild(i, n)
@@ -64,7 +76,7 @@ func (b *branch[T]) AddFast(v T, depth int, h hasher) (_ node[T], matches int) {
 		l := newLeaf1(v)
 		b.p.SetNonNilChild(i, l)
 	} else {
-		h2 := h.next()
+		h2 := nextHasher(v, h, depth)
 		var n node[T]
 		n, matches = b.p.data[i].AddFast(v, depth+1, h2)
 		b.p.SetNonNilChild(i, n)
@@ -81,14 +93,6 @@ func (b *branch[T]) AppendTo(dest []T) []T {
 		}
 	}
 	return dest
-}
-
-func (b *branch[T]) Canonical(int) node[T] {
-	var buf [maxLeafLen]T
-	if data := b.AppendTo(buf[:0]); data != nil {
-		return newTwig(data...).Canonical(0)
-	}
-	return b
 }
 
 func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T], matches int) {
@@ -110,15 +114,18 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 		})
 		ret.p.updateMask()
 		return ret, matches
+	case *collision[T]:
+		ret := b
+		for _, e := range n.data {
+			var m int
+			ret, m = ret.with(args, e, depth, newHasher(e, depth))
+			matches += m
+		}
+		return ret, matches
 	case *leaf1[T]:
 		return b.with(args, n.data, depth, newHasher(n.data, depth))
-	case *leaf2[T]:
-		var m1, m2 int
-		b, m1 = b.with(args, n.data[0], depth, newHasher(n.data[0], depth))
-		b, m2 = b.with(args, n.data[1], depth, newHasher(n.data[1], depth))
-		return b, m1 + m2
 	default:
-		panic(errors.ErrWTF)
+		panic("unexpected node type in branch.Combine")
 	}
 }
 
@@ -138,17 +145,23 @@ func (b *branch[T]) Difference(gauge depth.Gauge, n node[T], depth int) (_ node[
 			return true, matches
 		})
 		ret.p.updateMask()
-		return ret.Canonical(depth), matches
+		return ret.collapse(), matches
+	case *collision[T]:
+		var ret node[T] = b
+		for _, e := range n.data {
+			if ret == nil {
+				break
+			}
+			h := newHasher(e, depth)
+			var m int
+			ret, m = ret.Without(e, depth, h)
+			matches += m
+		}
+		return ret, matches
 	case *leaf1[T]:
 		return b.Without(n.data, depth, newHasher(n.data, depth))
-	case *leaf2[T]:
-		ret := node[T](b)
-		var m1, m2 int
-		ret, m1 = ret.Without(n.data[0], depth, newHasher(n.data[0], depth))
-		ret, m2 = ret.Without(n.data[1], depth, newHasher(n.data[1], depth))
-		return ret, m1 + m2
 	default:
-		panic(errors.ErrWTF)
+		panic("unexpected node type in branch.Difference")
 	}
 }
 
@@ -170,10 +183,10 @@ func (b *branch[T]) Equal(args *EqArgs[T], n node[T], depth int) bool {
 	return false
 }
 
-func (b *branch[T]) Get(v T, h hasher) *T {
+func (b *branch[T]) Get(v T, h hasher, depth int) *T {
 	if x := b.p.data[h.hash()]; x != nil {
-		h2 := h.next()
-		return x.Get(v, h2)
+		h2 := nextHasher(v, h, depth)
+		return x.Get(v, h2, depth+1)
 	}
 	return nil
 }
@@ -190,13 +203,13 @@ func (b *branch[T]) Intersection(gauge depth.Gauge, n node[T], depth int) (_ nod
 			return true, matches
 		})
 		ret.p.updateMask()
-		return ret.Canonical(depth), matches
+		return ret.collapse(), matches
+	case *collision[T]:
+		return n.Intersection(gauge, b, depth)
 	case *leaf1[T]:
 		return n.Intersection(gauge, b, depth)
-	case *leaf2[T]:
-		return n.Intersection(gauge, b, depth)
 	default:
-		panic(errors.ErrWTF)
+		panic("unexpected node type in branch.Intersection")
 	}
 }
 
@@ -220,21 +233,15 @@ func (b *branch[T]) Reduce(args NodeArgs, depth int, r func(values ...T) T) T {
 }
 
 func (b *branch[T]) Remove(v T, depth int, h hasher) (_ node[T], matches int) {
-	// log.Printf("(*branch[%T]).Remove(%[1]v)", v)
 	i := h.hash()
 	if n := b.p.data[i]; n != nil {
-		var n node[T]
-		n, matches = b.p.data[i].Remove(v, depth+1, h.next())
+		h2 := nextHasher(v, h, depth)
+		var n2 node[T]
+		n2, matches = n.Remove(v, depth+1, h2)
 		b := *b
-		b.p.data[i] = n
-		if _, is := n.(*branch[T]); !is {
-			var buf [maxLeafLen]T
-			if data := b.AppendTo(buf[:0]); data != nil {
-				return newLeaf(data...), matches
-			}
-		}
+		b.p.data[i] = n2
 		b.p.updateMask()
-		return &b, matches
+		return b.collapse(), matches
 	}
 	return b, matches
 }
@@ -295,7 +302,8 @@ func (b *branch[T]) Where(args *WhereArgs[T], depth int) (_ node[T], matches int
 	})
 	nodes.updateMask()
 	if nodes != b.p {
-		return newBranch(&nodes).Canonical(depth), matches
+		ret := newBranch(&nodes)
+		return ret.collapse(), matches
 	}
 	return b, matches
 }
@@ -333,7 +341,7 @@ func (b *branch[T]) With(args *CombineArgs[T], v T, depth int, h hasher) (_ node
 
 func (b *branch[T]) with(args *CombineArgs[T], v T, depth int, h hasher) (_ *branch[T], matches int) {
 	i := h.hash()
-	g := h.next()
+	g := nextHasher(v, h, depth)
 	if x := b.p.data[i]; x != nil {
 		x2, matches := x.With(args, v, depth+1, g)
 		if x2 != x {
@@ -346,7 +354,7 @@ func (b *branch[T]) with(args *CombineArgs[T], v T, depth int, h hasher) (_ *bra
 
 func (b *branch[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) {
 	i := h.hash()
-	g := h.next()
+	g := nextHasher(v, h, depth)
 	if x := b.p.data[i]; x != nil {
 		x2, matches := x.WithFast(v, depth+1, g)
 		if x2 != x {
@@ -359,13 +367,14 @@ func (b *branch[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) 
 
 func (b *branch[T]) Without(v T, depth int, h hasher) (_ node[T], matches int) {
 	i := h.hash()
-	g := h.next()
+	g := nextHasher(v, h, depth)
 	if x := b.p.data[i]; x != nil {
 		var x2 node[T]
 		if x2, matches = x.Without(v, depth+1, g); x2 != x {
 			p := b.p
 			p.updateMaskBit(masker.NewMasker(i))
-			return newBranch(p.WithChild(i, x2)).Canonical(depth), matches
+			ret := newBranch(p.WithChild(i, x2))
+			return ret.collapse(), matches
 		}
 	}
 	return b, matches
