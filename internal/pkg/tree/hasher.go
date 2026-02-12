@@ -76,9 +76,12 @@ func getHashFunc[T any]() func(T, uintptr) uintptr {
 }
 
 func newHasher[T any](key T, depth int) hasher {
+	return newHasherWith(key, depth, getHashFunc[T]())
+}
+
+func newHasherWith[T any](key T, depth int, hf func(T, uintptr) uintptr) hasher {
 	round := depth / levelsPerRound
 	level := depth % levelsPerRound
-	hf := getHashFunc[T]()
 	return hasher(hf(key, uintptr(round))) << uint(level*fanoutBits)
 }
 

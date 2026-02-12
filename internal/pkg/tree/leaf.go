@@ -26,14 +26,14 @@ type leaf[T any] struct {
 // depth. Called when a leaf overflows maxLeafLen. If all elements hash to the
 // same index, it recurses deeper. At maxSplitDepth, gives up and returns a
 // large leaf (pathological hash collision).
-func splitLeaf[T any](data []T, depth int) node[T] {
+func splitLeaf[T any](data []T, depth int, hf func(T, uintptr) uintptr) node[T] {
 	if depth >= maxSplitDepth {
 		return &leaf[T]{data: data}
 	}
 
 	var buckets [fanout][]T
 	for _, e := range data {
-		i := newHasher(e, depth).hash()
+		i := newHasherWith(e, depth, hf).hash()
 		buckets[i] = append(buckets[i], e)
 	}
 
@@ -49,7 +49,7 @@ func splitLeaf[T any](data []T, depth int) node[T] {
 
 	if occupied == 1 {
 		// All elements hash to the same index — recurse deeper.
-		inner := splitLeaf(data, depth+1)
+		inner := splitLeaf(data, depth+1, hf)
 		b := &branch[T]{count: len(data)}
 		b.p.SetNonNilChild(singleIdx, inner)
 		return b
@@ -58,7 +58,7 @@ func splitLeaf[T any](data []T, depth int) node[T] {
 	b := &branch[T]{count: len(data)}
 	for i, bucket := range buckets {
 		if len(bucket) > maxLeafLen {
-			b.p.SetNonNilChild(i, splitLeaf(bucket, depth+1))
+			b.p.SetNonNilChild(i, splitLeaf(bucket, depth+1, hf))
 		} else if len(bucket) > 0 {
 			b.p.SetNonNilChild(i, leafCanonical(bucket))
 		}
@@ -111,7 +111,7 @@ func (l *leaf[T]) Add(args *CombineArgs[T], v T, depth int, _ hasher) (_ node[T]
 		l.data = append(l.data, v)
 		return l, 0
 	}
-	return splitLeaf(append(l.data, v), depth), 0
+	return splitLeaf(append(l.data, v), depth, args.hash), 0
 }
 
 func (l *leaf[T]) AddFast(v T, depth int, _ hasher) (_ node[T], matches int) {
@@ -125,7 +125,7 @@ func (l *leaf[T]) AddFast(v T, depth int, _ hasher) (_ node[T], matches int) {
 		l.data = append(l.data, v)
 		return l, 0
 	}
-	return splitLeaf(append(l.data, v), depth), 0
+	return splitLeaf(append(l.data, v), depth, getHashFunc[T]()), 0
 }
 
 func (l *leaf[T]) AppendTo(dest []T) []T {
@@ -149,7 +149,7 @@ func (l *leaf[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T]
 		}
 		newData := append(append([]T(nil), l.data...), n.data)
 		if len(newData) > maxLeafLen {
-			return splitLeaf(newData, depth), 0
+			return splitLeaf(newData, depth, args.hash), 0
 		}
 		return &leaf[T]{data: newData}, 0
 	case *leaf[T]:
@@ -169,7 +169,7 @@ func (l *leaf[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T]
 			}
 		}
 		if len(ret.data) > maxLeafLen {
-			return splitLeaf(ret.data, depth), matches
+			return splitLeaf(ret.data, depth, args.hash), matches
 		}
 		return ret, matches
 	default:
@@ -311,7 +311,7 @@ func (l *leaf[T]) With(args *CombineArgs[T], v T, depth int, _ hasher) (_ node[T
 	all := make([]T, len(l.data)+1)
 	copy(all, l.data)
 	all[len(l.data)] = v
-	return splitLeaf(all, depth), 0
+	return splitLeaf(all, depth, args.hash), 0
 }
 
 func (l *leaf[T]) WithFast(v T, depth int, _ hasher) (_ node[T], matches int) {
@@ -328,7 +328,7 @@ func (l *leaf[T]) WithFast(v T, depth int, _ hasher) (_ node[T], matches int) {
 	all := make([]T, len(l.data)+1)
 	copy(all, l.data)
 	all[len(l.data)] = v
-	return splitLeaf(all, depth), 0
+	return splitLeaf(all, depth, getHashFunc[T]()), 0
 }
 
 func (l *leaf[T]) Without(v T, _ int, _ hasher) (_ node[T], matches int) {
