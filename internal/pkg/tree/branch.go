@@ -5,7 +5,6 @@ import (
 
 	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/masker"
 )
 
 const (
@@ -358,15 +357,17 @@ func (b *branch[T]) with(args *CombineArgs[T], v T, depth int, h hasher) (_ *bra
 	if x := b.p.data[i]; x != nil {
 		x2, matches := x.With(args, v, depth+1, g)
 		if x2 != x {
-			ret := newBranch(b.p.WithChild(i, x2))
+			ret := *b
+			ret.p.data[i] = x2
 			ret.count = b.count + 1 - matches
-			return ret, matches
+			return &ret, matches
 		}
 		return b, matches
 	}
-	ret := newBranch(b.p.WithChild(i, newLeaf1(v)))
+	ret := *b
+	ret.p.SetNonNilChild(i, newLeaf1(v))
 	ret.count = b.count + 1
-	return ret, 0
+	return &ret, 0
 }
 
 func (b *branch[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) {
@@ -375,15 +376,17 @@ func (b *branch[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) 
 	if x := b.p.data[i]; x != nil {
 		x2, matches := x.WithFast(v, depth+1, g)
 		if x2 != x {
-			ret := newBranch(b.p.WithChild(i, x2))
+			ret := *b
+			ret.p.data[i] = x2
 			ret.count = b.count + 1 - matches
-			return ret, matches
+			return &ret, matches
 		}
 		return b, matches
 	}
-	ret := newBranch(b.p.WithChild(i, newLeaf1(v)))
+	ret := *b
+	ret.p.SetNonNilChild(i, newLeaf1(v))
 	ret.count = b.count + 1
-	return ret, 0
+	return &ret, 0
 }
 
 func (b *branch[T]) Without(v T, depth int, h hasher) (_ node[T], matches int) {
@@ -392,9 +395,8 @@ func (b *branch[T]) Without(v T, depth int, h hasher) (_ node[T], matches int) {
 	if x := b.p.data[i]; x != nil {
 		var x2 node[T]
 		if x2, matches = x.Without(v, depth+1, g); x2 != x {
-			p := b.p
-			p.updateMaskBit(masker.NewMasker(i))
-			ret := newBranch(p.WithChild(i, x2))
+			ret := *b
+			ret.p.SetChild(i, x2)
 			ret.count = b.count - matches
 			return ret.collapse(), matches
 		}

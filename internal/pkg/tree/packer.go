@@ -58,6 +58,3 @@ func (p *packer[T]) updateMask() {
 	p.mask = mask
 }
 
-func (p *packer[T]) updateMaskBit(m masker.Masker) {
-	p.mask |= m
-}
