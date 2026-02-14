@@ -37,7 +37,7 @@ func (l *leaf1[T]) Add(args *CombineArgs[T], v T, _ int, _ hasher) (_ node[T], m
 		l.data = args.f(l.data, v)
 		return l, 1
 	}
-	return &leaf[T]{data: []T{l.data, v}}, 0
+	return newLeaf2(l.data, v), 0
 }
 
 func (l *leaf1[T]) AddFast(v T, _ int, _ hasher) (_ node[T], matches int) {
@@ -45,7 +45,7 @@ func (l *leaf1[T]) AddFast(v T, _ int, _ hasher) (_ node[T], matches int) {
 		l.data = v
 		return l, 1
 	}
-	return &leaf[T]{data: []T{l.data, v}}, 0
+	return newLeaf2(l.data, v), 0
 }
 
 func (l *leaf1[T]) AppendTo(dest []T) []T {
@@ -63,7 +63,9 @@ func (l *leaf1[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T
 		if args.eq(l.data, n.data) {
 			return &leaf1[T]{data: args.f(l.data, n.data)}, 1
 		}
-		return &leaf[T]{data: []T{l.data, n.data}}, 0
+		return newLeaf2(l.data, n.data), 0
+	case *leaf2[T]:
+		return n.Combine(args.Flip(), l, depth)
 	case *leaf[T]:
 		return n.Combine(args.Flip(), l, depth)
 	default:
@@ -144,14 +146,14 @@ func (l *leaf1[T]) With(args *CombineArgs[T], v T, _ int, _ hasher) (_ node[T], 
 	if args.eq(l.data, v) {
 		return &leaf1[T]{data: args.f(l.data, v)}, 1
 	}
-	return &leaf[T]{data: []T{l.data, v}}, 0
+	return newLeaf2(l.data, v), 0
 }
 
 func (l *leaf1[T]) WithFast(v T, _ int, _ hasher) (_ node[T], matches int) {
 	if value.Equal(l.data, v) {
 		return &leaf1[T]{data: v}, 1
 	}
-	return &leaf[T]{data: []T{l.data, v}}, 0
+	return newLeaf2(l.data, v), 0
 }
 
 func (l *leaf1[T]) Without(v T, _ int, _ hasher) (_ node[T], matches int) {

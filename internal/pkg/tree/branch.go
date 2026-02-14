@@ -51,10 +51,14 @@ func (b *branch[T]) collapse() node[T] {
 	}
 	var buf [maxLeafLen]T
 	data := b.AppendTo(buf[:0])
-	if len(data) == 1 {
+	switch len(data) {
+	case 1:
 		return &leaf1[T]{data: data[0]}
+	case 2:
+		return newLeaf2(data[0], data[1])
+	default:
+		return &leaf[T]{data: append([]T(nil), data...)}
 	}
-	return &leaf[T]{data: append([]T(nil), data...)}
 }
 
 func (b *branch[T]) Add(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
@@ -120,6 +124,14 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 		return ret, matches
 	case *leaf1[T]:
 		return b.with(args, n.data, depth, newHasher(n.data, depth))
+	case *leaf2[T]:
+		ret := b
+		for _, e := range n.data {
+			var m int
+			ret, m = ret.with(args, e, depth, newHasher(e, depth))
+			matches += m
+		}
+		return ret, matches
 	case *leaf[T]:
 		ret := b
 		for _, e := range n.data {
@@ -154,6 +166,18 @@ func (b *branch[T]) Difference(gauge depth.Gauge, n node[T], depth int) (_ node[
 	case *leaf1[T]:
 		h := newHasher(n.data, depth)
 		return b.Without(n.data, depth, h)
+	case *leaf2[T]:
+		var ret node[T] = b
+		for _, e := range n.data {
+			if ret == nil {
+				break
+			}
+			h := newHasher(e, depth)
+			var m int
+			ret, m = ret.Without(e, depth, h)
+			matches += m
+		}
+		return ret, matches
 	case *leaf[T]:
 		var ret node[T] = b
 		for _, e := range n.data {
@@ -212,6 +236,8 @@ func (b *branch[T]) Intersection(gauge depth.Gauge, n node[T], depth int) (_ nod
 		ret.count = matches
 		return ret.collapse(), matches
 	case *leaf1[T]:
+		return n.Intersection(gauge, b, depth)
+	case *leaf2[T]:
 		return n.Intersection(gauge, b, depth)
 	case *leaf[T]:
 		return n.Intersection(gauge, b, depth)

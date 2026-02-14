@@ -74,6 +74,8 @@ func leafCanonical[T any](data []T) node[T] {
 		return nil
 	case 1:
 		return &leaf1[T]{data: data[0]}
+	case 2:
+		return newLeaf2(data[0], data[1])
 	default:
 		return &leaf[T]{data: data}
 	}
@@ -152,6 +154,26 @@ func (l *leaf[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T]
 			return splitLeaf(newData, depth, args.hash), 0
 		}
 		return &leaf[T]{data: newData}, 0
+	case *leaf2[T]:
+		ret := &leaf[T]{data: append([]T(nil), l.data...)}
+		for _, e := range n.data {
+			found := false
+			for j, f := range ret.data {
+				if args.eq(f, e) {
+					ret.data[j] = args.f(f, e)
+					matches++
+					found = true
+					break
+				}
+			}
+			if !found {
+				ret.data = append(ret.data, e)
+			}
+		}
+		if len(ret.data) > maxLeafLen {
+			return splitLeaf(ret.data, depth, args.hash), matches
+		}
+		return leafCanonical(ret.data), matches
 	case *leaf[T]:
 		ret := &leaf[T]{data: append([]T(nil), l.data...)}
 		for _, e := range n.data {
@@ -260,10 +282,14 @@ func (l *leaf[T]) Remove(v T, _ int, _ hasher) (_ node[T], matches int) {
 				l.data[i] = l.data[last]
 			}
 			l.data = l.data[:last]
-			if len(l.data) == 1 {
+			switch len(l.data) {
+			case 1:
 				return &leaf1[T]{data: l.data[0]}, 1
+			case 2:
+				return newLeaf2(l.data[0], l.data[1]), 1
+			default:
+				return l, 1
 			}
-			return l, 1
 		}
 	}
 	return l, 0
@@ -282,6 +308,9 @@ func (l *leaf[T]) SubsetOf(_ depth.Gauge, n node[T], depth int) bool {
 func (l *leaf[T]) Vet() int {
 	if len(l.data) == 0 {
 		panic(fmt.Errorf("empty leaf"))
+	}
+	if len(l.data) <= 2 {
+		panic(fmt.Errorf("leaf with %d elements should be leaf1/leaf2", len(l.data)))
 	}
 	return len(l.data)
 }
@@ -334,16 +363,22 @@ func (l *leaf[T]) WithFast(v T, depth int, _ hasher) (_ node[T], matches int) {
 func (l *leaf[T]) Without(v T, _ int, _ hasher) (_ node[T], matches int) {
 	for i, e := range l.data {
 		if value.Equal(e, v) {
-			if len(l.data) == 1 {
+			switch len(l.data) {
+			case 1:
 				return nil, 1
-			}
-			if len(l.data) == 2 {
+			case 2:
 				return &leaf1[T]{data: l.data[1-i]}, 1
+			case 3:
+				var d [2]T
+				copy(d[:], l.data[:i])
+				copy(d[i:], l.data[i+1:])
+				return &leaf2[T]{data: d}, 1
+			default:
+				ret := make([]T, len(l.data)-1)
+				copy(ret, l.data[:i])
+				copy(ret[i:], l.data[i+1:])
+				return &leaf[T]{data: ret}, 1
 			}
-			ret := make([]T, len(l.data)-1)
-			copy(ret, l.data[:i])
-			copy(ret[i:], l.data[i+1:])
-			return &leaf[T]{data: ret}, 1
 		}
 	}
 	return l, 0
