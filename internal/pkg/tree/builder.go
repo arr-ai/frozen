@@ -2,7 +2,6 @@ package tree
 
 import (
 	"fmt"
-	"reflect"
 	"sync"
 
 	"github.com/arr-ai/frozen/internal/pkg/depth"
@@ -16,13 +15,12 @@ func DefaultNPKeyEqArgs[T any]() *EqArgs[T] {
 var defaultKeyCombineArgsCache sync.Map
 
 func DefaultNPKeyCombineArgs[T any]() *CombineArgs[T] {
-	var t T
-	rt := reflect.TypeOf(&t)
-	if f, ok := defaultKeyCombineArgsCache.Load(rt); ok {
+	key := typeKey[T]()
+	if f, ok := defaultKeyCombineArgsCache.Load(key); ok {
 		return f.(*CombineArgs[T]) //nolint:forcetypeassert
 	}
 	args := NewCombineArgs(DefaultNPKeyEqArgs[T](), UseRHS[T])
-	defaultKeyCombineArgsCache.Store(rt, args)
+	defaultKeyCombineArgsCache.Store(key, args)
 	return args
 }
 

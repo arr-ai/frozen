@@ -1,8 +1,6 @@
 package value
 
 import (
-	"reflect"
-	"sync"
 	"unsafe"
 )
 
@@ -31,19 +29,18 @@ func equalComparable[T any](a, b T) bool {
 	return any(a) == any(b)
 }
 
-var eqFuncCache sync.Map
-
-// Equal returns true if a and b are equal. It uses a per-type cached dispatch
-// to avoid boxing allocations on the hot path for scalar types.
+// Equal returns true if a and b are equal. It dispatches directly through
+// type assertions to avoid the overhead of a sync.Map cache lookup, which
+// costs more than the dispatch itself.
 func Equal[T any](a, b T) bool {
-	var t T
-	rt := reflect.TypeOf(&t)
-	if f, ok := eqFuncCache.Load(rt); ok {
-		return f.(func(T, T) bool)(a, b)
+	var i any = a
+	switch a := i.(type) {
+	case Equaler[T]:
+		return a.Equal(b)
+	case Samer:
+		return a.Same(b)
 	}
-	fn := EqualFuncFor[T]()
-	eqFuncCache.Store(rt, fn)
-	return fn(a, b)
+	return i == any(b)
 }
 
 // EqualFuncFor returns an equality tester optimised for T.

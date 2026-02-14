@@ -2,7 +2,6 @@ package tree
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"sync"
 	"unsafe"
@@ -65,14 +64,24 @@ func resolveHashFunc[T any]() func(T, uintptr) uintptr {
 }
 
 func getHashFunc[T any]() func(T, uintptr) uintptr {
-	var t T
-	rt := reflect.TypeOf(&t)
-	if f, ok := hashFuncCache.Load(rt); ok {
+	key := typeKey[T]()
+	if f, ok := hashFuncCache.Load(key); ok {
 		return f.(func(T, uintptr) uintptr) //nolint:forcetypeassert
 	}
 	fn := resolveHashFunc[T]()
-	hashFuncCache.Store(rt, fn)
+	hashFuncCache.Store(key, fn)
 	return fn
+}
+
+// typeKey returns a uintptr that uniquely identifies the type T, suitable for
+// use as a sync.Map key. It extracts the type-descriptor word from an eface
+// wrapping *T, which is a compile-time constant. Using uintptr instead of
+// reflect.Type avoids the expensive nilinterhash→typehash chain that sync.Map
+// incurs when hashing interface keys.
+func typeKey[T any]() uintptr {
+	var t T
+	i := any(&t)
+	return *(*uintptr)(unsafe.Pointer(&i))
 }
 
 func newHasher[T any](key T, depth int) hasher {

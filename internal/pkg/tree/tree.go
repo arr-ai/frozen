@@ -191,9 +191,10 @@ func (t Tree[T]) With(v T) (out Tree[T]) {
 	if t.root == nil {
 		return Tree[T]{root: newLeaf1(v), count: 1}
 	}
-	h := newHasher(v, 0)
+	hf := getHashFunc[T]()
+	h := newHasherWith(v, 0, hf)
 	if b, ok := t.root.(*branch[T]); ok {
-		root, matches := withFastBatched(b, v, h)
+		root, matches := withFastBatched(b, v, h, hf)
 		return newTree(root, t.count+1-matches)
 	}
 	root, matches := t.root.WithFast(v, 0, h)

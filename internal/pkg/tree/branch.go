@@ -39,6 +39,15 @@ func nextHasher[T any](v T, h hasher, depth int) hasher {
 	return h.next()
 }
 
+// nextHasherWith is like nextHasher but uses a pre-resolved hash function,
+// avoiding the sync.Map lookup in newHasher.
+func nextHasherWith[T any](v T, h hasher, depth int, hf func(T, uintptr) uintptr) hasher {
+	if (depth+1)%levelsPerRound == 0 {
+		return newHasherWith(v, depth+1, hf)
+	}
+	return h.next()
+}
+
 // collapse returns a simpler node if possible after child removal.
 // Empty branches become nil; branches with ≤maxLeafLen total elements
 // become a leaf1 or leaf.
@@ -418,7 +427,7 @@ func (b *branch[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) 
 // withFastBatched performs a With operation starting from a branch root using
 // batched allocation: all spine branch copies are allocated in a single slice
 // instead of one heap allocation per level.
-func withFastBatched[T any](root *branch[T], v T, h hasher) (node[T], int) {
+func withFastBatched[T any](root *branch[T], v T, h hasher, hf func(T, uintptr) uintptr) (node[T], int) {
 	type pathEntry struct {
 		b     *branch[T]
 		index int
@@ -439,7 +448,7 @@ func withFastBatched[T any](root *branch[T], v T, h hasher) (node[T], int) {
 		path[pathLen] = pathEntry{b: cur, index: i}
 		pathLen++
 
-		nextH := nextHasher(v, curHash, depth)
+		nextH := nextHasherWith(v, curHash, depth, hf)
 
 		if child == nil {
 			// Empty slot: insert new leaf1.
