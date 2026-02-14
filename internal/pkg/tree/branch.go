@@ -415,6 +415,80 @@ func (b *branch[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) 
 	return &ret, 0
 }
 
+// withFastBatched performs a With operation starting from a branch root using
+// batched allocation: all spine branch copies are allocated in a single slice
+// instead of one heap allocation per level.
+func withFastBatched[T any](root *branch[T], v T, h hasher) (node[T], int) {
+	type pathEntry struct {
+		b     *branch[T]
+		index int
+	}
+
+	// Stack-allocated path buffer. levelsPerRound*2 covers two full hash
+	// rounds, far more than any realistic tree depth.
+	var path [levelsPerRound * 2]pathEntry
+	pathLen := 0
+
+	cur := root
+	curHash := h
+	depth := 0
+
+	for {
+		i := curHash.hash()
+		child := cur.p.data[i]
+		path[pathLen] = pathEntry{b: cur, index: i}
+		pathLen++
+
+		nextH := nextHasher(v, curHash, depth)
+
+		if child == nil {
+			// Empty slot: insert new leaf1.
+			spine := make([]branch[T], pathLen)
+			bottom := pathLen - 1
+			spine[bottom] = *cur
+			spine[bottom].p.SetNonNilChild(i, newLeaf1(v))
+			spine[bottom].count = cur.count + 1
+
+			for j := bottom - 1; j >= 0; j-- {
+				s := path[j]
+				spine[j] = *s.b
+				spine[j].p.data[s.index] = &spine[j+1]
+				spine[j].count = s.b.count + 1
+			}
+			return &spine[0], 0
+		}
+
+		if b2, ok := child.(*branch[T]); ok {
+			cur = b2
+			curHash = nextH
+			depth++
+			continue
+		}
+
+		// Hit a leaf node — delegate to its WithFast.
+		x2, matches := child.WithFast(v, depth+1, nextH)
+		if x2 == child {
+			// No structural change.
+			return root, matches
+		}
+
+		// Batch-allocate spine and build bottom-up.
+		spine := make([]branch[T], pathLen)
+		bottom := pathLen - 1
+		spine[bottom] = *cur
+		spine[bottom].p.data[i] = x2
+		spine[bottom].count = cur.count + 1 - matches
+
+		for j := bottom - 1; j >= 0; j-- {
+			s := path[j]
+			spine[j] = *s.b
+			spine[j].p.data[s.index] = &spine[j+1]
+			spine[j].count = s.b.count + 1 - matches
+		}
+		return &spine[0], matches
+	}
+}
+
 func (b *branch[T]) Without(v T, depth int, h hasher) (_ node[T], matches int) {
 	i := h.hash()
 	g := nextHasher(v, h, depth)
