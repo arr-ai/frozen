@@ -45,11 +45,10 @@ func vet[U, T any](rerun func(), ins ...*Tree[T]) func(out *Tree[U]) {
 		}
 	}
 	check(ins...)
-	return func(*Tree[U]) {
-		// TODO: reinstate
-		// if out != nil {
-		// 	ins = append(ins, out)
-		// }
+	return func(out *Tree[U]) {
+		if out != nil {
+			out.Vet()
+		}
 		check(ins...)
 	}
 }

@@ -1,8 +1,8 @@
-//go:build !frozen_vet
+//go:build frozen_vet
 
 package vetctl
 
 const (
-	Vetting   = false
+	Vetting   = true
 	VetReruns = false
 )
