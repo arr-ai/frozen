@@ -102,6 +102,8 @@ func (l *leaf[T]) String() string {
 
 // node[T]
 
+// Add inserts v into the leaf, mutating in place. Builder-only: must not be
+// called on shared nodes (use With for immutable operations).
 func (l *leaf[T]) Add(args *CombineArgs[T], v T, depth int, _ hasher) (_ node[T], matches int) {
 	for i, e := range l.data {
 		if args.eq(e, v) {
@@ -116,6 +118,8 @@ func (l *leaf[T]) Add(args *CombineArgs[T], v T, depth int, _ hasher) (_ node[T]
 	return splitLeaf(append(l.data, v), depth, args.hash), 0
 }
 
+// AddFast inserts v into the leaf, mutating in place. Builder-only: must not
+// be called on shared nodes (use WithFast for immutable operations).
 func (l *leaf[T]) AddFast(v T, depth int, _ hasher) (_ node[T], matches int) {
 	for i, e := range l.data {
 		if value.Equal(e, v) {

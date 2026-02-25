@@ -4,28 +4,149 @@
 
 Efficient immutable data types.
 
+## Overview
+
+`frozen` is a Go 1.19+ library of immutable, persistent data structures built on hashed array tries (HAT). All mutation operations return a new value that shares structure with the original; no existing value is ever modified. The library uses Go generics throughout.
+
+```
+go get github.com/arr-ai/frozen
+```
+
 ## Types
 
-Map and Set both use a hashed array trie.
+### `Set[T any]`
 
-- Map: Associates keys with values.
-- Set: Stores sets of values.
+An immutable set backed by a hashed array trie.
+
+Key operations: `With`, `Without`, `Has`, `Union`, `Intersection`, `Difference`, `SymmetricDifference`, `Where`, `Reduce`, `Reduce2`, `IsSubsetOf`.
+
+Package-level functions: `Powerset[T]`, `SetMap[T, U]`, `SetGroupBy[T, K]`, `SetAs[U, T]`.
+
+```go
+import "github.com/arr-ai/frozen"
+
+s := frozen.NewSet(1, 2, 3)
+s2 := s.With(4).Without(2)       // {1, 3, 4}
+fmt.Println(s2.Has(3))           // true
+fmt.Println(s2.Count())          // 3
+
+evens := s2.Where(func(n int) bool { return n%2 == 0 }) // {4}
+
+u := s.Union(frozen.NewSet(3, 4, 5))         // {1, 2, 3, 4, 5}
+d := s.Difference(frozen.NewSet(2, 3))       // {1}
+
+sum, _ := s.Reduce2(func(a, b int) int { return a + b }) // 6
+```
+
+### `Map[K any, V any]`
+
+An immutable key-value map backed by a hashed array trie.
+
+Key operations: `With`, `Without`, `Get`, `MustGet`, `GetElse`, `Has`, `Keys`, `Values`, `Where`, `Merge`, `Update`, `Project`.
+
+Package-level functions: `MapMap[K, V, U]`, `NewMapFromKeys`, `NewMapFromGoMap`, `MapToGoMap`.
+
+```go
+m := frozen.NewMap(frozen.KV("a", 1), frozen.KV("b", 2))
+m2 := m.With("c", 3).Without("a")   // (b: 2, c: 3)
+
+if v, ok := m2.Get("b"); ok {
+    fmt.Println(v) // 2
+}
+
+doubled := frozen.MapMap(m, func(k string, v int) int { return v * 2 })
+
+merged := m.Merge(m2, func(k string, a, b int) int { return a + b })
+```
+
+### `IntSet[I integer]`
+
+A specialised immutable set for integer types, using 64-bit bitmap compression to pack values into cells. More memory-efficient than `Set[int]` for dense integer ranges.
+
+The `integer` constraint covers `~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr`.
+
+Key operations: `With`, `Without`, `Has`, `Union`, `Intersection`, `Where`, `Map`, `IsSubsetOf`.
+
+```go
+s := frozen.NewIntSet(1, 2, 3, 100, 101)
+fmt.Println(s.Has(100))              // true
+fmt.Println(s.Count())               // 5
+u := s.Union(frozen.NewIntSet(3, 4)) // {1, 2, 3, 4, 100, 101}
+```
+
+### `Key[T any]`
+
+A constraint interface that types must satisfy to be usable as custom map keys or set elements with value-based equality:
+
+```go
+type Key[T any] interface {
+    value.Equaler[T]   // Equal(T) bool
+    hash.Hashable      // Hash(seed uintptr) uintptr
+}
+```
+
+`Set[T]` and `Map[K, V]` themselves implement `Key`, so they can be nested.
+
+### Builders
+
+Builders accumulate elements incrementally and are more efficient than repeated `With` calls when constructing large collections.
+
+```go
+// SetBuilder
+b := frozen.NewSetBuilder[string](16)
+b.Add("x")
+b.Add("y")
+s := b.Finish() // immutable Set[string]; builder is reset
+
+// MapBuilder
+mb := frozen.NewMapBuilder[string, int](16)
+mb.Put("a", 1)
+mb.Put("b", 2)
+m := mb.Finish() // immutable Map[string, int]
+```
+
+`Finish()` returns the immutable result and resets the builder for reuse.
+
+## Subpackages
+
+### `lazy/`
+
+A `Set` interface for deferred evaluation with memoization. Operations such as `Union`, `Intersection`, `Difference`, `Where`, and `Powerset` are composed lazily and only evaluated when elements are accessed. Useful for constructing large set expressions without paying the full construction cost up front.
+
+### `pkg/rel/`
+
+Relational algebra built on `frozen.Map` and `frozen.Set`:
+
+```go
+type Tuple    = frozen.Map[string, any]
+type Relation = frozen.Set[Tuple]
+```
+
+Provided operations: `New`, `Join`, `CartesianProduct`, `Project`, `Nest`, `Unnest`.
+
+```go
+r := rel.New(
+    []string{"name", "age"},
+    []any{"alice", 30},
+    []any{"bob", 25},
+)
+names := rel.Project(r, "name")
+```
 
 ## Performance
 
-The following benchmarks test the base node implementation against several other
-key-value map implementations. All implementations are tested for insertions
-against an empty map, a map prepopulated with 1k elements and one prepopulated
-with 1M elements. The implementations are as follows:
+The following benchmarks test the base node implementation against several other key-value map implementations. All implementations are tested for insertions against an empty map, a map prepopulated with 1k elements and one prepopulated with 1M elements. The implementations are as follows:
+
+> Note: these benchmarks were recorded before the generics rewrite; relative ordering remains indicative but absolute numbers will differ on current hardware and Go versions.
 
 | Benchmark       | Type                           |
 | --------------- | ------------------------------ |
 | MapInt          | map[int]int                    |
-| MapInterface    | map[any]any    |
+| MapInterface    | map[any]any                    |
 | FrozenMap       | frozen.Map                     |
 | FrozenNode      | frozen.node                    |
 | SetInt          | set = map[int]struct{}         |
-| SetInterface    | set = map[any]struct{} |
+| SetInterface    | set = map[any]struct{}         |
 | FrozenSet       | frozen.Set                     |
 
 In all cases, ints are mapped to ints.

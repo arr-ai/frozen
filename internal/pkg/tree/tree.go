@@ -41,6 +41,7 @@ func (t Tree[T]) String() string {
 func (t Tree[T]) Format(f fmt.State, verb rune) {
 	if t.root == nil {
 		fu.WriteString(f, "∅")
+		return
 	}
 	t.root.Format(f, verb)
 }

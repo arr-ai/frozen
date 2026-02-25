@@ -441,15 +441,7 @@ func TestSetMapLarge(t *testing.T) {
 
 	s := intSet(0, 50)
 	// assertSetEqual(t, frozen.NewSet(42), s.Map(func(e any) any { return 42 }))
-	if !testset.AssertSetEqual(t, frozen.Iota3(0, 2*s.Count(), 2), frozen.SetMap(s, func(e int) int { return 2 * e })) {
-		expected := frozen.Iota3(0, 2*s.Count(), 2)
-		actual := frozen.SetMap(s, func(e int) int { return 2 * e })
-		log.Print(expected)
-		log.Print(actual)
-		for {
-			frozen.SetMap(s, func(e int) int { return 2 * e })
-		}
-	}
+	testset.AssertSetEqual(t, frozen.Iota3(0, 2*s.Count(), 2), frozen.SetMap(s, func(e int) int { return 2 * e }))
 	testset.AssertSetEqual(t, frozen.Iota(s.Count()/10), frozen.SetMap(s, func(e int) int { return e / 10 }))
 }
 

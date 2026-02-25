@@ -45,14 +45,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Set up Go ${{ matrix.go }}
-      uses: actions/setup-go@v1
+    - name: Set up Go
+      uses: actions/setup-go@v5
       with:
-        go-version: '${{ matrix.go }}'
+        go-version: '1.23'
       id: go
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
+      uses: actions/checkout@v4
 
     - name: Test
-      run: go test -race -short
+      run: go test -race -short ./...
+
+  vet:
+    name: Structural Vet
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    - name: Vet
+      run: make vet

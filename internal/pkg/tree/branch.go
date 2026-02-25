@@ -118,9 +118,9 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 		_, matches = args.Parallel(depth, b.p.mask|n.p.mask, func(i int) (_ bool, matches int) {
 			x, y := b.p.data[i], n.p.data[i]
 			if x == nil {
-				ret.p.SetNonNilChild(i, y)
+				ret.p.data[i] = y
 			} else if y == nil {
-				ret.p.SetNonNilChild(i, x)
+				ret.p.data[i] = x
 			} else {
 				var n node[T]
 				n, matches = x.Combine(args, y, depth+1)

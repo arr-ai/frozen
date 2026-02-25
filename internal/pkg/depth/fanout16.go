@@ -3,4 +3,4 @@
 
 package depth
 
-const FanoutBits = 2
+const FanoutBits = 4

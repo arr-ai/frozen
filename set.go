@@ -260,7 +260,7 @@ func (s Set[T]) Union(t Set[T]) Set[T] {
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set[T]) Difference(t Set[T]) Set[T] {
-	return Set[T]{tree: s.tree.Difference(depth.NonParallel, t.tree)}
+	return Set[T]{tree: s.tree.Difference(s.gauge(), t.tree)}
 }
 
 // SymmetricDifference returns a Set with all elements that are s or t, but not
