@@ -57,4 +57,3 @@ func (p *packer[T]) updateMask() {
 	}
 	p.mask = mask
 }
-

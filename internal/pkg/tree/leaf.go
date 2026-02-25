@@ -142,58 +142,23 @@ func (l *leaf[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T]
 	case *branch[T]:
 		return n.Combine(args.Flip(), l, depth)
 	case *leaf1[T]:
-		for j, f := range l.data {
-			if args.eq(f, n.data) {
-				ret := &leaf[T]{data: append([]T(nil), l.data...)}
-				ret.data[j] = args.f(f, n.data)
-				return ret, 1
-			}
+		merged, m := combineLeafSlices(args, append([]T(nil), l.data...), []T{n.data})
+		if len(merged) > maxLeafLen {
+			return splitLeaf(merged, depth, args.hash), m
 		}
-		newData := append(append([]T(nil), l.data...), n.data)
-		if len(newData) > maxLeafLen {
-			return splitLeaf(newData, depth, args.hash), 0
-		}
-		return &leaf[T]{data: newData}, 0
+		return &leaf[T]{data: merged}, m
 	case *leaf2[T]:
-		ret := &leaf[T]{data: append([]T(nil), l.data...)}
-		for _, e := range n.data {
-			found := false
-			for j, f := range ret.data {
-				if args.eq(f, e) {
-					ret.data[j] = args.f(f, e)
-					matches++
-					found = true
-					break
-				}
-			}
-			if !found {
-				ret.data = append(ret.data, e)
-			}
+		merged, m := combineLeafSlices(args, append([]T(nil), l.data...), n.data[:])
+		if len(merged) > maxLeafLen {
+			return splitLeaf(merged, depth, args.hash), m
 		}
-		if len(ret.data) > maxLeafLen {
-			return splitLeaf(ret.data, depth, args.hash), matches
-		}
-		return leafCanonical(ret.data), matches
+		return leafCanonical(merged), m
 	case *leaf[T]:
-		ret := &leaf[T]{data: append([]T(nil), l.data...)}
-		for _, e := range n.data {
-			found := false
-			for j, f := range ret.data {
-				if args.eq(f, e) {
-					ret.data[j] = args.f(f, e)
-					matches++
-					found = true
-					break
-				}
-			}
-			if !found {
-				ret.data = append(ret.data, e)
-			}
+		merged, m := combineLeafSlices(args, append([]T(nil), l.data...), n.data)
+		if len(merged) > maxLeafLen {
+			return splitLeaf(merged, depth, args.hash), m
 		}
-		if len(ret.data) > maxLeafLen {
-			return splitLeaf(ret.data, depth, args.hash), matches
-		}
-		return ret, matches
+		return &leaf[T]{data: merged}, m
 	default:
 		panic("unexpected node type in leaf.Combine")
 	}
@@ -386,4 +351,25 @@ func (l *leaf[T]) Without(v T, _ int, _ hasher) (_ node[T], matches int) {
 
 func (l *leaf[T]) clone() node[T] {
 	return &leaf[T]{data: append([]T(nil), l.data...)}
+}
+
+// combineLeafSlices merges src into dest using args.eq/f, returning the merged
+// slice and match count.
+func combineLeafSlices[T any](args *CombineArgs[T], dest, src []T) ([]T, int) {
+	var matches int
+	for _, e := range src {
+		found := false
+		for j, f := range dest {
+			if args.eq(f, e) {
+				dest[j] = args.f(f, e)
+				matches++
+				found = true
+				break
+			}
+		}
+		if !found {
+			dest = append(dest, e)
+		}
+	}
+	return dest, matches
 }

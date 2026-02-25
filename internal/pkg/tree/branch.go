@@ -176,32 +176,27 @@ func (b *branch[T]) Difference(gauge depth.Gauge, n node[T], depth int) (_ node[
 		h := newHasher(n.data, depth)
 		return b.Without(n.data, depth, h)
 	case *leaf2[T]:
-		var ret node[T] = b
-		for _, e := range n.data {
-			if ret == nil {
-				break
-			}
-			h := newHasher(e, depth)
-			var m int
-			ret, m = ret.Without(e, depth, h)
-			matches += m
-		}
-		return ret, matches
+		return differenceByElement[T](b, n.data[:], depth)
 	case *leaf[T]:
-		var ret node[T] = b
-		for _, e := range n.data {
-			if ret == nil {
-				break
-			}
-			h := newHasher(e, depth)
-			var m int
-			ret, m = ret.Without(e, depth, h)
-			matches += m
-		}
-		return ret, matches
+		return differenceByElement[T](b, n.data, depth)
 	default:
 		panic("unexpected node type in branch.Difference")
 	}
+}
+
+func differenceByElement[T any](base node[T], elements []T, depth int) (node[T], int) {
+	var matches int
+	ret := base
+	for _, e := range elements {
+		if ret == nil {
+			break
+		}
+		h := newHasher(e, depth)
+		var m int
+		ret, m = ret.Without(e, depth, h)
+		matches += m
+	}
+	return ret, matches
 }
 
 func (b *branch[T]) Empty() bool {
@@ -424,18 +419,37 @@ func (b *branch[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) 
 	return &ret, 0
 }
 
+type spineEntry[T any] struct {
+	b     *branch[T]
+	index int
+}
+
+// buildSpine batch-allocates branch copies for the recorded path and wires
+// them bottom-up with child as the new node at the bottom level.
+func buildSpine[T any](path []spineEntry[T], child node[T], countDelta int) *branch[T] {
+	pathLen := len(path)
+	spine := make([]branch[T], pathLen)
+	bottom := pathLen - 1
+	spine[bottom] = *path[bottom].b
+	spine[bottom].p.SetNonNilChild(path[bottom].index, child)
+	spine[bottom].count = path[bottom].b.count + countDelta
+
+	for j := bottom - 1; j >= 0; j-- {
+		s := path[j]
+		spine[j] = *s.b
+		spine[j].p.data[s.index] = &spine[j+1]
+		spine[j].count = s.b.count + countDelta
+	}
+	return &spine[0]
+}
+
 // withFastBatched performs a With operation starting from a branch root using
 // batched allocation: all spine branch copies are allocated in a single slice
 // instead of one heap allocation per level.
 func withFastBatched[T any](root *branch[T], v T, h hasher, hf func(T, uintptr) uintptr) (node[T], int) {
-	type pathEntry struct {
-		b     *branch[T]
-		index int
-	}
-
 	// Stack-allocated path buffer. levelsPerRound*2 covers two full hash
 	// rounds, far more than any realistic tree depth.
-	var path [levelsPerRound * 2]pathEntry
+	var path [levelsPerRound * 2]spineEntry[T]
 	pathLen := 0
 
 	cur := root
@@ -445,26 +459,13 @@ func withFastBatched[T any](root *branch[T], v T, h hasher, hf func(T, uintptr) 
 	for {
 		i := curHash.hash()
 		child := cur.p.data[i]
-		path[pathLen] = pathEntry{b: cur, index: i}
+		path[pathLen] = spineEntry[T]{b: cur, index: i}
 		pathLen++
 
 		nextH := nextHasherWith(v, curHash, depth, hf)
 
 		if child == nil {
-			// Empty slot: insert new leaf1.
-			spine := make([]branch[T], pathLen)
-			bottom := pathLen - 1
-			spine[bottom] = *cur
-			spine[bottom].p.SetNonNilChild(i, newLeaf1(v))
-			spine[bottom].count = cur.count + 1
-
-			for j := bottom - 1; j >= 0; j-- {
-				s := path[j]
-				spine[j] = *s.b
-				spine[j].p.data[s.index] = &spine[j+1]
-				spine[j].count = s.b.count + 1
-			}
-			return &spine[0], 0
+			return buildSpine(path[:pathLen], node[T](newLeaf1(v)), 1), 0
 		}
 
 		if b2, ok := child.(*branch[T]); ok {
@@ -477,24 +478,9 @@ func withFastBatched[T any](root *branch[T], v T, h hasher, hf func(T, uintptr) 
 		// Hit a leaf node — delegate to its WithFast.
 		x2, matches := child.WithFast(v, depth+1, nextH)
 		if x2 == child {
-			// No structural change.
 			return root, matches
 		}
-
-		// Batch-allocate spine and build bottom-up.
-		spine := make([]branch[T], pathLen)
-		bottom := pathLen - 1
-		spine[bottom] = *cur
-		spine[bottom].p.data[i] = x2
-		spine[bottom].count = cur.count + 1 - matches
-
-		for j := bottom - 1; j >= 0; j-- {
-			s := path[j]
-			spine[j] = *s.b
-			spine[j].p.data[s.index] = &spine[j+1]
-			spine[j].count = s.b.count + 1 - matches
-		}
-		return &spine[0], matches
+		return buildSpine(path[:pathLen], x2, 1-matches), matches
 	}
 }
 

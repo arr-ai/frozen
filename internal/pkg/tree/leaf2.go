@@ -75,22 +75,8 @@ func (l *leaf2[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T
 		}
 		return &leaf[T]{data: []T{l.data[0], l.data[1], n.data}}, 0
 	case *leaf2[T]:
-		ret := []T{l.data[0], l.data[1]}
-		for _, e := range n.data {
-			found := false
-			for j, f := range ret {
-				if args.eq(f, e) {
-					ret[j] = args.f(f, e)
-					matches++
-					found = true
-					break
-				}
-			}
-			if !found {
-				ret = append(ret, e)
-			}
-		}
-		return leafCanonical(ret), matches
+		merged, m := combineLeafSlices(args, []T{l.data[0], l.data[1]}, n.data[:])
+		return leafCanonical(merged), m
 	case *leaf[T]:
 		return n.Combine(args.Flip(), l, depth)
 	default:
