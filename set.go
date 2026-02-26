@@ -183,7 +183,7 @@ func (s Set[T]) Same(a any) bool {
 
 // IsSubsetOf returns true iff no element in s is not in t.
 func (s Set[T]) IsSubsetOf(t Set[T]) bool {
-	return s.tree.SubsetOf(s.gauge(), t.tree)
+	return s.tree.SubsetOf(s.eqArgs(), t.tree)
 }
 
 // Has returns true iff the key was found.
@@ -249,7 +249,7 @@ func (s Set[T]) Reduce2(reduce func(a, b T) T) (T, bool) {
 
 // Intersection returns a Set with all elements that are in both s and t.
 func (s Set[T]) Intersection(t Set[T]) Set[T] {
-	return Set[T]{tree: s.tree.Intersection(s.gauge(), t.tree)}
+	return Set[T]{tree: s.tree.Intersection(s.eqArgs(), t.tree)}
 }
 
 // Union returns a Set with all elements that are in either s or t.
@@ -260,7 +260,7 @@ func (s Set[T]) Union(t Set[T]) Set[T] {
 
 // Difference returns a Set with all elements that are s but not in t.
 func (s Set[T]) Difference(t Set[T]) Set[T] {
-	return Set[T]{tree: s.tree.Difference(s.gauge(), t.tree)}
+	return Set[T]{tree: s.tree.Difference(s.eqArgs(), t.tree)}
 }
 
 // SymmetricDifference returns a Set with all elements that are s or t, but not

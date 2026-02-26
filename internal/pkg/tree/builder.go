@@ -76,13 +76,20 @@ func (b *Builder[T]) Remove(v T) {
 			defer vet[T](func() { backup.Remove(v) }, &b.t)(nil)
 		}
 		var matches int
-		b.t.root, matches = b.t.root.Remove(v, 0, h)
+		b.t.root, matches = b.t.root.Remove(b.args.EqArgs, v, 0, h)
 		b.t.count -= matches
 	}
 }
 
 func (b *Builder[T]) Get(el T) *T {
-	return b.t.Get(el)
+	if b.t.root == nil {
+		return nil
+	}
+	if b.args == nil {
+		b.args = DefaultNPKeyCombineArgs[T]()
+	}
+	h := newHasherWith(el, 0, b.args.hash)
+	return b.t.root.Get(b.args.EqArgs, el, h, 0)
 }
 
 func (b *Builder[T]) Finish() Tree[T] {

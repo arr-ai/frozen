@@ -3,7 +3,6 @@ package tree
 import (
 	"fmt"
 
-	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/value"
 )
@@ -84,11 +83,11 @@ func (l *leaf2[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T
 	}
 }
 
-func (l *leaf2[T]) Difference(_ depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
+func (l *leaf2[T]) Difference(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
 	var ret []T
 	for _, e := range l.data {
-		h := newHasher(e, depth)
-		if n.Get(e, h, depth) != nil {
+		h := newHasherWith(e, depth, args.hash)
+		if n.Get(args, e, h, depth) != nil {
 			matches++
 		} else {
 			ret = append(ret, e)
@@ -109,21 +108,21 @@ func (l *leaf2[T]) Equal(args *EqArgs[T], n node[T], _ int) bool {
 	return false
 }
 
-func (l *leaf2[T]) Get(v T, _ hasher, _ int) *T {
-	if value.Equal(l.data[0], v) {
+func (l *leaf2[T]) Get(args *EqArgs[T], v T, _ hasher, _ int) *T {
+	if args.eq(l.data[0], v) {
 		return &l.data[0]
 	}
-	if value.Equal(l.data[1], v) {
+	if args.eq(l.data[1], v) {
 		return &l.data[1]
 	}
 	return nil
 }
 
-func (l *leaf2[T]) Intersection(_ depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
+func (l *leaf2[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
 	var ret []T
 	for _, e := range l.data {
-		h := newHasher(e, depth)
-		if n.Get(e, h, depth) != nil {
+		h := newHasherWith(e, depth, args.hash)
+		if n.Get(args, e, h, depth) != nil {
 			ret = append(ret, e)
 			matches++
 		}
@@ -147,20 +146,20 @@ func (l *leaf2[T]) Reduce(_ NodeArgs, _ int, r func(values ...T) T) T {
 	return r(l.data[0], l.data[1])
 }
 
-func (l *leaf2[T]) Remove(v T, _ int, _ hasher) (_ node[T], matches int) {
-	if value.Equal(l.data[0], v) {
+func (l *leaf2[T]) Remove(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
+	if args.eq(l.data[0], v) {
 		return &leaf1[T]{data: l.data[1]}, 1
 	}
-	if value.Equal(l.data[1], v) {
+	if args.eq(l.data[1], v) {
 		return &leaf1[T]{data: l.data[0]}, 1
 	}
 	return l, 0
 }
 
-func (l *leaf2[T]) SubsetOf(_ depth.Gauge, n node[T], depth int) bool {
+func (l *leaf2[T]) SubsetOf(args *EqArgs[T], n node[T], depth int) bool {
 	for _, e := range l.data {
-		h := newHasher(e, depth)
-		if n.Get(e, h, depth) == nil {
+		h := newHasherWith(e, depth, args.hash)
+		if n.Get(args, e, h, depth) == nil {
 			return false
 		}
 	}
@@ -206,11 +205,11 @@ func (l *leaf2[T]) WithFast(v T, _ int, _ hasher) (_ node[T], matches int) {
 	return &leaf[T]{data: []T{l.data[0], l.data[1], v}}, 0
 }
 
-func (l *leaf2[T]) Without(v T, _ int, _ hasher) (_ node[T], matches int) {
-	if value.Equal(l.data[0], v) {
+func (l *leaf2[T]) Without(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
+	if args.eq(l.data[0], v) {
 		return &leaf1[T]{data: l.data[1]}, 1
 	}
-	if value.Equal(l.data[1], v) {
+	if args.eq(l.data[1], v) {
 		return &leaf1[T]{data: l.data[0]}, 1
 	}
 	return l, 0

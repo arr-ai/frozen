@@ -132,12 +132,12 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 		ret.count = b.count + n.count - matches
 		return ret, matches
 	case *leaf1[T]:
-		return b.with(args, n.data, depth, newHasher(n.data, depth))
+		return b.with(args, n.data, depth, newHasherWith(n.data, depth, args.hash))
 	case *leaf2[T]:
 		ret := b
 		for _, e := range n.data {
 			var m int
-			ret, m = ret.with(args, e, depth, newHasher(e, depth))
+			ret, m = ret.with(args, e, depth, newHasherWith(e, depth, args.hash))
 			matches += m
 		}
 		return ret, matches
@@ -145,7 +145,7 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 		ret := b
 		for _, e := range n.data {
 			var m int
-			ret, m = ret.with(args, e, depth, newHasher(e, depth))
+			ret, m = ret.with(args, e, depth, newHasherWith(e, depth, args.hash))
 			matches += m
 		}
 		return ret, matches
@@ -154,17 +154,17 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 	}
 }
 
-func (b *branch[T]) Difference(gauge depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
+func (b *branch[T]) Difference(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
 	switch n := n.(type) {
 	case *branch[T]:
 		ret := newBranch[T](nil)
-		_, matches = gauge.Parallel(depth, b.p.mask, func(i int) (_ bool, matches int) {
+		_, matches = args.Parallel(depth, b.p.mask, func(i int) (_ bool, matches int) {
 			x, y := b.p.data[i], n.p.data[i]
 			if y == nil {
 				ret.p.data[i] = x
 			} else {
 				var n node[T]
-				n, matches = x.Difference(gauge, y, depth+1)
+				n, matches = x.Difference(args, y, depth+1)
 				ret.p.data[i] = n
 			}
 			return true, matches
@@ -173,27 +173,27 @@ func (b *branch[T]) Difference(gauge depth.Gauge, n node[T], depth int) (_ node[
 		ret.count = b.count - matches
 		return ret.collapse(), matches
 	case *leaf1[T]:
-		h := newHasher(n.data, depth)
-		return b.Without(n.data, depth, h)
+		h := newHasherWith(n.data, depth, args.hash)
+		return b.Without(args, n.data, depth, h)
 	case *leaf2[T]:
-		return differenceByElement[T](b, n.data[:], depth)
+		return differenceByElement(args, node[T](b), n.data[:], depth)
 	case *leaf[T]:
-		return differenceByElement[T](b, n.data, depth)
+		return differenceByElement(args, node[T](b), n.data, depth)
 	default:
 		panic("unexpected node type in branch.Difference")
 	}
 }
 
-func differenceByElement[T any](base node[T], elements []T, depth int) (node[T], int) {
+func differenceByElement[T any](args *EqArgs[T], base node[T], elements []T, depth int) (node[T], int) {
 	var matches int
 	ret := base
 	for _, e := range elements {
 		if ret == nil {
 			break
 		}
-		h := newHasher(e, depth)
+		h := newHasherWith(e, depth, args.hash)
 		var m int
-		ret, m = ret.Without(e, depth, h)
+		ret, m = ret.Without(args, e, depth, h)
 		matches += m
 	}
 	return ret, matches
@@ -217,22 +217,22 @@ func (b *branch[T]) Equal(args *EqArgs[T], n node[T], depth int) bool {
 	return false
 }
 
-func (b *branch[T]) Get(v T, h hasher, depth int) *T {
+func (b *branch[T]) Get(args *EqArgs[T], v T, h hasher, depth int) *T {
 	if x := b.p.data[h.hash()]; x != nil {
-		h2 := nextHasher(v, h, depth)
-		return x.Get(v, h2, depth+1)
+		h2 := nextHasherWith(v, h, depth, args.hash)
+		return x.Get(args, v, h2, depth+1)
 	}
 	return nil
 }
 
-func (b *branch[T]) Intersection(gauge depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
+func (b *branch[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
 	switch n := n.(type) {
 	case *branch[T]:
 		ret := newBranch[T](nil)
-		_, matches = gauge.Parallel(depth, b.p.mask&n.p.mask, func(i int) (_ bool, matches int) {
+		_, matches = args.Parallel(depth, b.p.mask&n.p.mask, func(i int) (_ bool, matches int) {
 			x, y := b.p.data[i], n.p.data[i]
 			var n node[T]
-			n, matches = x.Intersection(gauge, y, depth+1)
+			n, matches = x.Intersection(args, y, depth+1)
 			ret.p.data[i] = n
 			return true, matches
 		})
@@ -240,11 +240,11 @@ func (b *branch[T]) Intersection(gauge depth.Gauge, n node[T], depth int) (_ nod
 		ret.count = matches
 		return ret.collapse(), matches
 	case *leaf1[T]:
-		return n.Intersection(gauge, b, depth)
+		return n.Intersection(args, b, depth)
 	case *leaf2[T]:
-		return n.Intersection(gauge, b, depth)
+		return n.Intersection(args, b, depth)
 	case *leaf[T]:
-		return n.Intersection(gauge, b, depth)
+		return n.Intersection(args, b, depth)
 	default:
 		panic("unexpected node type in branch.Intersection")
 	}
@@ -269,12 +269,12 @@ func (b *branch[T]) Reduce(args NodeArgs, depth int, r func(values ...T) T) T {
 	return r(results2...)
 }
 
-func (b *branch[T]) Remove(v T, depth int, h hasher) (_ node[T], matches int) {
+func (b *branch[T]) Remove(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
 	i := h.hash()
 	if n := b.p.data[i]; n != nil {
-		h2 := nextHasher(v, h, depth)
+		h2 := nextHasherWith(v, h, depth, args.hash)
 		var n2 node[T]
-		n2, matches = n.Remove(v, depth+1, h2)
+		n2, matches = n.Remove(args, v, depth+1, h2)
 		b := *b
 		b.p.data[i] = n2
 		b.p.updateMask()
@@ -284,10 +284,10 @@ func (b *branch[T]) Remove(v T, depth int, h hasher) (_ node[T], matches int) {
 	return b, matches
 }
 
-func (b *branch[T]) SubsetOf(gauge depth.Gauge, n node[T], depth int) bool {
+func (b *branch[T]) SubsetOf(args *EqArgs[T], n node[T], depth int) bool {
 	switch n := n.(type) {
 	case *branch[T]:
-		ok, _ := gauge.Parallel(depth, b.p.mask|n.p.mask, func(i int) (bool, int) {
+		ok, _ := args.Parallel(depth, b.p.mask|n.p.mask, func(i int) (bool, int) {
 			x, y := b.p.data[i], n.p.data[i]
 			if x == nil {
 				return true, 0
@@ -295,7 +295,7 @@ func (b *branch[T]) SubsetOf(gauge depth.Gauge, n node[T], depth int) bool {
 			if y == nil {
 				return false, 0
 			}
-			return x.SubsetOf(gauge, y, depth+1), 0
+			return x.SubsetOf(args, y, depth+1), 0
 		})
 		return ok
 	default:
@@ -484,12 +484,12 @@ func withFastBatched[T any](root *branch[T], v T, h hasher, hf func(T, uintptr) 
 	}
 }
 
-func (b *branch[T]) Without(v T, depth int, h hasher) (_ node[T], matches int) {
+func (b *branch[T]) Without(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
 	i := h.hash()
-	g := nextHasher(v, h, depth)
+	g := nextHasherWith(v, h, depth, args.hash)
 	if x := b.p.data[i]; x != nil {
 		var x2 node[T]
-		if x2, matches = x.Without(v, depth+1, g); x2 != x {
+		if x2, matches = x.Without(args, v, depth+1, g); x2 != x {
 			ret := *b
 			ret.p.SetChild(i, x2)
 			ret.count = b.count - matches
