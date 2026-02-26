@@ -212,6 +212,10 @@ func (t Tree[T]) Without(v T) (out Tree[T]) {
 	}
 	args := DefaultNPEqArgs[T]()
 	h := newHasherWith(v, 0, args.hash)
+	if b, ok := t.root.(*branch[T]); ok {
+		root, matches := withoutBatched(b, args, v, h)
+		return newTree(root, t.count-matches)
+	}
 	root, matches := t.root.Without(args, v, 0, h)
 	return newTree(root, t.count-matches)
 }

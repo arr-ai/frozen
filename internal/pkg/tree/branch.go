@@ -484,6 +484,83 @@ func withFastBatched[T any](root *branch[T], v T, h hasher, hf func(T, uintptr) 
 	}
 }
 
+// buildSpineWithout batch-allocates branch copies for Without. Unlike
+// buildSpine, the bottom branch uses SetChild (handles nil) and is collapsed
+// if its count drops to ≤maxLeafLen.
+func buildSpineWithout[T any](path []spineEntry[T], child node[T], matches int) node[T] {
+	pathLen := len(path)
+	spine := make([]branch[T], pathLen)
+	bottom := pathLen - 1
+
+	spine[bottom] = *path[bottom].b
+	spine[bottom].p.SetChild(path[bottom].index, child)
+	spine[bottom].count = path[bottom].b.count - matches
+
+	// The bottom branch may collapse to a leaf or nil.
+	var bottomNode node[T] = &spine[bottom]
+	if spine[bottom].count <= maxLeafLen {
+		bottomNode = spine[bottom].collapse()
+	}
+
+	if pathLen == 1 {
+		return bottomNode
+	}
+
+	// Wire the rest of the spine. If bottom collapsed to a non-branch,
+	// the next level up must use SetChild (handles nil).
+	spine[bottom-1] = *path[bottom-1].b
+	spine[bottom-1].p.SetChild(path[bottom-1].index, bottomNode)
+	spine[bottom-1].count = path[bottom-1].b.count - matches
+
+	for j := bottom - 2; j >= 0; j-- {
+		s := path[j]
+		spine[j] = *s.b
+		spine[j].p.data[s.index] = &spine[j+1]
+		spine[j].count = s.b.count - matches
+	}
+	return &spine[0]
+}
+
+// withoutBatched performs a Without operation starting from a branch root using
+// batched allocation: all spine branch copies are allocated in a single slice
+// instead of one heap allocation per level.
+func withoutBatched[T any](root *branch[T], args *EqArgs[T], v T, h hasher) (node[T], int) {
+	var path [levelsPerRound * 2]spineEntry[T]
+	pathLen := 0
+
+	cur := root
+	curHash := h
+	curDepth := 0
+
+	for {
+		i := curHash.hash()
+		child := cur.p.data[i]
+
+		if child == nil {
+			return root, 0
+		}
+
+		path[pathLen] = spineEntry[T]{b: cur, index: i}
+		pathLen++
+
+		nextH := nextHasherWith(v, curHash, curDepth, args.hash)
+
+		if b2, ok := child.(*branch[T]); ok {
+			cur = b2
+			curHash = nextH
+			curDepth++
+			continue
+		}
+
+		// Hit a leaf node — delegate to its Without.
+		x2, matches := child.Without(args, v, curDepth+1, nextH)
+		if x2 == child {
+			return root, 0
+		}
+		return buildSpineWithout(path[:pathLen], x2, matches), matches
+	}
+}
+
 func (b *branch[T]) Without(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
 	i := h.hash()
 	g := nextHasherWith(v, h, depth, args.hash)
