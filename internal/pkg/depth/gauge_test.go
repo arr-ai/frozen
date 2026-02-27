@@ -26,15 +26,13 @@ func TestGaugeParallelSumsMatches(t *testing.T) {
 	// Use a gauge value large enough that depth < gauge, forcing parallel dispatch.
 	g := depth.Gauge(100)
 
-	ok, matches := g.Parallel(0, mask, func(i int) (bool, int) {
+	ok, matches := g.Parallel(0, mask, func(_ int) (bool, int) {
 		return true, 1
 	})
 
 	if !ok {
 		t.Fatal("expected ok=true, got false")
 	}
-	want := mask.Next()
-	_ = want
 	// Four bits set, each callback returns 1 → total must be 4.
 	if matches != 4 {
 		t.Fatalf("expected matches=4, got %d", matches)
@@ -49,7 +47,7 @@ func TestGaugeSequentialSumsMatches(t *testing.T) {
 	mask := buildMask(0, 2, 4)
 
 	// depth.NonParallel == -1, so depth(0) >= gauge(-1) → sequential.
-	ok, matches := depth.NonParallel.Parallel(0, mask, func(i int) (bool, int) {
+	ok, matches := depth.NonParallel.Parallel(0, mask, func(_ int) (bool, int) {
 		return true, 2
 	})
 
@@ -95,7 +93,7 @@ func TestGaugeParallelEarlyExitSequential(t *testing.T) {
 	mask := buildMask(0, 1, 2, 3)
 	calls := 0
 
-	ok, _ := depth.NonParallel.Parallel(0, mask, func(i int) (bool, int) {
+	ok, _ := depth.NonParallel.Parallel(0, mask, func(_ int) (bool, int) {
 		calls++
 		// Stop after the first call.
 		return false, 0
@@ -119,7 +117,7 @@ func TestGaugeParallelEarlyExitParallel(t *testing.T) {
 	// Force parallel dispatch: gauge large, depth smaller.
 	g := depth.Gauge(100)
 
-	ok, _ := g.Parallel(0, mask, func(i int) (bool, int) {
+	ok, _ := g.Parallel(0, mask, func(_ int) (bool, int) {
 		return false, 0
 	})
 
@@ -134,7 +132,7 @@ func TestGaugeParallelEmptyMask(t *testing.T) {
 	t.Parallel()
 
 	called := false
-	ok, matches := depth.NonParallel.Parallel(0, 0, func(i int) (bool, int) {
+	ok, matches := depth.NonParallel.Parallel(0, 0, func(_ int) (bool, int) {
 		called = true
 		return true, 1
 	})
