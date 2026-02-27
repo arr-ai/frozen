@@ -2,29 +2,40 @@ package tree
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/arr-ai/frozen/internal/pkg/depth"
+	"github.com/arr-ai/frozen/internal/pkg/value"
 )
 
 func DefaultNPKeyEqArgs[T any]() *EqArgs[T] {
 	return NewDefaultKeyEqArgs[T](depth.NonParallel)
 }
 
+var defaultKeyCombineArgsCache sync.Map
+
 func DefaultNPKeyCombineArgs[T any]() *CombineArgs[T] {
-	return NewCombineArgs(DefaultNPKeyEqArgs[T](), UseRHS[T])
+	key := typeKey[T]()
+	if f, ok := defaultKeyCombineArgsCache.Load(key); ok {
+		return f.(*CombineArgs[T]) //nolint:forcetypeassert
+	}
+	args := NewCombineArgs(DefaultNPKeyEqArgs[T](), UseRHS[T])
+	defaultKeyCombineArgsCache.Store(key, args)
+	return args
 }
 
 func NewDefaultKeyEqArgs[T any](gauge depth.Gauge) *EqArgs[T] {
-	return NewEqArgs(gauge, elementEqual[T], hashValue[T])
+	return NewEqArgs(gauge, value.EqualFuncFor[T](), getHashFunc[T]())
 }
 
 // Builder[T] provides a more efficient way to build nodes incrementally.
 type Builder[T any] struct {
-	t Tree[T]
+	t    Tree[T]
+	args *CombineArgs[T]
 }
 
 func NewBuilder[T any](int) *Builder[T] {
-	return &Builder[T]{}
+	return &Builder[T]{args: DefaultNPKeyCombineArgs[T]()}
 }
 
 func (b *Builder[T]) Count() int {
@@ -36,7 +47,7 @@ func (b *Builder[T]) add(args *CombineArgs[T], v T) {
 		b.t.root = newLeaf1(v)
 		b.t.count = 1
 	} else {
-		h := newHasher(v, 0)
+		h := newHasherWith(v, 0, args.hash)
 		if vetting {
 			backup := b.clone()
 			defer vet[T](func() { backup.add(args, v) }, &b.t)(nil)
@@ -48,41 +59,42 @@ func (b *Builder[T]) add(args *CombineArgs[T], v T) {
 }
 
 func (b *Builder[T]) Add(v T) {
-	if b.t.root == nil {
-		b.t.root = newLeaf1(v)
-		b.t.count = 1
-	} else {
-		h := newHasher(v, 0)
-		if vetting {
-			backup := b.clone()
-			defer vet[T](func() { backup.Add(v) }, &b.t)(nil)
-		}
-		var matches int
-		b.t.root, matches = b.t.root.AddFast(v, 0, h)
-		b.t.count += 1 - matches
+	if b.args == nil {
+		b.args = DefaultNPKeyCombineArgs[T]()
 	}
+	b.add(b.args, v)
 }
 
 func (b *Builder[T]) Remove(v T) {
 	if b.t.root != nil {
-		h := newHasher(v, 0)
+		if b.args == nil {
+			b.args = DefaultNPKeyCombineArgs[T]()
+		}
+		h := newHasherWith(v, 0, b.args.hash)
 		if vetting {
 			backup := b.clone()
 			defer vet[T](func() { backup.Remove(v) }, &b.t)(nil)
 		}
 		var matches int
-		b.t.root, matches = b.t.root.Remove(v, 0, h)
+		b.t.root, matches = b.t.root.Remove(b.args.EqArgs, v, 0, h)
 		b.t.count -= matches
 	}
 }
 
 func (b *Builder[T]) Get(el T) *T {
-	return b.t.Get(el)
+	if b.t.root == nil {
+		return nil
+	}
+	if b.args == nil {
+		b.args = DefaultNPKeyCombineArgs[T]()
+	}
+	h := newHasherWith(el, 0, b.args.hash)
+	return b.t.root.Get(b.args.EqArgs, el, h, 0)
 }
 
 func (b *Builder[T]) Finish() Tree[T] {
 	t := b.Borrow()
-	*b = Builder[T]{}
+	b.t = Tree[T]{}
 	return t
 }
 

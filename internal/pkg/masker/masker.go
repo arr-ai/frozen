@@ -1,9 +1,8 @@
 package masker
 
 import (
+	"fmt"
 	"math/bits"
-
-	"github.com/arr-ai/frozen/pkg/errors"
 )
 
 // Masker represents a set of one-bits and the ability to enumerate them.
@@ -33,8 +32,7 @@ func (m Masker) Next() Masker {
 }
 
 func (m Masker) String() string {
-	panic(errors.ErrUnimplemented)
-	// return brailleEncoded(bits.Reverse64(uint64(m)))
+	return fmt.Sprintf("0b%016b", uint16(m))
 }
 
 func (m Masker) SubsetOf(mask Masker) bool {

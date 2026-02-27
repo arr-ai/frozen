@@ -16,6 +16,11 @@ test:
 		$(GO) test $$length $(TESTFLAGS) ./...; \
 	done
 
+.PHONY: vet
+vet:
+	@printf "\e[1m$(GO) test \e[32m-tags frozen_vet -short $(TESTFLAGS) ./...\e[0m\n"
+	@$(GO) test -tags frozen_vet -short $(TESTFLAGS) ./...
+
 GOCACHE = $(shell go env GOCACHE)
 GOMODCACHE = $(shell go env GOMODCACHE)
 

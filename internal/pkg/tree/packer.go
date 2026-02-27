@@ -4,8 +4,6 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/masker"
 )
 
-const maxLeafLen = 2
-
 type packer[T any] struct {
 	mask masker.Masker
 	data [fanout]node[T]
@@ -58,8 +56,4 @@ func (p *packer[T]) updateMask() {
 		}
 	}
 	p.mask = mask
-}
-
-func (p *packer[T]) updateMaskBit(m masker.Masker) {
-	p.mask |= m
 }

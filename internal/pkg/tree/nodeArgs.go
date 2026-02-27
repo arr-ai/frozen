@@ -2,6 +2,7 @@ package tree
 
 import (
 	"github.com/arr-ai/frozen/internal/pkg/depth"
+	"github.com/arr-ai/frozen/internal/pkg/value"
 )
 
 // DefaultNPEqArgs provides default equality with non-parallel behaviour.
@@ -71,7 +72,7 @@ func NewEqArgs[T any](
 }
 
 func NewDefaultEqArgs[T any](gauge depth.Gauge) *EqArgs[T] {
-	return NewEqArgs(gauge, elementEqual[T], hashValue[T])
+	return NewEqArgs(gauge, value.EqualFuncFor[T](), getHashFunc[T]())
 }
 
 type WhereArgs[T any] struct {

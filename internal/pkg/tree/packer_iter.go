@@ -2,32 +2,34 @@ package tree
 
 import (
 	"container/heap"
+
+	"github.com/arr-ai/frozen/internal/pkg/masker"
 )
 
 // Less dictates the order of two elements.
 type Less[T any] func(a, b T) bool
 
 type packerIterator[T any] struct {
+	mask  masker.Masker
+	data  *[fanout]node[T]
 	stack [][]node[T]
 	i     Iterator[T]
 }
 
 func newPackerIterator[T any](buf [][]node[T], p *packer[T]) *packerIterator[T] {
-	buf = append(buf, p.data[:])
-	// TODO: Speed up with mask.
-	return &packerIterator[T]{stack: buf, i: Empty[T]()}
+	return &packerIterator[T]{mask: p.mask, data: &p.data, stack: buf, i: Empty[T]()}
 }
 
 func (i *packerIterator[T]) Next() bool {
 	if i.i.Next() {
 		return true
 	}
-	p := &i.stack[0]
-	for len(*p) > 0 {
-		c := (*p)[0]
-		*p = (*p)[1:]
-		if c != nil && !c.Empty() {
-			i.i = c.Iterator(i.stack[1:])
+	for i.mask != 0 {
+		idx := i.mask.FirstIndex()
+		i.mask = i.mask.Next()
+		c := i.data[idx]
+		if !c.Empty() {
+			i.i = c.Iterator(i.stack)
 			return i.i.Next()
 		}
 	}

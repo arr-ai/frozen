@@ -41,6 +41,7 @@ func (t Tree[T]) String() string {
 func (t Tree[T]) Format(f fmt.State, verb rune) {
 	if t.root == nil {
 		fu.WriteString(f, "∅")
+		return
 	}
 	t.root.Format(f, verb)
 }
@@ -59,14 +60,14 @@ func (t Tree[T]) Combine(args *CombineArgs[T], u Tree[T]) (out Tree[T]) {
 	return newTree(root, t.count+u.count-matches)
 }
 
-func (t Tree[T]) Difference(gauge depth.Gauge, u Tree[T]) (out Tree[T]) {
+func (t Tree[T]) Difference(args *EqArgs[T], u Tree[T]) (out Tree[T]) {
 	if vetting {
-		defer vet[T](func() { t.Difference(gauge, u) }, &t, &u)(&out)
+		defer vet[T](func() { t.Difference(args, u) }, &t, &u)(&out)
 	}
 	if t.root == nil || u.root == nil {
 		return t
 	}
-	root, matches := t.root.Difference(gauge, u.root, 0)
+	root, matches := t.root.Difference(args, u.root, 0)
 	return newTree(root, t.count-matches)
 }
 
@@ -85,13 +86,14 @@ func (t Tree[T]) Get(v T) *T {
 	if t.root == nil {
 		return nil
 	}
-	h := newHasher(v, 0)
-	return t.root.Get(v, h)
+	args := DefaultNPEqArgs[T]()
+	h := newHasherWith(v, 0, args.hash)
+	return t.root.Get(args, v, h, 0)
 }
 
-func (t Tree[T]) Intersection(gauge depth.Gauge, u Tree[T]) (out Tree[T]) {
+func (t Tree[T]) Intersection(args *EqArgs[T], u Tree[T]) (out Tree[T]) {
 	if vetting {
-		defer vet[T](func() { t.Intersection(gauge, u) }, &t, &u)(&out)
+		defer vet[T](func() { t.Intersection(args, u) }, &t, &u)(&out)
 	}
 	if t.root == nil || u.root == nil {
 		return Tree[T]{}
@@ -100,7 +102,7 @@ func (t Tree[T]) Intersection(gauge depth.Gauge, u Tree[T]) (out Tree[T]) {
 		t, u = u, t
 	}
 
-	return newTree(t.root.Intersection(gauge, u.root, 0))
+	return newTree(t.root.Intersection(args, u.root, 0))
 }
 
 func (t Tree[T]) Iterator() Iterator[T] {
@@ -130,14 +132,14 @@ func (t Tree[T]) OrderedIterator(less Less[T], n int) Iterator[T] {
 	return r.(Iterator[T])
 }
 
-func (t Tree[T]) SubsetOf(gauge depth.Gauge, u Tree[T]) bool {
+func (t Tree[T]) SubsetOf(args *EqArgs[T], u Tree[T]) bool {
 	if t.root == nil {
 		return true
 	}
 	if u.root == nil {
 		return false
 	}
-	return t.root.SubsetOf(gauge, u.root, 0)
+	return t.root.SubsetOf(args, u.root, 0)
 }
 
 func Map[T, U any](t Tree[T], f func(v T) U) (out Tree[U]) {
@@ -191,7 +193,12 @@ func (t Tree[T]) With(v T) (out Tree[T]) {
 	if t.root == nil {
 		return Tree[T]{root: newLeaf1(v), count: 1}
 	}
-	h := newHasher(v, 0)
+	hf := getHashFunc[T]()
+	h := newHasherWith(v, 0, hf)
+	if b, ok := t.root.(*branch[T]); ok {
+		root, matches := withFastBatched(b, v, h, hf)
+		return newTree(root, t.count+1-matches)
+	}
 	root, matches := t.root.WithFast(v, 0, h)
 	return newTree(root, t.count+1-matches)
 }
@@ -203,8 +210,13 @@ func (t Tree[T]) Without(v T) (out Tree[T]) {
 	if t.root == nil {
 		return t
 	}
-	h := newHasher(v, 0)
-	root, matches := t.root.Without(v, 0, h)
+	args := DefaultNPEqArgs[T]()
+	h := newHasherWith(v, 0, args.hash)
+	if b, ok := t.root.(*branch[T]); ok {
+		root, matches := withoutBatched(b, args, v, h)
+		return newTree(root, t.count-matches)
+	}
+	root, matches := t.root.Without(args, v, 0, h)
 	return newTree(root, t.count-matches)
 }
 

@@ -3,29 +3,16 @@ package tree
 import (
 	"fmt"
 
-	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/value"
-	"github.com/arr-ai/frozen/pkg/errors"
 )
 
 type leaf1[T any] struct {
 	data T
 }
 
-func newLeaf[T any](data ...T) node[T] {
-	switch len(data) {
-	case 1:
-		return newLeaf1(data[0])
-	case 2:
-		return newLeaf2(data[0], data[1])
-	default:
-		panic(fmt.Errorf("data wrong size (%d) for leaf", len(data)))
-	}
-}
-
-func newLeaf1[T any](a T) *leaf1[T] {
-	return &leaf1[T]{data: a}
+func newLeaf1[T any](v T) *leaf1[T] {
+	return &leaf1[T]{data: v}
 }
 
 // fmt.Formatter
@@ -60,26 +47,6 @@ func (l *leaf1[T]) AddFast(v T, _ int, _ hasher) (_ node[T], matches int) {
 	return newLeaf2(l.data, v), 0
 }
 
-func (l *leaf1[T]) Canonical(int) node[T] {
-	return l
-}
-
-func (l *leaf1[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T], matches int) {
-	switch n := n.(type) {
-	case *branch[T]:
-		return n.Combine(args.Flip(), l, depth)
-	case *leaf2[T]:
-		return n.Combine(args.Flip(), l, depth)
-	case *leaf1[T]:
-		if args.eq(l.data, n.data) {
-			return newLeaf1(args.f(l.data, n.data)), 1
-		}
-		return newLeaf2(l.data, n.data), 0
-	default:
-		panic(errors.ErrWTF)
-	}
-}
-
 func (l *leaf1[T]) AppendTo(dest []T) []T {
 	if len(dest)+1 > cap(dest) {
 		return nil
@@ -87,8 +54,27 @@ func (l *leaf1[T]) AppendTo(dest []T) []T {
 	return append(dest, l.data)
 }
 
-func (l *leaf1[T]) Difference(_ depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
-	if n.Get(l.data, newHasher(l.data, depth)) != nil {
+func (l *leaf1[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T], matches int) {
+	switch n := n.(type) {
+	case *branch[T]:
+		return n.Combine(args.Flip(), l, depth)
+	case *leaf1[T]:
+		if args.eq(l.data, n.data) {
+			return &leaf1[T]{data: args.f(l.data, n.data)}, 1
+		}
+		return newLeaf2(l.data, n.data), 0
+	case *leaf2[T]:
+		return n.Combine(args.Flip(), l, depth)
+	case *leaf[T]:
+		return n.Combine(args.Flip(), l, depth)
+	default:
+		panic("unexpected node type in leaf1.Combine")
+	}
+}
+
+func (l *leaf1[T]) Difference(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
+	h := newHasherWith(l.data, depth, args.hash)
+	if n.Get(args, l.data, h, depth) != nil {
 		return nil, 1
 	}
 	return l, 0
@@ -99,47 +85,49 @@ func (l *leaf1[T]) Empty() bool {
 }
 
 func (l *leaf1[T]) Equal(args *EqArgs[T], n node[T], _ int) bool {
-	l2, is := n.(*leaf1[T])
-	return is && args.eq(l.data, l2.data)
+	if n, ok := n.(*leaf1[T]); ok {
+		return args.eq(l.data, n.data)
+	}
+	return false
 }
 
-func (l *leaf1[T]) Get(v T, _ hasher) *T {
-	if value.Equal(l.data, v) {
+func (l *leaf1[T]) Get(args *EqArgs[T], v T, _ hasher, _ int) *T {
+	if args.eq(l.data, v) {
 		return &l.data
 	}
 	return nil
 }
 
-func (l *leaf1[T]) Intersection(_ depth.Gauge, n node[T], depth int) (_ node[T], matches int) {
-	if n.Get(l.data, newHasher(l.data, depth)) != nil {
+func (l *leaf1[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
+	h := newHasherWith(l.data, depth, args.hash)
+	if n.Get(args, l.data, h, depth) != nil {
 		return l, 1
 	}
 	return nil, 0
 }
 
 func (l *leaf1[T]) Iterator([][]node[T]) Iterator[T] {
-	// TODO: Avoid malloc.
 	return newSliceIterator([]T{l.data})
+}
+
+func (l *leaf1[T]) Map(_ *CombineArgs[T], _ int, f func(e T) T) (_ node[T], matches int) {
+	return &leaf1[T]{data: f(l.data)}, 1
 }
 
 func (l *leaf1[T]) Reduce(_ NodeArgs, _ int, r func(values ...T) T) T {
 	return r(l.data)
 }
 
-func (l *leaf1[T]) Remove(v T, _ int, _ hasher) (_ node[T], matches int) {
-	// log.Printf("(*leaf1[%T]).Remove(%[1]v)", v)
-	if value.Equal(l.data, v) {
+func (l *leaf1[T]) Remove(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
+	if args.eq(l.data, v) {
 		return nil, 1
 	}
 	return l, 0
 }
 
-func (l *leaf1[T]) SubsetOf(_ depth.Gauge, n node[T], depth int) bool {
-	return n.Get(l.data, newHasher(l.data, depth)) != nil
-}
-
-func (l *leaf1[T]) Map(_ *CombineArgs[T], _ int, f func(e T) T) (_ node[T], matches int) {
-	return newLeaf1(f(l.data)), 1
+func (l *leaf1[T]) SubsetOf(args *EqArgs[T], n node[T], depth int) bool {
+	h := newHasherWith(l.data, depth, args.hash)
+	return n.Get(args, l.data, h, depth) != nil
 }
 
 func (l *leaf1[T]) Vet() int {
@@ -155,20 +143,20 @@ func (l *leaf1[T]) Where(args *WhereArgs[T], _ int) (_ node[T], matches int) {
 
 func (l *leaf1[T]) With(args *CombineArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
 	if args.eq(l.data, v) {
-		return newLeaf1(args.f(l.data, v)), 1
+		return &leaf1[T]{data: args.f(l.data, v)}, 1
 	}
 	return newLeaf2(l.data, v), 0
 }
 
 func (l *leaf1[T]) WithFast(v T, _ int, _ hasher) (_ node[T], matches int) {
 	if value.Equal(l.data, v) {
-		return newLeaf1(v), 1
+		return &leaf1[T]{data: v}, 1
 	}
 	return newLeaf2(l.data, v), 0
 }
 
-func (l *leaf1[T]) Without(v T, _ int, _ hasher) (_ node[T], matches int) {
-	if value.Equal(l.data, v) {
+func (l *leaf1[T]) Without(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
+	if args.eq(l.data, v) {
 		return nil, 1
 	}
 	return l, 0
