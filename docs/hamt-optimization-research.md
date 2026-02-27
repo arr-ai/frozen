@@ -373,11 +373,134 @@ than the old `leaf2` which stored two elements flat). Further improvement would
 require either restoring a specialized two-element node type or finding a way to
 reduce per-level allocation cost below one allocation per branch.
 
-## 6. Future Work
+## 6. Phase 2 Optimizations: Read/Remove Paths
+
+The optimizations in section 2 targeted the mutation paths (With, Add, Combine).
+A second round of work targeted the read and remove paths (Get, Has, Without,
+Difference, Intersection, SubsetOf) and iteration, which were still paying
+per-call dispatch costs.
+
+### 6.1 EqArgs Threading Through Read/Remove Paths
+
+**Problem.** Every `Tree.Get` and `Tree.Without` call went through
+`newHasher(v, 0)` which performs a `sync.Map` lookup via `getHashFunc[T]()`.
+At every round boundary during descent, `nextHasher` called `newHasher` again.
+Leaf equality checks used `value.Equal()` — a full type-switch per comparison.
+`Difference`, `Intersection`, and `SubsetOf` compounded both costs across all
+elements.
+
+**Solution.** Thread `*EqArgs[T]` (which carries pre-resolved `eq` and `hash`
+functions plus the parallelism `depth.Gauge`) through all six node interface
+methods: `Get`, `Without`, `Remove`, `Difference`, `Intersection`, `SubsetOf`.
+At the `Tree` level, `Get` and `Without` create a `DefaultNPEqArgs[T]()` once
+at entry and use `newHasherWith` + `nextHasherWith` throughout descent.
+`Difference`, `Intersection`, and `SubsetOf` accept `*EqArgs[T]` directly
+(replacing `depth.Gauge`), matching the existing convention of `Combine` and
+`Equal`.
+
+### 6.2 Mask-Based Iterator
+
+**Problem.** `packerIterator.Next()` linearly scanned all `fanout` (8) slots,
+checking each for nil. With typical 2–4 occupied slots per branch, most
+iterations were wasted nil checks.
+
+**Solution.** Replace the linear scan with `masker.Masker` bit iteration. The
+iterator stores the branch's occupancy mask and advances via `FirstIndex()` /
+`Next()`, jumping directly to populated slots. The stack buffer is passed
+through to child iterators unchanged (no longer appended with `p.data[:]`).
+
+### 6.3 Batched Allocation for Without (buildSpineWithout)
+
+**Problem.** `branch.Without` allocated a new `branch[T]` per tree level via
+`ret := *b`. For depth-7 trees (1M elements, fanout 8), that's 7 separate heap
+allocations per `Without` call.
+
+**Solution.** `withoutBatched` iteratively descends through branches, recording
+the path in a stack-allocated `[levelsPerRound*2]spineEntry` buffer. On
+reaching a leaf, it calls `leaf.Without`, and if the element was found,
+`buildSpineWithout` batch-allocates all branch copies in a single
+`make([]branch[T], pathLen)` slice and wires them bottom-up. The bottom branch
+is collapsed if its count drops to ≤ `maxLeafLen`. This mirrors the existing
+`withFastBatched` pattern for `With`.
+
+### 6.4 Benchmark Results
+
+Benchmarks on Apple M4 Max, 6 iterations per measurement, comparing the commit
+before these three optimizations (`c5e25c0`) against the final state
+(`6d361b0`). The benchmark file exercises the exact operations optimized.
+
+**Latency (sec/op):**
+
+| Benchmark | Before | After | Change |
+|-----------|--------|-------|--------|
+| SetIsSubsetOf 1K | 22.2 µs | 5.97 µs | **−73%** |
+| SetIsSubsetOf 1M | 9.65 ms | 4.02 ms | **−58%** |
+| SetIntersection 1K | 38.4 µs | 22.5 µs | **−41%** |
+| SetDifference 1K | 49.4 µs | 32.3 µs | **−35%** |
+| SetDifference 1M | 11.6 ms | 7.9 ms | **−32%** |
+| SetIntersection 1M | 9.4 ms | 7.1 ms | **−25%** |
+| SetRange 1M | 58.5 ms | 47.4 ms | **−19%** |
+| SetRange 1K | 26.4 µs | 22.1 µs | **−16%** |
+| SetWithout 1M | 670 ns | 582 ns | **−13%** |
+| SetWithout 1K | 203 ns | 188 ns | **−7%** |
+| **geomean** | **48.2 µs** | **34.1 µs** | **−29%** |
+
+**Allocations (allocs/op):**
+
+| Benchmark | Before | After | Change |
+|-----------|--------|-------|--------|
+| SetIsSubsetOf 1M | 1,033K | 37K | **−96%** |
+| SetIsSubsetOf 1K | 361 | 38 | **−89%** |
+| SetDifference 1M | 2,684K | 731K | **−73%** |
+| SetWithout 1M | 10 | 4 | **−60%** |
+| SetIntersection 1M | 1,636K | 639K | **−61%** |
+| SetIntersection 1K | 852 | 532 | **−38%** |
+| SetDifference 1K | 1,383 | 890 | **−36%** |
+| SetWithout 1K | 5 | 4 | **−20%** |
+| **geomean** | **1,376** | **638** | **−54%** |
+
+**Bytes/op:**
+
+| Benchmark | Before | After | Change |
+|-----------|--------|-------|--------|
+| SetIsSubsetOf 1M | 9.3 MiB | 1.7 MiB | **−82%** |
+| SetIsSubsetOf 1K | 4.3 KiB | 1.7 KiB | **−60%** |
+| SetDifference 1M | 35.3 MiB | 20.3 MiB | **−43%** |
+| SetIntersection 1M | 25.0 MiB | 17.4 MiB | **−30%** |
+| SetIntersection 1K | 19.2 KiB | 16.9 KiB | **−12%** |
+| **geomean** | **30.5 KiB** | **27.1 KiB** | **−11%** |
+
+### 6.5 Analysis
+
+The largest improvements appear on `IsSubsetOf` (−73% time, −96% allocs at 1M).
+This operation was the most allocation-heavy before: every `SubsetOf` call
+descended through `Get` at each leaf, and each `Get` performed a `sync.Map`
+lookup per round boundary. With pre-resolved functions, the only remaining
+allocations are the `EqArgs` struct at the entry point.
+
+`Difference` and `Intersection` show 25–41% latency improvements and 36–73%
+fewer allocations. These operations traverse both trees and call `Get` or
+`Without` on leaf elements in loops — the per-element `sync.Map` and
+`value.Equal` dispatch costs compounded across thousands of elements.
+
+`Without` shows a modest 7–13% improvement. The batched spine allocation
+(phase 3) reduces heap allocations from O(depth) to O(1), but `Without`
+operations are already fast in absolute terms (sub-microsecond at 1K).
+
+`Range` (iteration) improved 16–19%, attributable to the mask-based iterator
+skipping nil slots via bit manipulation instead of linear scanning.
+
+`Has` (Get) showed a regression in bytes/op (+300% at 1K) due to the
+`DefaultNPEqArgs[T]()` allocation at the `Tree.Get` entry point. The
+pre-optimization code allocated nothing at the entry point (hash/eq were
+resolved inline). A per-type cache for default `EqArgs` — matching the existing
+`defaultKeyCombineArgsCache` pattern — would eliminate this overhead.
+
+## 7. Future Work
 
 The following ideas have been identified but not yet explored.
 
-### 6.1 splitLeaf Hot Path Optimization
+### 7.1 splitLeaf Hot Path Optimization
 
 The primary source of the remaining Set-With regression (+14-30%). When two
 elements collide at a given hash prefix depth, `splitLeaf` creates a full branch
@@ -392,7 +515,7 @@ elements flat with zero branch overhead. Options:
   N elements by their next hash chunk in a single pass rather than inserting
   one-by-one. This reduces intermediate allocations from O(N) to O(fanout).
 
-### 6.2 IntSet/With Profiling
+### 7.2 IntSet/With Profiling
 
 The steepest remaining regression (+60%). Needs dedicated CPU profiling to
 determine whether the cause is the same `splitLeaf` overhead or something
@@ -400,7 +523,7 @@ specific to the bitmap-compressed integer encoding (`Map[I, cellMask]`). The
 bitmap layer adds its own With operations on top of the tree's, so the
 regression may compound differently than for plain `Set[T]`.
 
-### 6.3 pkg/rel Generics Migration
+### 7.3 pkg/rel Generics Migration
 
 The `pkg/rel/` subpackage (relational algebra: Tuple, Relation, Join,
 CartesianProduct, Project) currently does not compile against the generics-based
@@ -413,13 +536,13 @@ longer exist (`.Equal`, `.Hash` on value types). A migration pass is needed to:
 - Replace removed helper constructors with their generic equivalents
 - Update value types to satisfy the `Key[T]` constraint interface
 
-### 6.4 Linter Upgrade
+### 7.4 Linter Upgrade
 
 The branch name (`upgrade-linter`) suggests this was the original goal.
 `.golangci.yml` targets golangci-lint v1.60.1. Newer versions may support
 additional linters, improved analysis, and updated rule sets.
 
-### 6.5 Leaf Slice Preallocation in splitLeaf
+### 7.5 Leaf Slice Preallocation in splitLeaf
 
 When `splitLeaf` distributes N elements into child nodes, the resulting `leaf`
 slices grow dynamically. Preallocating at the expected partition size
@@ -427,7 +550,14 @@ slices grow dynamically. Preallocating at the expected partition size
 slice growth. Impact is likely small given that leaf sizes are bounded at 8
 elements, but worth measuring.
 
-### 6.6 Lazy branch.count
+### 7.6 Cache DefaultNPEqArgs Per Type
+
+`Tree.Get` and `Tree.Without` currently allocate a `DefaultNPEqArgs[T]()` on
+every call. Adding a `sync.Map`-based per-type cache — matching the existing
+`defaultKeyCombineArgsCache` pattern in `builder.go` — would eliminate the
+`Has` bytes/op regression (+300% at 1K) identified in section 6.5.
+
+### 7.7 Lazy branch.count
 
 The `branch.count` field is maintained eagerly on every `With`/`Without`
 mutation, requiring arithmetic at each branch level. If `Count()` is called
