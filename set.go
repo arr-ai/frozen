@@ -163,6 +163,9 @@ func (s Set[T]) OrderedRange(less tree.Less[T]) Iterator[T] {
 // Hash computes a hash value for s.
 func (s Set[T]) Hash(seed uintptr) uintptr {
 	h := hash.Uintptr(uintptr(10538386443025343807&uint64(^uintptr(0))), seed)
+	if seed == 0 {
+		return h ^ s.tree.H0().Lo()
+	}
 	for i := s.Range(); i.Next(); {
 		h ^= hash.Any(i.Value(), seed)
 	}

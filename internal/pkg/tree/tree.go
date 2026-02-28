@@ -35,6 +35,13 @@ func (t Tree[T]) Count() int {
 	return t.count
 }
 
+func (t Tree[T]) H0() h128 {
+	if t.root == nil {
+		return h128{}
+	}
+	return t.root.H0()
+}
+
 func (t Tree[T]) Gauge() depth.Gauge {
 	return depth.NewGauge(t.count)
 }
@@ -91,6 +98,8 @@ func (t Tree[T]) Equal(args *EqArgs[T], u Tree[T]) bool {
 		return true
 	case t.root.H0() != u.root.H0():
 		return false
+	case args.fullHash && !t.root.H0().isZero():
+		return true
 	default:
 		return t.root.Equal(args, u.root, 0)
 	}
@@ -213,7 +222,7 @@ func (t Tree[T]) With(v T) (out Tree[T]) {
 	}
 	hf := t.hashFunc()
 	if t.root == nil {
-		return Tree[T]{root: newLeaf1WithHash(v, hf(v, 0)), count: 1, hf: hf}
+		return Tree[T]{root: newLeaf1WithHash(v, newElemH128(v, hf)), count: 1, hf: hf}
 	}
 	h := newHasherWith(v, 0, hf)
 	if b, ok := t.root.(*branch[T]); ok {

@@ -9,18 +9,19 @@ import (
 
 type leaf2[T any] struct {
 	data [2]T
-	h0   uintptr // hash(data[0],0) ^ hash(data[1],0)
-	ha   uintptr // hash(data[0],0); hash(data[1],0) = h0 ^ ha
+	h0   h128 // hash128(data[0]) ^ hash128(data[1])
+	ha   h128 // hash128(data[0]); hash128(data[1]) = h0.xor(ha)
 }
 
 func newLeaf2[T any](a, b T) *leaf2[T] {
 	hf := getHashFunc[T]()
-	ha := hf(a, 0)
-	return &leaf2[T]{data: [2]T{a, b}, h0: ha ^ hf(b, 0), ha: ha}
+	ha := newElemH128(a, hf)
+	hb := newElemH128(b, hf)
+	return &leaf2[T]{data: [2]T{a, b}, h0: ha.xor(hb), ha: ha}
 }
 
-func newLeaf2WithHash[T any](a, b T, ha, hb uintptr) *leaf2[T] {
-	return &leaf2[T]{data: [2]T{a, b}, h0: ha ^ hb, ha: ha}
+func newLeaf2WithHash[T any](a, b T, ha, hb h128) *leaf2[T] {
+	return &leaf2[T]{data: [2]T{a, b}, h0: ha.xor(hb), ha: ha}
 }
 
 // fmt.Formatter
@@ -39,10 +40,10 @@ func (l *leaf2[T]) String() string {
 	return fmt.Sprintf("%s", l)
 }
 
-func (l *leaf2[T]) H0() uintptr { return l.h0 }
+func (l *leaf2[T]) H0() h128 { return l.h0 }
 
 // hb returns the cached hash of data[1].
-func (l *leaf2[T]) hb() uintptr { return l.h0 ^ l.ha }
+func (l *leaf2[T]) hb() h128 { return l.h0.xor(l.ha) }
 
 // node[T]
 
@@ -83,17 +84,17 @@ func (l *leaf2[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T
 		for j, f := range l.data {
 			if args.eq(f, n.data) {
 				combined := args.f(f, n.data)
-				ch := args.hash(combined, 0)
-				var otherH uintptr
+				ch := newElemH128(combined, args.hash)
+				var otherH h128
 				if j == 0 {
 					otherH = l.hb()
 				} else {
 					otherH = l.ha
 				}
-				return &leaf2[T]{data: [2]T{combined, l.data[1-j]}, h0: ch ^ otherH, ha: ch}, 1
+				return &leaf2[T]{data: [2]T{combined, l.data[1-j]}, h0: ch.xor(otherH), ha: ch}, 1
 			}
 		}
-		return &leaf[T]{data: []T{l.data[0], l.data[1], n.data}, h0: l.h0 ^ n.h0}, 0
+		return &leaf[T]{data: []T{l.data[0], l.data[1], n.data}, h0: l.h0.xor(n.h0)}, 0
 	case *leaf2[T]:
 		merged, m := combineLeafSlices(args, []T{l.data[0], l.data[1]}, n.data[:])
 		return leafCanonical(merged), m
@@ -105,7 +106,7 @@ func (l *leaf2[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T
 }
 
 func (l *leaf2[T]) Difference(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
-	hashes := [2]uintptr{l.ha, l.hb()}
+	hashes := [2]h128{l.ha, l.hb()}
 	var found [2]bool
 	for i, e := range l.data {
 		h := hasherFromCached(hashes[i], depth, e, args.hash)
@@ -137,6 +138,9 @@ func (l *leaf2[T]) Equal(args *EqArgs[T], n node[T], _ int) bool {
 		if l.h0 != n.h0 {
 			return false
 		}
+		if args.fullHash && !l.h0.isZero() {
+			return true
+		}
 		return (args.eq(l.data[0], n.data[0]) && args.eq(l.data[1], n.data[1])) ||
 			(args.eq(l.data[0], n.data[1]) && args.eq(l.data[1], n.data[0]))
 	}
@@ -154,7 +158,7 @@ func (l *leaf2[T]) Get(args *EqArgs[T], v T, _ hasher, _ int) *T {
 }
 
 func (l *leaf2[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
-	hashes := [2]uintptr{l.ha, l.hb()}
+	hashes := [2]h128{l.ha, l.hb()}
 	var found [2]bool
 	for i, e := range l.data {
 		h := hasherFromCached(hashes[i], depth, e, args.hash)
@@ -185,7 +189,7 @@ func (l *leaf2[T]) Map(args *CombineArgs[T], _ int, f func(e T) T) (_ node[T], m
 	a, b := f(l.data[0]), f(l.data[1])
 	if args.eq(a, b) {
 		combined := args.f(a, b)
-		return newLeaf1WithHash(combined, args.hash(combined, 0)), 1
+		return newLeaf1WithHash(combined, newElemH128(combined, args.hash)), 1
 	}
 	return newLeaf2(a, b), 2
 }
@@ -205,7 +209,7 @@ func (l *leaf2[T]) Remove(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], mat
 }
 
 func (l *leaf2[T]) SubsetOf(args *EqArgs[T], n node[T], depth int) bool {
-	hashes := [2]uintptr{l.ha, l.hb()}
+	hashes := [2]h128{l.ha, l.hb()}
 	for i, e := range l.data {
 		h := hasherFromCached(hashes[i], depth, e, args.hash)
 		if n.Get(args, e, h, depth) == nil {
@@ -220,13 +224,13 @@ func (l *leaf2[T]) Vet() int {
 }
 
 func (l *leaf2[T]) vetH0(hf func(T, uintptr) uintptr) {
-	ha := hf(l.data[0], 0)
-	hb := hf(l.data[1], 0)
-	if want := ha ^ hb; l.h0 != want {
-		panic(fmt.Errorf("leaf2 h0 mismatch: stored %x, computed %x", l.h0, want))
+	ha := newElemH128(l.data[0], hf)
+	hb := newElemH128(l.data[1], hf)
+	if want := ha.xor(hb); l.h0 != want {
+		panic(fmt.Errorf("leaf2 h0 mismatch: stored %v, computed %v", l.h0, want))
 	}
 	if l.ha != ha {
-		panic(fmt.Errorf("leaf2 ha mismatch: stored %x, computed %x", l.ha, ha))
+		panic(fmt.Errorf("leaf2 ha mismatch: stored %v, computed %v", l.ha, ha))
 	}
 }
 
@@ -248,16 +252,16 @@ func (l *leaf2[T]) Where(args *WhereArgs[T], _ int) (_ node[T], matches int) {
 func (l *leaf2[T]) With(args *CombineArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
 	if args.eq(l.data[0], v) {
 		combined := args.f(l.data[0], v)
-		ch := args.hash(combined, 0)
-		return &leaf2[T]{data: [2]T{combined, l.data[1]}, h0: ch ^ l.hb(), ha: ch}, 1
+		ch := newElemH128(combined, args.hash)
+		return &leaf2[T]{data: [2]T{combined, l.data[1]}, h0: ch.xor(l.hb()), ha: ch}, 1
 	}
 	if args.eq(l.data[1], v) {
 		combined := args.f(l.data[1], v)
-		ch := args.hash(combined, 0)
-		return &leaf2[T]{data: [2]T{l.data[0], combined}, h0: l.ha ^ ch, ha: l.ha}, 1
+		ch := newElemH128(combined, args.hash)
+		return &leaf2[T]{data: [2]T{l.data[0], combined}, h0: l.ha.xor(ch), ha: l.ha}, 1
 	}
-	vh := args.hash(v, 0)
-	return &leaf[T]{data: []T{l.data[0], l.data[1], v}, h0: l.h0 ^ vh}, 0
+	vh := newElemH128(v, args.hash)
+	return &leaf[T]{data: []T{l.data[0], l.data[1], v}, h0: l.h0.xor(vh)}, 0
 }
 
 func (l *leaf2[T]) WithFast(v T, _ int, _ hasher) (_ node[T], matches int) {
@@ -270,8 +274,8 @@ func (l *leaf2[T]) WithFast(v T, _ int, _ hasher) (_ node[T], matches int) {
 		return &leaf2[T]{data: [2]T{l.data[0], v}, h0: l.h0, ha: l.ha}, 1
 	}
 	hf := getHashFunc[T]()
-	vh := hf(v, 0)
-	return &leaf[T]{data: []T{l.data[0], l.data[1], v}, h0: l.h0 ^ vh}, 0
+	vh := newElemH128(v, hf)
+	return &leaf[T]{data: []T{l.data[0], l.data[1], v}, h0: l.h0.xor(vh)}, 0
 }
 
 func (l *leaf2[T]) Without(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {

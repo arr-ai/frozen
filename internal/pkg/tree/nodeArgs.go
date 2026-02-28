@@ -53,26 +53,28 @@ func (a *CombineArgs[T]) Flip() *CombineArgs[T] {
 type EqArgs[T any] struct {
 	NodeArgs
 
-	eq func(a, b T) bool
-	// TODO
-	hash func(a T, seed uintptr) uintptr
+	eq       func(a, b T) bool
+	hash     func(a T, seed uintptr) uintptr
+	fullHash bool // h128 match implies equality; skip element comparison
 }
 
 func NewEqArgs[T any](
 	gauge depth.Gauge,
 	eq func(a, b T) bool,
 	hash func(a T, seed uintptr) uintptr,
+	fullHash bool,
 ) *EqArgs[T] {
 	na := NewNodeArgs(gauge)
 	return &EqArgs[T]{
 		NodeArgs: na,
 		eq:       eq,
 		hash:     hash,
+		fullHash: fullHash,
 	}
 }
 
 func NewDefaultEqArgs[T any](gauge depth.Gauge) *EqArgs[T] {
-	return NewEqArgs(gauge, value.EqualFuncFor[T](), getHashFunc[T]())
+	return NewEqArgs(gauge, value.EqualFuncFor[T](), getHashFunc[T](), true)
 }
 
 type WhereArgs[T any] struct {
