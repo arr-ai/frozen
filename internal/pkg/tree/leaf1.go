@@ -9,10 +9,15 @@ import (
 
 type leaf1[T any] struct {
 	data T
+	h0   uintptr
 }
 
 func newLeaf1[T any](v T) *leaf1[T] {
-	return &leaf1[T]{data: v}
+	return &leaf1[T]{data: v, h0: getHashFunc[T]()(v, 0)}
+}
+
+func newLeaf1WithHash[T any](v T, h0 uintptr) *leaf1[T] {
+	return &leaf1[T]{data: v, h0: h0}
 }
 
 // fmt.Formatter
@@ -29,22 +34,26 @@ func (l *leaf1[T]) String() string {
 	return fmt.Sprintf("%s", l)
 }
 
+func (l *leaf1[T]) H0() uintptr { return l.h0 }
+
 // node[T]
 
 func (l *leaf1[T]) Add(args *CombineArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
 	if args.eq(l.data, v) {
 		l.data = args.f(l.data, v)
+		// h0 left stale — Builder.Finish() recomputes.
 		return l, 1
 	}
-	return newLeaf2(l.data, v), 0
+	return &leaf2[T]{data: [2]T{l.data, v}}, 0
 }
 
 func (l *leaf1[T]) AddFast(v T, _ int, _ hasher) (_ node[T], matches int) {
 	if value.Equal(l.data, v) {
 		l.data = v
+		// h0 left stale — Builder.Finish() recomputes.
 		return l, 1
 	}
-	return newLeaf2(l.data, v), 0
+	return &leaf2[T]{data: [2]T{l.data, v}}, 0
 }
 
 func (l *leaf1[T]) AppendTo(dest []T) []T {
@@ -60,9 +69,10 @@ func (l *leaf1[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T
 		return n.Combine(args.Flip(), l, depth)
 	case *leaf1[T]:
 		if args.eq(l.data, n.data) {
-			return &leaf1[T]{data: args.f(l.data, n.data)}, 1
+			combined := args.f(l.data, n.data)
+			return newLeaf1WithHash(combined, args.hash(combined, 0)), 1
 		}
-		return newLeaf2(l.data, n.data), 0
+		return newLeaf2WithHash(l.data, n.data, l.h0, n.h0), 0
 	case *leaf2[T]:
 		return n.Combine(args.Flip(), l, depth)
 	case *leaf[T]:
@@ -73,7 +83,7 @@ func (l *leaf1[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T
 }
 
 func (l *leaf1[T]) Difference(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
-	h := newHasherWith(l.data, depth, args.hash)
+	h := hasherFromCached(l.h0, depth, l.data, args.hash)
 	if n.Get(args, l.data, h, depth) != nil {
 		return nil, 1
 	}
@@ -86,7 +96,7 @@ func (l *leaf1[T]) Empty() bool {
 
 func (l *leaf1[T]) Equal(args *EqArgs[T], n node[T], _ int) bool {
 	if n, ok := n.(*leaf1[T]); ok {
-		return args.eq(l.data, n.data)
+		return l.h0 == n.h0 && args.eq(l.data, n.data)
 	}
 	return false
 }
@@ -99,7 +109,7 @@ func (l *leaf1[T]) Get(args *EqArgs[T], v T, _ hasher, _ int) *T {
 }
 
 func (l *leaf1[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
-	h := newHasherWith(l.data, depth, args.hash)
+	h := hasherFromCached(l.h0, depth, l.data, args.hash)
 	if n.Get(args, l.data, h, depth) != nil {
 		return l, 1
 	}
@@ -111,7 +121,7 @@ func (l *leaf1[T]) Iterator([][]node[T]) Iterator[T] {
 }
 
 func (l *leaf1[T]) Map(_ *CombineArgs[T], _ int, f func(e T) T) (_ node[T], matches int) {
-	return &leaf1[T]{data: f(l.data)}, 1
+	return newLeaf1(f(l.data)), 1
 }
 
 func (l *leaf1[T]) Reduce(_ NodeArgs, _ int, r func(values ...T) T) T {
@@ -126,12 +136,18 @@ func (l *leaf1[T]) Remove(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], mat
 }
 
 func (l *leaf1[T]) SubsetOf(args *EqArgs[T], n node[T], depth int) bool {
-	h := newHasherWith(l.data, depth, args.hash)
+	h := hasherFromCached(l.h0, depth, l.data, args.hash)
 	return n.Get(args, l.data, h, depth) != nil
 }
 
 func (l *leaf1[T]) Vet() int {
 	return 1
+}
+
+func (l *leaf1[T]) vetH0(hf func(T, uintptr) uintptr) {
+	if want := hf(l.data, 0); l.h0 != want {
+		panic(fmt.Errorf("leaf1 h0 mismatch: stored %x, computed %x", l.h0, want))
+	}
 }
 
 func (l *leaf1[T]) Where(args *WhereArgs[T], _ int) (_ node[T], matches int) {
@@ -143,16 +159,19 @@ func (l *leaf1[T]) Where(args *WhereArgs[T], _ int) (_ node[T], matches int) {
 
 func (l *leaf1[T]) With(args *CombineArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
 	if args.eq(l.data, v) {
-		return &leaf1[T]{data: args.f(l.data, v)}, 1
+		combined := args.f(l.data, v)
+		return newLeaf1WithHash(combined, args.hash(combined, 0)), 1
 	}
-	return newLeaf2(l.data, v), 0
+	return newLeaf2WithHash(l.data, v, l.h0, args.hash(v, 0)), 0
 }
 
 func (l *leaf1[T]) WithFast(v T, _ int, _ hasher) (_ node[T], matches int) {
 	if value.Equal(l.data, v) {
-		return &leaf1[T]{data: v}, 1
+		// Equal values have equal hashes, so reuse l.h0.
+		return newLeaf1WithHash(v, l.h0), 1
 	}
-	return newLeaf2(l.data, v), 0
+	hf := getHashFunc[T]()
+	return newLeaf2WithHash(l.data, v, l.h0, hf(v, 0)), 0
 }
 
 func (l *leaf1[T]) Without(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
