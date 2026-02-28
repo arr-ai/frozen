@@ -1,3 +1,4 @@
 /cover.prof
 *.prof
 frozen.test
+.claude/
