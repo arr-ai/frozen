@@ -37,29 +37,7 @@ func splitLeaf[T any](data []T, depth int, hf func(T, uintptr) uintptr) node[T] 
 		return &leaf[T]{data: data, h0: h0}
 	}
 
-	// Compute seed-0 hashes once and reuse for both bucketing and h0.
-	elemHashes := make([]uintptr, len(data))
-	for i, e := range data {
-		elemHashes[i] = hf(e, 0)
-	}
-
-	var buckets [fanout][]T
-	var bucketH0 [fanout]uintptr
-	for i, e := range data {
-		idx := hasherFromCached(elemHashes[i], depth, e, hf).hash()
-		buckets[idx] = append(buckets[idx], e)
-		bucketH0[idx] ^= elemHashes[i]
-	}
-
-	// Count occupied buckets.
-	occupied := 0
-	singleIdx := 0
-	for i, b := range buckets {
-		if len(b) > 0 {
-			occupied++
-			singleIdx = i
-		}
-	}
+	buckets, bucketH0, occupied, singleIdx := distributeLeaf(data, depth, hf)
 
 	if occupied == 1 {
 		// All elements hash to the same index — recurse deeper.
@@ -84,6 +62,27 @@ func splitLeaf[T any](data []T, depth int, hf func(T, uintptr) uintptr) node[T] 
 	}
 	b.h0 = branchH0
 	return b
+}
+
+// distributeLeaf buckets data by hash at the given depth, returning the
+// buckets, per-bucket h0 values, occupied count, and the single index if
+// only one bucket is occupied.
+func distributeLeaf[T any](
+	data []T, depth int, hf func(T, uintptr) uintptr,
+) (buckets [fanout][]T, bucketH0 [fanout]uintptr, occupied, singleIdx int) {
+	for _, e := range data {
+		eh := hf(e, 0)
+		idx := hasherFromCached(eh, depth, e, hf).hash()
+		buckets[idx] = append(buckets[idx], e)
+		bucketH0[idx] ^= eh
+	}
+	for i, b := range buckets {
+		if len(b) > 0 {
+			occupied++
+			singleIdx = i
+		}
+	}
+	return
 }
 
 // leafCanonical returns the simplest node for the given data.

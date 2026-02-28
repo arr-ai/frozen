@@ -41,66 +41,29 @@ func buildSetPair(n int, overlap string) (a, b frozen.Set[int]) {
 
 var overlaps = []string{"Same", "Equal", "Half", "Disjoint"}
 
+func benchSetOp(b *testing.B, name string, op func(a, other frozen.Set[int])) {
+	b.Helper()
+	b.Run(name, func(b *testing.B) {
+		for _, sz := range benchSizes {
+			for _, ov := range overlaps {
+				sz, ov := sz, ov
+				b.Run(sz.name+"/"+ov, func(b *testing.B) {
+					a, other := buildSetPair(sz.n, ov)
+					b.ResetTimer()
+					for i := 0; i < b.N; i++ {
+						op(a, other)
+					}
+				})
+			}
+		}
+	})
+}
+
 func BenchmarkSetOps(b *testing.B) {
-	b.Run("Equal", func(b *testing.B) {
-		for _, sz := range benchSizes {
-			for _, ov := range overlaps {
-				sz, ov := sz, ov
-				b.Run(sz.name+"/"+ov, func(b *testing.B) {
-					a, other := buildSetPair(sz.n, ov)
-					b.ResetTimer()
-					for i := 0; i < b.N; i++ {
-						a.Equal(other)
-					}
-				})
-			}
-		}
-	})
-
-	b.Run("Intersection", func(b *testing.B) {
-		for _, sz := range benchSizes {
-			for _, ov := range overlaps {
-				sz, ov := sz, ov
-				b.Run(sz.name+"/"+ov, func(b *testing.B) {
-					a, other := buildSetPair(sz.n, ov)
-					b.ResetTimer()
-					for i := 0; i < b.N; i++ {
-						a.Intersection(other)
-					}
-				})
-			}
-		}
-	})
-
-	b.Run("Difference", func(b *testing.B) {
-		for _, sz := range benchSizes {
-			for _, ov := range overlaps {
-				sz, ov := sz, ov
-				b.Run(sz.name+"/"+ov, func(b *testing.B) {
-					a, other := buildSetPair(sz.n, ov)
-					b.ResetTimer()
-					for i := 0; i < b.N; i++ {
-						a.Difference(other)
-					}
-				})
-			}
-		}
-	})
-
-	b.Run("SubsetOf", func(b *testing.B) {
-		for _, sz := range benchSizes {
-			for _, ov := range overlaps {
-				sz, ov := sz, ov
-				b.Run(sz.name+"/"+ov, func(b *testing.B) {
-					a, other := buildSetPair(sz.n, ov)
-					b.ResetTimer()
-					for i := 0; i < b.N; i++ {
-						a.IsSubsetOf(other)
-					}
-				})
-			}
-		}
-	})
+	benchSetOp(b, "Equal", func(a, o frozen.Set[int]) { a.Equal(o) })
+	benchSetOp(b, "Intersection", func(a, o frozen.Set[int]) { a.Intersection(o) })
+	benchSetOp(b, "Difference", func(a, o frozen.Set[int]) { a.Difference(o) })
+	benchSetOp(b, "SubsetOf", func(a, o frozen.Set[int]) { a.IsSubsetOf(o) })
 
 	b.Run("Has", func(b *testing.B) {
 		for _, sz := range benchSizes {
