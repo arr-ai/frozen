@@ -54,7 +54,7 @@ go test -run=^$ -bench=BenchmarkName ./...
 
 ### Internal Packages (`internal/pkg/`)
 
-- **`tree`** — hashed array trie: `Tree[T]` with node types (`branch`, `leaf1`, `leaf2`, `twig`) and `packer` (sparse array with 256-fanout). Core operations: `Combine`, `Difference`, `Intersection`, `Equal`. Also `Builder[T]`.
+- **`tree`** — hashed array trie: `Tree[T]` with node types (`branch`, `leaf1`, `leaf2`, `leaf`) and `packer` (sparse array, fanout=8 by default, max 16). Core operations: `Combine`, `Difference`, `Intersection`, `Equal`. Also `Builder[T]`. Each node stores an `h128` content hash (XOR of two independent per-element hashes) enabling O(1) equality short-circuiting via `EqArgs.fullHash`.
 - **`depth`** — `Gauge` type controlling parallelism depth; operations go parallel when tree is deep enough
 - **`value`** — generic equality via `Equal[T]()` dispatching through `Equaler[T]`, `Samer`, or `==`
 - **`iterator`** — bit iterator and slice iterator implementations
