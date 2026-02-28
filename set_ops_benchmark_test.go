@@ -20,7 +20,9 @@ var benchSizes = []benchSize{
 //
 //	Same:     a and b are the same Go value (pointer-identical tree).
 //	Equal:    a and b independently built with identical elements.
+//	Near:     a=[0,n), b=[0,n) with 1% replaced — 99% overlap.
 //	Half:     a=[0,n), b=[n/2, n+n/2) — 50% overlap.
+//	Sparse:   a=[0,n), b=[n,2n) with 1% from a — 1% overlap.
 //	Disjoint: a=[0,n), b=[n,2n) — 0% overlap.
 func buildSetPair(n int, overlap string) (a, b frozen.Set[int]) {
 	a = frozen.Iota(n)
@@ -29,8 +31,28 @@ func buildSetPair(n int, overlap string) (a, b frozen.Set[int]) {
 		b = a
 	case "Equal":
 		b = frozen.Iota(n)
+	case "Near":
+		// 99% identical: start with same elements, replace 1%.
+		b = a
+		delta := n / 100
+		if delta < 1 {
+			delta = 1
+		}
+		for i := 0; i < delta; i++ {
+			b = b.Without(i).With(n + i)
+		}
 	case "Half":
 		b = frozen.Iota2(n/2, n+n/2)
+	case "Sparse":
+		// 1% overlap: mostly disjoint, with 1% of a's elements.
+		delta := n / 100
+		if delta < 1 {
+			delta = 1
+		}
+		b = frozen.Iota2(n, 2*n)
+		for i := 0; i < delta; i++ {
+			b = b.Without(n + i).With(i)
+		}
 	case "Disjoint":
 		b = frozen.Iota2(n, 2*n)
 	default:
@@ -39,7 +61,7 @@ func buildSetPair(n int, overlap string) (a, b frozen.Set[int]) {
 	return
 }
 
-var overlaps = []string{"Same", "Equal", "Half", "Disjoint"}
+var overlaps = []string{"Same", "Equal", "Near", "Half", "Sparse", "Disjoint"}
 
 func benchSetOp(b *testing.B, name string, op func(a, other frozen.Set[int])) {
 	b.Helper()
