@@ -146,7 +146,7 @@ v1.8.0 introduces two optimizations to the HAMT internals:
 Two independently constructed sets with identical elements — the fairest
 apples-to-apples comparison (no pointer shortcuts).
 
-![Set operations benchmark](assets/set-ops-benchmark.png)
+![Set operations benchmark](assets/set-ops-benchmark.svg)
 
 **h0 early rejection**: When sets have *different* content, `Equal` on 1M-element sets drops from ~25 us to ~50 ns — over **500x faster** — because the h0 hash mismatch is detected at the root without any traversal.
 
