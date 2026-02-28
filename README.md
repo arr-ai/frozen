@@ -146,21 +146,7 @@ v1.8.0 introduces two optimizations to the HAMT internals:
 Two independently constructed sets with identical elements — the fairest
 apples-to-apples comparison (no pointer shortcuts).
 
-```mermaid
-xychart-beta
-    title "Time (ms, lower is better)"
-    x-axis ["Equal", "Intersection", "Difference", "SubsetOf"]
-    y-axis "ms" 0 --> 160
-    bar "v1.7.0" [24, 43, 154, 26]
-    bar "v1.8.0" [5, 24, 11, 10]
-```
-
-| Operation | v1.7.0 | v1.8.0 | Speedup |
-|---|---|---|---|
-| Equal | 24 ms | 5 ms | **4.6x** |
-| Intersection | 43 ms | 24 ms | **1.8x** |
-| Difference | 154 ms | 11 ms | **14x** |
-| SubsetOf | 26 ms | 10 ms | **2.7x** |
+![Set operations benchmark](assets/set-ops-benchmark.png)
 
 **h0 early rejection**: When sets have *different* content, `Equal` on 1M-element sets drops from ~25 us to ~50 ns — over **500x faster** — because the h0 hash mismatch is detected at the root without any traversal.
 
