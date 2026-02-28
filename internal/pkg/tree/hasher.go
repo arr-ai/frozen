@@ -88,6 +88,16 @@ func newHasher[T any](key T, depth int) hasher {
 	return newHasherWith(key, depth, getHashFunc[T]())
 }
 
+// hasherFromCached reconstructs a hasher from a cached seed-0 hash (h0).
+// Within the first hash round (depth < levelsPerRound), h0 can be shifted
+// directly. Beyond that, we must rehash with the new round seed.
+func hasherFromCached[T any](h0 uintptr, depth int, v T, hf func(T, uintptr) uintptr) hasher {
+	if depth/levelsPerRound == 0 {
+		return hasher(h0) << uint((depth%levelsPerRound)*fanoutBits)
+	}
+	return newHasherWith(v, depth, hf)
+}
+
 func newHasherWith[T any](key T, depth int, hf func(T, uintptr) uintptr) hasher {
 	round := depth / levelsPerRound
 	level := depth % levelsPerRound
