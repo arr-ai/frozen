@@ -135,9 +135,94 @@ names := rel.Project(r, "name")
 
 ## Performance
 
-The following benchmarks test the base node implementation against several other key-value map implementations. All implementations are tested for insertions against an empty map, a map prepopulated with 1k elements and one prepopulated with 1M elements. The implementations are as follows:
+v1.8.0 introduces two optimizations to the HAMT internals:
 
-> Note: these benchmarks were recorded before the generics rewrite; relative ordering remains indicative but absolute numbers will differ on current hardware and Go versions.
+1. **Recursive XOR hash (h0)**: Every node caches the XOR of its elements' hashes. Set operations that discover mismatched h0 values reject entire subtrees without traversal, turning O(n) comparisons into O(1).
+
+2. **Allocation reduction**: Hash function caching moved from `sync.Map` to direct function pointers; spine operations batched to reduce intermediate allocations.
+
+### Set operations on 1M elements (equal content)
+
+Two independently constructed sets with identical elements — the fairest
+apples-to-apples comparison (no pointer shortcuts).
+
+```mermaid
+xychart-beta
+    title "Time (ms, lower is better)"
+    x-axis ["Equal", "Intersection", "Difference", "SubsetOf"]
+    y-axis "ms" 0 --> 160
+    bar "v1.7.0" [24, 43, 154, 26]
+    bar "v1.8.0" [5, 24, 11, 10]
+```
+
+| Operation | v1.7.0 | v1.8.0 | Speedup |
+|---|---|---|---|
+| Equal | 24 ms | 5 ms | **4.6x** |
+| Intersection | 43 ms | 24 ms | **1.8x** |
+| Difference | 154 ms | 11 ms | **14x** |
+| SubsetOf | 26 ms | 10 ms | **2.7x** |
+
+**h0 early rejection**: When sets have *different* content, `Equal` on 1M-element sets drops from ~25 us to ~50 ns — over **500x faster** — because the h0 hash mismatch is detected at the root without any traversal.
+
+**Trade-off**: Single-element `Has` is ~20-60% slower due to h0 bookkeeping overhead. The bulk-operation gains more than compensate in typical workloads.
+
+<details>
+<summary>Full benchstat comparison (v1.7.0 vs v1.8.0)</summary>
+
+Benchmarks on Apple M4 Max, Go 1.23, darwin/arm64. Each row is the median of
+6 runs. "Same" = identical pointer, "Equal" = independently built with same
+elements, "Half" = 50% overlap, "Disjoint" = no overlap.
+
+```
+                                    │   v1.7.0    │              v1.8.0               │
+                                    │   sec/op    │    sec/op     vs base              │
+SetOps/Equal/1ki/Same                  24.46µ ± 7%   11.16µ ± 39%  -54.37% (p=0.002)
+SetOps/Equal/1ki/Equal                26.027µ ±104%   6.905µ ±  1%  -73.47% (p=0.002)
+SetOps/Equal/1ki/Half                  94.74n ±234%   41.38n ± 56%  -56.32% (p=0.002)
+SetOps/Equal/1ki/Disjoint             101.50n ±  4%   53.96n ±  6%  -46.84% (p=0.002)
+SetOps/Equal/1Mi/Same                 11.282m ± 88%   6.443m ± 21%  -42.90% (p=0.002)
+SetOps/Equal/1Mi/Equal                24.060m ±  8%   5.238m ± 21%  -78.23% (p=0.002)
+SetOps/Equal/1Mi/Half               32035.50n ± 25%   51.16n ± 10%  -99.84% (p=0.002)
+SetOps/Equal/1Mi/Disjoint           24611.00n ± 22%   46.48n ± 12%  -99.81% (p=0.002)
+SetOps/Intersection/1ki/Same           69.66µ ± 11%   34.59µ ±  6%  -50.34% (p=0.002)
+SetOps/Intersection/1ki/Equal          68.20µ ±  8%   34.56µ ±  4%  -49.33% (p=0.002)
+SetOps/Intersection/1ki/Half           48.33µ ±  1%   45.75µ ± 28%   -5.32% (p=0.002)
+SetOps/Intersection/1ki/Disjoint       34.84µ ±  2%   25.27µ ±  6%  -27.48% (p=0.002)
+SetOps/Intersection/1Mi/Same           30.51m ± 18%   21.48m ± 14%  -29.60% (p=0.002)
+SetOps/Intersection/1Mi/Equal          43.28m ± 19%   23.68m ± 17%  -45.29% (p=0.002)
+SetOps/Intersection/1Mi/Half           37.91m ± 10%   18.81m ± 19%  -50.37% (p=0.002)
+SetOps/Intersection/1Mi/Disjoint      27.347m ± 12%   8.694m ± 87%  -68.21% (p=0.002)
+SetOps/Difference/1ki/Same             81.38µ ± 26%   19.01µ ±  7%  -76.64% (p=0.002)
+SetOps/Difference/1ki/Equal            67.11µ ± 18%   19.17µ ±  3%  -71.43% (p=0.002)
+SetOps/Difference/1ki/Half             58.90µ ±  4%   34.58µ ± 19%  -41.29% (p=0.002)
+SetOps/Difference/1ki/Disjoint         37.50µ ±  9%   37.07µ ±  7%        ~ (p=0.937)
+SetOps/Difference/1Mi/Same           118.701m ± 13%   8.861m ± 17%  -92.54% (p=0.002)
+SetOps/Difference/1Mi/Equal           154.07m ± 14%   10.77m ± 18%  -93.01% (p=0.002)
+SetOps/Difference/1Mi/Half            156.68m ± 15%   15.01m ±  8%  -90.42% (p=0.002)
+SetOps/Difference/1Mi/Disjoint        109.13m ± 18%   11.78m ± 25%  -89.21% (p=0.002)
+SetOps/SubsetOf/1ki/Same               42.39µ ± 10%   12.34µ ± 10%  -70.89% (p=0.002)
+SetOps/SubsetOf/1ki/Equal              40.50µ ±  2%   13.27µ ±  4%  -67.24% (p=0.002)
+SetOps/SubsetOf/1ki/Half               144.1n ±  2%   150.5n ± 24%   +4.51% (p=0.009)
+SetOps/SubsetOf/1ki/Disjoint           143.8n ±  3%   165.7n ± 21%  +15.19% (p=0.002)
+SetOps/SubsetOf/1Mi/Same              20.894m ± 18%   9.031m ± 13%  -56.77% (p=0.002)
+SetOps/SubsetOf/1Mi/Equal             26.378m ± 19%   9.771m ± 31%  -62.96% (p=0.002)
+SetOps/SubsetOf/1Mi/Half               30.88µ ± 36%   32.31µ ±  7%        ~ (p=0.485)
+SetOps/SubsetOf/1Mi/Disjoint           27.86µ ±  8%   27.40µ ± 21%        ~ (p=0.240)
+SetOps/Has/1ki/Hit                     41.00n ±  5%   65.93n ±  2%  +60.82% (p=0.002)
+SetOps/Has/1ki/Miss                    39.31n ±  1%   63.00n ±  1%  +60.28% (p=0.002)
+SetOps/Has/1Mi/Hit                     204.8n ±  3%   244.8n ± 10%  +19.51% (p=0.002)
+SetOps/Has/1Mi/Miss                    139.3n ±  7%   210.9n ± 19%  +51.35% (p=0.002)
+geomean                                110.9µ          38.15µ        -65.61%
+```
+
+</details>
+
+<details>
+<summary>Legacy insertion benchmarks (pre-generics)</summary>
+
+> These benchmarks were recorded before the generics rewrite. Relative ordering
+> remains indicative but absolute numbers will differ on current hardware and
+> Go versions.
 
 | Benchmark       | Type                           |
 | --------------- | ------------------------------ |
@@ -148,8 +233,6 @@ The following benchmarks test the base node implementation against several other
 | SetInt          | set = map[int]struct{}         |
 | SetInterface    | set = map[any]struct{}         |
 | FrozenSet       | frozen.Set                     |
-
-In all cases, ints are mapped to ints.
 
 ```bash
 $ go test -run ^$ -cpuprofile cpu.prof -memprofile mem.prof -benchmem -bench ^BenchmarkInsert .
@@ -182,3 +265,5 @@ ok  	github.com/arr-ai/frozen	65.909s
 ```
 
 ![Benchmarks Graph](assets/benchmarks.png)
+
+</details>
