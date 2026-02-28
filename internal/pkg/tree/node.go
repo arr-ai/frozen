@@ -8,6 +8,7 @@ type node[T any] interface {
 	fmt.Formatter
 	fmt.Stringer
 
+	H0() uintptr
 	Add(args *CombineArgs[T], v T, depth int, h hasher) (_ node[T], matches int)
 	AddFast(v T, depth int, h hasher) (_ node[T], matches int)
 	AppendTo(dest []T) []T

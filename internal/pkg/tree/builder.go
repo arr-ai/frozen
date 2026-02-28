@@ -94,8 +94,39 @@ func (b *Builder[T]) Get(el T) *T {
 
 func (b *Builder[T]) Finish() Tree[T] {
 	t := b.Borrow()
+	if b.args == nil {
+		b.args = DefaultNPKeyCombineArgs[T]()
+	}
+	hf := b.args.hash
+	if t.root != nil {
+		computeH0(t.root, hf)
+	}
+	t.hf = hf
 	b.t = Tree[T]{}
 	return t
+}
+
+// computeH0 recursively fills in h0 for all nodes, bottom-up.
+func computeH0[T any](n node[T], hf func(T, uintptr) uintptr) {
+	switch n := n.(type) {
+	case *leaf1[T]:
+		n.h0 = hf(n.data, 0)
+	case *leaf2[T]:
+		n.ha = hf(n.data[0], 0)
+		n.h0 = n.ha ^ hf(n.data[1], 0)
+	case *leaf[T]:
+		n.h0 = 0
+		for _, e := range n.data {
+			n.h0 ^= hf(e, 0)
+		}
+	case *branch[T]:
+		n.h0 = 0
+		for m := n.p.mask; m != 0; m = m.Next() {
+			child := n.p.data[m.FirstIndex()]
+			computeH0(child, hf)
+			n.h0 ^= child.H0()
+		}
+	}
 }
 
 func (b *Builder[T]) Borrow() Tree[T] {
