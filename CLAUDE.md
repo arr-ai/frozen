@@ -61,7 +61,7 @@ go test -run=^$ -bench=BenchmarkName ./...
 
 ### Public Subpackages
 
-- **`lazy/`** — lazy Set interface for deferred evaluation with memoization
+- **`lazy/`** — lazy Set interface for deferred evaluation with memoization. **Deferred**: has known bugs (see `docs/TODO.md`). Do not flag or fix `lazy/` issues unless explicitly asked.
 - **`pkg/rel/`** — relational algebra (Tuple, Relation, Join, CartesianProduct, Project) built on frozen Map/Set
 
 ## Key Conventions
