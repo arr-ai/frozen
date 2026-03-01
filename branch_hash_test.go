@@ -3,9 +3,8 @@ package frozen_test
 import (
 	"testing"
 
-	"github.com/arr-ai/hash"
-
 	"github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/internal/pkg/hash"
 
 	"github.com/arr-ai/frozen/internal/pkg/test"
 )

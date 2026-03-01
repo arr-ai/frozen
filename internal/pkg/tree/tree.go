@@ -17,14 +17,14 @@ func packedIteratorBuf[T any](count int) [][]node[T] {
 type Tree[T any] struct {
 	root  node[T]
 	count int
-	hf    func(T, uintptr) uintptr
+	hf    func(T) H128
 }
 
 func newTree[T any](n node[T], count int) (out Tree[T]) {
 	return Tree[T]{root: n, count: count}
 }
 
-func (t Tree[T]) hashFunc() func(T, uintptr) uintptr {
+func (t Tree[T]) hashFunc() func(T) H128 {
 	if t.hf != nil {
 		return t.hf
 	}
@@ -33,6 +33,13 @@ func (t Tree[T]) hashFunc() func(T, uintptr) uintptr {
 
 func (t Tree[T]) Count() int {
 	return t.count
+}
+
+func (t Tree[T]) H0() H128 {
+	if t.root == nil {
+		return H128{}
+	}
+	return t.root.H0()
 }
 
 func (t Tree[T]) Gauge() depth.Gauge {
@@ -91,6 +98,8 @@ func (t Tree[T]) Equal(args *EqArgs[T], u Tree[T]) bool {
 		return true
 	case t.root.H0() != u.root.H0():
 		return false
+	case args.fullHash && !t.root.H0().isZero():
+		return true
 	default:
 		return t.root.Equal(args, u.root, 0)
 	}
@@ -213,7 +222,7 @@ func (t Tree[T]) With(v T) (out Tree[T]) {
 	}
 	hf := t.hashFunc()
 	if t.root == nil {
-		return Tree[T]{root: newLeaf1WithHash(v, hf(v, 0)), count: 1, hf: hf}
+		return Tree[T]{root: newLeaf1WithHash(v, newElemH128(v, hf)), count: 1, hf: hf}
 	}
 	h := newHasherWith(v, 0, hf)
 	if b, ok := t.root.(*branch[T]); ok {
@@ -241,7 +250,7 @@ func (t Tree[T]) Without(v T) (out Tree[T]) {
 	return Tree[T]{root: root, count: t.count - matches, hf: t.hf}
 }
 
-func vetNodeH0[T any](n node[T], hf func(T, uintptr) uintptr) {
+func vetNodeH0[T any](n node[T], hf func(T) H128) {
 	if hf == nil {
 		return // Builder-intermediate tree; h0 not yet computed.
 	}

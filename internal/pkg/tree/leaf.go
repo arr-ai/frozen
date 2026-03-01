@@ -19,20 +19,20 @@ const (
 
 type leaf[T any] struct {
 	data []T
-	h0   uintptr
+	h0   H128
 }
 
-func (l *leaf[T]) H0() uintptr { return l.h0 }
+func (l *leaf[T]) H0() H128 { return l.h0 }
 
 // splitLeaf distributes elements across branches by their hash at the given
 // depth. Called when a leaf overflows maxLeafLen. If all elements hash to the
 // same index, it recurses deeper. At maxSplitDepth, gives up and returns a
 // large leaf (pathological hash collision).
-func splitLeaf[T any](data []T, depth int, hf func(T, uintptr) uintptr) node[T] {
+func splitLeaf[T any](data []T, depth int, hf func(T) H128) node[T] {
 	if depth >= maxSplitDepth {
-		var h0 uintptr
+		var h0 H128
 		for _, e := range data {
-			h0 ^= hf(e, 0)
+			h0 = h0.xor(newElemH128(e, hf))
 		}
 		return &leaf[T]{data: data, h0: h0}
 	}
@@ -47,17 +47,17 @@ func splitLeaf[T any](data []T, depth int, hf func(T, uintptr) uintptr) node[T] 
 		return b
 	}
 
-	var branchH0 uintptr
+	var branchH0 H128
 	b := &branch[T]{count: len(data)}
 	for i, bucket := range buckets {
 		if len(bucket) > maxLeafLen {
 			child := splitLeaf(bucket, depth+1, hf)
 			b.p.SetNonNilChild(i, child)
-			branchH0 ^= child.H0()
+			branchH0 = branchH0.xor(child.H0())
 		} else if len(bucket) > 0 {
 			child := leafCanonicalWithHash(bucket, bucketH0[i])
 			b.p.SetNonNilChild(i, child)
-			branchH0 ^= child.H0()
+			branchH0 = branchH0.xor(child.H0())
 		}
 	}
 	b.h0 = branchH0
@@ -68,13 +68,13 @@ func splitLeaf[T any](data []T, depth int, hf func(T, uintptr) uintptr) node[T] 
 // buckets, per-bucket h0 values, occupied count, and the single index if
 // only one bucket is occupied.
 func distributeLeaf[T any](
-	data []T, depth int, hf func(T, uintptr) uintptr,
-) (buckets [fanout][]T, bucketH0 [fanout]uintptr, occupied, singleIdx int) {
+	data []T, depth int, hf func(T) H128,
+) (buckets [fanout][]T, bucketH0 [fanout]H128, occupied, singleIdx int) {
 	for _, e := range data {
-		eh := hf(e, 0)
-		idx := hasherFromCached(eh, depth, e, hf).hash()
+		eh := newElemH128(e, hf)
+		idx := hasherFromCached(eh, depth).hash()
 		buckets[idx] = append(buckets[idx], e)
-		bucketH0[idx] ^= eh
+		bucketH0[idx] = bucketH0[idx].xor(eh)
 	}
 	for i, b := range buckets {
 		if len(b) > 0 {
@@ -98,16 +98,16 @@ func leafCanonical[T any](data []T) node[T] {
 		return newLeaf2(data[0], data[1])
 	default:
 		hf := getHashFunc[T]()
-		var h0 uintptr
+		var h0 H128
 		for _, e := range data {
-			h0 ^= hf(e, 0)
+			h0 = h0.xor(newElemH128(e, hf))
 		}
 		return &leaf[T]{data: data, h0: h0}
 	}
 }
 
 // leafCanonicalWithHash is like leafCanonical but uses a pre-computed h0.
-func leafCanonicalWithHash[T any](data []T, h0 uintptr) node[T] {
+func leafCanonicalWithHash[T any](data []T, h0 H128) node[T] {
 	switch len(data) {
 	case 0:
 		return nil
@@ -116,7 +116,7 @@ func leafCanonicalWithHash[T any](data []T, h0 uintptr) node[T] {
 	case 2:
 		// h0 = ha ^ hb. We need ha individually. Must compute it.
 		hf := getHashFunc[T]()
-		ha := hf(data[0], 0)
+		ha := newElemH128(data[0], hf)
 		return &leaf2[T]{data: [2]T{data[0], data[1]}, h0: h0, ha: ha}
 	default:
 		return &leaf[T]{data: data, h0: h0}
@@ -210,10 +210,10 @@ func (l *leaf[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T]
 	}
 }
 
-func (l *leaf[T]) elemHashes(hf func(T, uintptr) uintptr) []uintptr {
-	h := make([]uintptr, len(l.data))
+func (l *leaf[T]) elemHashes(hf func(T) H128) []H128 {
+	h := make([]H128, len(l.data))
 	for i, e := range l.data {
-		h[i] = hf(e, 0)
+		h[i] = newElemH128(e, hf)
 	}
 	return h
 }
@@ -221,14 +221,14 @@ func (l *leaf[T]) elemHashes(hf func(T, uintptr) uintptr) []uintptr {
 func (l *leaf[T]) Difference(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
 	eh := l.elemHashes(args.hash)
 	var ret []T
-	var retH0 uintptr
+	var retH0 H128
 	for i, e := range l.data {
-		h := hasherFromCached(eh[i], depth, e, args.hash)
+		h := hasherFromCached(eh[i], depth)
 		if n.Get(args, e, h, depth) != nil {
 			matches++
 		} else {
 			ret = append(ret, e)
-			retH0 ^= eh[i]
+			retH0 = retH0.xor(eh[i])
 		}
 	}
 	return leafCanonicalWithHash(ret, retH0), matches
@@ -242,6 +242,9 @@ func (l *leaf[T]) Equal(args *EqArgs[T], n node[T], _ int) bool {
 	n2, ok := n.(*leaf[T])
 	if !ok || l.h0 != n2.h0 || len(l.data) != len(n2.data) {
 		return false
+	}
+	if args.fullHash && !l.h0.isZero() {
+		return true
 	}
 outer:
 	for _, e := range l.data {
@@ -267,12 +270,12 @@ func (l *leaf[T]) Get(args *EqArgs[T], v T, _ hasher, _ int) *T {
 func (l *leaf[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
 	eh := l.elemHashes(args.hash)
 	var ret []T
-	var retH0 uintptr
+	var retH0 H128
 	for i, e := range l.data {
-		h := hasherFromCached(eh[i], depth, e, args.hash)
+		h := hasherFromCached(eh[i], depth)
 		if n.Get(args, e, h, depth) != nil {
 			ret = append(ret, e)
-			retH0 ^= eh[i]
+			retH0 = retH0.xor(eh[i])
 			matches++
 		}
 	}
@@ -324,7 +327,7 @@ func (l *leaf[T]) Remove(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], matc
 func (l *leaf[T]) SubsetOf(args *EqArgs[T], n node[T], depth int) bool {
 	eh := l.elemHashes(args.hash)
 	for i, e := range l.data {
-		h := hasherFromCached(eh[i], depth, e, args.hash)
+		h := hasherFromCached(eh[i], depth)
 		if n.Get(args, e, h, depth) == nil {
 			return false
 		}
@@ -342,24 +345,24 @@ func (l *leaf[T]) Vet() int {
 	return len(l.data)
 }
 
-func (l *leaf[T]) vetH0(hf func(T, uintptr) uintptr) {
-	var want uintptr
+func (l *leaf[T]) vetH0(hf func(T) H128) {
+	var want H128
 	for _, e := range l.data {
-		want ^= hf(e, 0)
+		want = want.xor(newElemH128(e, hf))
 	}
 	if l.h0 != want {
-		panic(fmt.Errorf("leaf h0 mismatch: stored %x, computed %x", l.h0, want))
+		panic(fmt.Errorf("leaf h0 mismatch: stored %v, computed %v", l.h0, want))
 	}
 }
 
 func (l *leaf[T]) Where(args *WhereArgs[T], _ int) (_ node[T], matches int) {
 	var ret []T
-	var retH0 uintptr
+	var retH0 H128
 	hf := getHashFunc[T]()
 	for _, e := range l.data {
 		if args.Pred(e) {
 			ret = append(ret, e)
-			retH0 ^= hf(e, 0)
+			retH0 = retH0.xor(newElemH128(e, hf))
 			matches++
 		}
 	}
@@ -373,13 +376,13 @@ func (l *leaf[T]) With(args *CombineArgs[T], v T, depth int, _ hasher) (_ node[T
 			combined := args.f(e, v)
 			ret.data[i] = combined
 			// h0: remove old element hash, add new.
-			ret.h0 = l.h0 ^ args.hash(e, 0) ^ args.hash(combined, 0)
+			ret.h0 = l.h0.xor(newElemH128(e, args.hash)).xor(newElemH128(combined, args.hash))
 			return ret, 1
 		}
 	}
-	vh := args.hash(v, 0)
+	vh := newElemH128(v, args.hash)
 	if len(l.data) < maxLeafLen {
-		return &leaf[T]{data: append(append([]T(nil), l.data...), v), h0: l.h0 ^ vh}, 0
+		return &leaf[T]{data: append(append([]T(nil), l.data...), v), h0: l.h0.xor(vh)}, 0
 	}
 	all := make([]T, len(l.data)+1)
 	copy(all, l.data)
@@ -398,9 +401,9 @@ func (l *leaf[T]) WithFast(v T, depth int, _ hasher) (_ node[T], matches int) {
 		}
 	}
 	hf := getHashFunc[T]()
-	vh := hf(v, 0)
+	vh := newElemH128(v, hf)
 	if len(l.data) < maxLeafLen {
-		return &leaf[T]{data: append(append([]T(nil), l.data...), v), h0: l.h0 ^ vh}, 0
+		return &leaf[T]{data: append(append([]T(nil), l.data...), v), h0: l.h0.xor(vh)}, 0
 	}
 	all := make([]T, len(l.data)+1)
 	copy(all, l.data)
@@ -411,8 +414,8 @@ func (l *leaf[T]) WithFast(v T, depth int, _ hasher) (_ node[T], matches int) {
 func (l *leaf[T]) Without(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
 	for i, e := range l.data {
 		if args.eq(e, v) {
-			eh := args.hash(e, 0)
-			remH0 := l.h0 ^ eh // h0 of remaining elements
+			eh := newElemH128(e, args.hash)
+			remH0 := l.h0.xor(eh) // h0 of remaining elements
 			switch len(l.data) {
 			case 1:
 				return nil, 1
@@ -422,7 +425,7 @@ func (l *leaf[T]) Without(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], mat
 				var d [2]T
 				copy(d[:], l.data[:i])
 				copy(d[i:], l.data[i+1:])
-				ha := args.hash(d[0], 0)
+				ha := newElemH128(d[0], args.hash)
 				return &leaf2[T]{data: d, h0: remH0, ha: ha}, 1
 			default:
 				ret := make([]T, len(l.data)-1)

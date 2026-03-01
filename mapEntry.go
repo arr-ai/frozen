@@ -1,8 +1,7 @@
 package frozen
 
 import (
-	"github.com/arr-ai/hash"
-
+	"github.com/arr-ai/frozen/internal/pkg/hash"
 	"github.com/arr-ai/frozen/internal/pkg/value"
 )
 
