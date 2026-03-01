@@ -20,7 +20,7 @@ const (
 		(unsafe.Sizeof(uintptr(0))-4)/4*(23344194077549503&(1<<unsafe.Sizeof(uintptr(0))-1))
 )
 
-// type algorithms - known to compiler
+// type algorithms - known to compiler.
 const (
 	algNOEQ = iota
 	algMEM0
@@ -42,7 +42,7 @@ const (
 
 type hashFunc func(unsafe.Pointer, uintptr) uintptr
 
-func memhash0(p unsafe.Pointer, h uintptr) uintptr {
+func memhash0(_ unsafe.Pointer, h uintptr) uintptr {
 	return h
 }
 
@@ -75,7 +75,7 @@ var algarray = [algMAX]hashFunc{
 
 var useAeshash bool
 
-// in asm_*.s
+// in asm_*.s.
 func aeshash(p unsafe.Pointer, h, s uintptr) uintptr
 func aeshash32(p unsafe.Pointer, h uintptr) uintptr
 func aeshash64(p unsafe.Pointer, h uintptr) uintptr
@@ -139,10 +139,10 @@ func getRandomData(r []byte) {
 	}
 }
 
-// used in asm_{386,amd64,arm64}.s to seed the hash function
+// used in asm_{386,amd64,arm64}.s to seed the hash function.
 var aeskeysched [hashRandomBytes]byte
 
-// used in hash{32,64}.go to seed the hash function
+// used in hash{32,64}.go to seed the hash function.
 var hashkey [4]uintptr
 
 // GetSeeds returns the internal seeds used for computing hashes.
@@ -171,12 +171,12 @@ func SetSeeds(a []byte, h []uintptr) error {
 
 var _ = func() (_ struct{}) {
 	// Install AES hash algorithms if the instructions needed are present.
-	if (runtime.GOARCH == "386" || runtime.GOARCH == "amd64") && runtime.GOOS != "nacl" &&
+	if (runtime.GOARCH == "386" || runtime.GOARCH == "amd64") && runtime.GOOS != "nacl" && //nolint:goconst
 		cpu.X86.HasAES && // AESENC
 		cpu.X86.HasSSSE3 && // PSHUFB
 		cpu.X86.HasSSE41 { // PINSR{D,Q}
 		initAlgAES()
-	} else if runtime.GOARCH == "arm64" && cpu.ARM64.HasAES {
+	} else if runtime.GOARCH == "arm64" && cpu.ARM64.HasAES { //nolint:goconst
 		initAlgAES()
 	} else {
 		getRandomData((*[len(hashkey) * int(unsafe.Sizeof(uintptr(0)))]byte)(unsafe.Pointer(&hashkey))[:])

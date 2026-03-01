@@ -24,12 +24,12 @@ func aeshashstrH128(p unsafe.Pointer) H128
 // package init. On AES-capable hardware the functions point to the
 // single-pass assembly; everywhere else they fall back to two seeded calls.
 var h128Funcs struct {
-	mem32  func(unsafe.Pointer) H128
-	mem64  func(unsafe.Pointer) H128
-	memN   func(unsafe.Pointer, uintptr) H128
-	str    func(unsafe.Pointer) H128
-	f32    func(unsafe.Pointer) H128
-	f64    func(unsafe.Pointer) H128
+	mem32 func(unsafe.Pointer) H128
+	mem64 func(unsafe.Pointer) H128
+	memN  func(unsafe.Pointer, uintptr) H128
+	str   func(unsafe.Pointer) H128
+	f32   func(unsafe.Pointer) H128
+	f64   func(unsafe.Pointer) H128
 }
 
 func initH128AES() {

@@ -6,8 +6,6 @@ import (
 	"unsafe"
 )
 
-type any = interface{}
-
 // Interface returns a hash for i.
 //
 // Deprecated: Use Any instead.
@@ -15,7 +13,9 @@ func Interface(a any, seed Seed) Seed {
 	return Any(a, seed)
 }
 
-// Interface returns a hash for i.
+// Any returns a hash for i.
+//
+//nolint:cyclop
 func Any(i any, seed Seed) Seed {
 	// The order below guesses frequency rank in real world code.
 	switch k := i.(type) {
@@ -131,7 +131,7 @@ func String(s string, seed Seed) Seed {
 	return algarray[algSTRING](noescape(unsafe.Pointer(&s)), seed)
 }
 
-// UnsafePointer returns a hash for p
+// UnsafePointer returns a hash for p.
 func UnsafePointer(p unsafe.Pointer, seed Seed) Seed {
 	return Uintptr(uintptr(p), seed)
 }
@@ -141,7 +141,7 @@ func UnsafePointer(p unsafe.Pointer, seed Seed) Seed {
 //nolint:funlen
 func Value(v reflect.Value, seed Seed) Seed {
 	// These cause dependency cycles if added to valueHashes.
-	switch kind := v.Kind(); kind {
+	switch kind := v.Kind(); kind { //nolint:exhaustive
 	case reflect.Struct:
 		return structHash(v, seed)
 	case reflect.Array:
@@ -153,25 +153,27 @@ func Value(v reflect.Value, seed Seed) Seed {
 
 var valueHashes = func() []func(v reflect.Value, seed Seed) Seed {
 	m := map[reflect.Kind]func(v reflect.Value, seed Seed) Seed{
-		reflect.Bool:          func(v reflect.Value, seed Seed) Seed { return Bool(v.Bool(), seed) },
-		reflect.Int:           func(v reflect.Value, seed Seed) Seed { return Int(int(v.Int()), seed) },
-		reflect.Int8:          func(v reflect.Value, seed Seed) Seed { return Int8(int8(v.Int()), seed) },
-		reflect.Int16:         func(v reflect.Value, seed Seed) Seed { return Int16(int16(v.Int()), seed) },
-		reflect.Int32:         func(v reflect.Value, seed Seed) Seed { return Int32(int32(v.Int()), seed) },
-		reflect.Int64:         func(v reflect.Value, seed Seed) Seed { return Int64(int64(v.Int()), seed) },
-		reflect.Uint:          func(v reflect.Value, seed Seed) Seed { return Uint(uint(v.Uint()), seed) },
-		reflect.Uint8:         func(v reflect.Value, seed Seed) Seed { return Uint8(uint8(v.Uint()), seed) },
-		reflect.Uint16:        func(v reflect.Value, seed Seed) Seed { return Uint16(uint16(v.Uint()), seed) },
-		reflect.Uint32:        func(v reflect.Value, seed Seed) Seed { return Uint32(uint32(v.Uint()), seed) },
-		reflect.Uint64:        func(v reflect.Value, seed Seed) Seed { return Uint64(uint64(v.Uint()), seed) },
-		reflect.Uintptr:       func(v reflect.Value, seed Seed) Seed { return Uintptr(uintptr(v.Uint()), seed) },
-		reflect.Float32:       func(v reflect.Value, seed Seed) Seed { return Float32(float32(v.Float()), seed) },
-		reflect.Float64:       func(v reflect.Value, seed Seed) Seed { return Float64(float64(v.Float()), seed) },
-		reflect.Complex64:     func(v reflect.Value, seed Seed) Seed { return Complex64(complex64(v.Complex()), seed) },
-		reflect.Complex128:    func(v reflect.Value, seed Seed) Seed { return Complex128(complex128(v.Complex()), seed) },
-		reflect.Pointer:       func(v reflect.Value, seed Seed) Seed { return Uintptr(v.Pointer(), seed) },
-		reflect.String:        func(v reflect.Value, seed Seed) Seed { return String(v.String(), seed) },
-		reflect.UnsafePointer: func(v reflect.Value, seed Seed) Seed { return UnsafePointer(unsafe.Pointer(v.Pointer()), seed) },
+		reflect.Bool:       func(v reflect.Value, seed Seed) Seed { return Bool(v.Bool(), seed) },
+		reflect.Int:        func(v reflect.Value, seed Seed) Seed { return Int(int(v.Int()), seed) },
+		reflect.Int8:       func(v reflect.Value, seed Seed) Seed { return Int8(int8(v.Int()), seed) },
+		reflect.Int16:      func(v reflect.Value, seed Seed) Seed { return Int16(int16(v.Int()), seed) },
+		reflect.Int32:      func(v reflect.Value, seed Seed) Seed { return Int32(int32(v.Int()), seed) },
+		reflect.Int64:      func(v reflect.Value, seed Seed) Seed { return Int64(v.Int(), seed) },
+		reflect.Uint:       func(v reflect.Value, seed Seed) Seed { return Uint(uint(v.Uint()), seed) },
+		reflect.Uint8:      func(v reflect.Value, seed Seed) Seed { return Uint8(uint8(v.Uint()), seed) },
+		reflect.Uint16:     func(v reflect.Value, seed Seed) Seed { return Uint16(uint16(v.Uint()), seed) },
+		reflect.Uint32:     func(v reflect.Value, seed Seed) Seed { return Uint32(uint32(v.Uint()), seed) },
+		reflect.Uint64:     func(v reflect.Value, seed Seed) Seed { return Uint64(v.Uint(), seed) },
+		reflect.Uintptr:    func(v reflect.Value, seed Seed) Seed { return Uintptr(uintptr(v.Uint()), seed) },
+		reflect.Float32:    func(v reflect.Value, seed Seed) Seed { return Float32(float32(v.Float()), seed) },
+		reflect.Float64:    func(v reflect.Value, seed Seed) Seed { return Float64(float64(v.Float()), seed) },
+		reflect.Complex64:  func(v reflect.Value, seed Seed) Seed { return Complex64(complex64(v.Complex()), seed) },
+		reflect.Complex128: func(v reflect.Value, seed Seed) Seed { return Complex128(complex128(v.Complex()), seed) },
+		reflect.Pointer:    func(v reflect.Value, seed Seed) Seed { return Uintptr(v.Pointer(), seed) },
+		reflect.String:     func(v reflect.Value, seed Seed) Seed { return String(v.String(), seed) },
+		reflect.UnsafePointer: func(v reflect.Value, seed Seed) Seed {
+			return UnsafePointer(unsafe.Pointer(v.Pointer()), seed)
+		},
 	}
 	s := make([]func(v reflect.Value, seed Seed) Seed, reflect.UnsafePointer+1)
 	for k, v := range m {
@@ -179,7 +181,7 @@ var valueHashes = func() []func(v reflect.Value, seed Seed) Seed {
 	}
 	for i, f := range s {
 		if f == nil {
-			s[i] = func(v reflect.Value, seed Seed) Seed {
+			s[i] = func(v reflect.Value, _ Seed) Seed {
 				panic(fmt.Sprintf("value %v has unhashable type %v", v, v.Type()))
 			}
 		}
