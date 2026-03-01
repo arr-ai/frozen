@@ -24,6 +24,14 @@ var benchSizes = []benchSize{
 //	Half:     a=[0,n), b=[n/2, n+n/2) — 50% overlap.
 //	Sparse:   a=[0,n), b=[n,2n) with 1% from a — 1% overlap.
 //	Disjoint: a=[0,n), b=[n,2n) — 0% overlap.
+// onePercent returns max(n/100, 1).
+func onePercent(n int) int {
+	if d := n / 100; d > 0 {
+		return d
+	}
+	return 1
+}
+
 func buildSetPair(n int, overlap string) (a, b frozen.Set[int]) {
 	a = frozen.Iota(n)
 	switch overlap {
@@ -34,23 +42,15 @@ func buildSetPair(n int, overlap string) (a, b frozen.Set[int]) {
 	case "Near":
 		// 99% identical: start with same elements, replace 1%.
 		b = a
-		delta := n / 100
-		if delta < 1 {
-			delta = 1
-		}
-		for i := 0; i < delta; i++ {
+		for i, delta := 0, onePercent(n); i < delta; i++ {
 			b = b.Without(i).With(n + i)
 		}
 	case "Half":
 		b = frozen.Iota2(n/2, n+n/2)
 	case "Sparse":
 		// 1% overlap: mostly disjoint, with 1% of a's elements.
-		delta := n / 100
-		if delta < 1 {
-			delta = 1
-		}
 		b = frozen.Iota2(n, 2*n)
-		for i := 0; i < delta; i++ {
+		for i, delta := 0, onePercent(n); i < delta; i++ {
 			b = b.Without(n + i).With(i)
 		}
 	case "Disjoint":
@@ -58,7 +58,7 @@ func buildSetPair(n int, overlap string) (a, b frozen.Set[int]) {
 	default:
 		panic("unknown overlap: " + overlap)
 	}
-	return
+	return a, b
 }
 
 var overlaps = []string{"Same", "Equal", "Near", "Half", "Sparse", "Disjoint"}

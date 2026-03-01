@@ -35,9 +35,9 @@ func (t Tree[T]) Count() int {
 	return t.count
 }
 
-func (t Tree[T]) H0() h128 {
+func (t Tree[T]) H0() H128 {
 	if t.root == nil {
-		return h128{}
+		return H128{}
 	}
 	return t.root.H0()
 }

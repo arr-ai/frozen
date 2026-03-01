@@ -115,12 +115,12 @@ func computeH0[T any](n node[T], hf func(T, uintptr) uintptr) {
 		n.ha = newElemH128(n.data[0], hf)
 		n.h0 = n.ha.xor(newElemH128(n.data[1], hf))
 	case *leaf[T]:
-		n.h0 = h128{}
+		n.h0 = H128{}
 		for _, e := range n.data {
 			n.h0 = n.h0.xor(newElemH128(e, hf))
 		}
 	case *branch[T]:
-		n.h0 = h128{}
+		n.h0 = H128{}
 		for m := n.p.mask; m != 0; m = m.Next() {
 			child := n.p.data[m.FirstIndex()]
 			computeH0(child, hf)

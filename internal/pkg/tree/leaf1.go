@@ -9,14 +9,14 @@ import (
 
 type leaf1[T any] struct {
 	data T
-	h0   h128
+	h0   H128
 }
 
 func newLeaf1[T any](v T) *leaf1[T] {
 	return &leaf1[T]{data: v, h0: newElemH128(v, getHashFunc[T]())}
 }
 
-func newLeaf1WithHash[T any](v T, h0 h128) *leaf1[T] {
+func newLeaf1WithHash[T any](v T, h0 H128) *leaf1[T] {
 	return &leaf1[T]{data: v, h0: h0}
 }
 
@@ -34,7 +34,7 @@ func (l *leaf1[T]) String() string {
 	return fmt.Sprintf("%s", l)
 }
 
-func (l *leaf1[T]) H0() h128 { return l.h0 }
+func (l *leaf1[T]) H0() H128 { return l.h0 }
 
 // node[T]
 

@@ -55,7 +55,7 @@ type EqArgs[T any] struct {
 
 	eq       func(a, b T) bool
 	hash     func(a T, seed uintptr) uintptr
-	fullHash bool // h128 match implies equality; skip element comparison
+	fullHash bool // H128 match implies equality; skip element comparison
 }
 
 func NewEqArgs[T any](

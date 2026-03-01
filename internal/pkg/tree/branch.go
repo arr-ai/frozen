@@ -21,14 +21,14 @@ func UseLHS[T any](a, _ T) T { return a }
 type branch[T any] struct {
 	p     packer[T]
 	count int
-	h0    h128
+	h0    H128
 }
 
-func (b *branch[T]) H0() h128 { return b.h0 }
+func (b *branch[T]) H0() H128 { return b.h0 }
 
 // childrenH0 computes the XOR of all children's H0 values.
-func childrenH0[T any](p *packer[T]) h128 {
-	var h0 h128
+func childrenH0[T any](p *packer[T]) H128 {
+	var h0 H128
 	for m := p.mask; m != 0; m = m.Next() {
 		h0 = h0.xor(p.data[m.FirstIndex()].H0())
 	}
@@ -143,7 +143,7 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 	case *leaf1[T]:
 		return b.with(args, n.data, depth, hasherFromCached(n.h0, depth, n.data, args.hash))
 	case *leaf2[T]:
-		hashes := [2]h128{n.ha, n.hb()}
+		hashes := [2]H128{n.ha, n.hb()}
 		ret := b
 		for i, e := range n.data {
 			var m int
@@ -473,7 +473,7 @@ func buildSpine[T any](path []spineEntry[T], child node[T], countDelta int) *bra
 	oldChild := path[bottom].b.p.data[path[bottom].index]
 	spine[bottom].p.SetNonNilChild(path[bottom].index, child)
 	spine[bottom].count = path[bottom].b.count + countDelta
-	var oldH0 h128
+	var oldH0 H128
 	if oldChild != nil {
 		oldH0 = oldChild.H0()
 	}
@@ -542,7 +542,7 @@ func buildSpineWithout[T any](path []spineEntry[T], child node[T], matches int) 
 	oldChild := path[bottom].b.p.data[path[bottom].index]
 	spine[bottom].p.SetChild(path[bottom].index, child)
 	spine[bottom].count = path[bottom].b.count - matches
-	var childH0 h128
+	var childH0 H128
 	if child != nil {
 		childH0 = child.H0()
 	}
@@ -558,7 +558,7 @@ func buildSpineWithout[T any](path []spineEntry[T], child node[T], matches int) 
 		return bottomNode
 	}
 
-	var bottomH0 h128
+	var bottomH0 H128
 	if bottomNode != nil {
 		bottomH0 = bottomNode.H0()
 	}
@@ -629,7 +629,7 @@ func (b *branch[T]) Without(args *EqArgs[T], v T, depth int, h hasher) (_ node[T
 			ret := *b
 			ret.p.SetChild(i, x2)
 			ret.count = b.count - matches
-			var x2H0 h128
+			var x2H0 H128
 			if x2 != nil {
 				x2H0 = x2.H0()
 			}

@@ -9,8 +9,8 @@ import (
 
 type leaf2[T any] struct {
 	data [2]T
-	h0   h128 // hash128(data[0]) ^ hash128(data[1])
-	ha   h128 // hash128(data[0]); hash128(data[1]) = h0.xor(ha)
+	h0   H128 // hasH128(data[0]) ^ hasH128(data[1])
+	ha   H128 // hasH128(data[0]); hasH128(data[1]) = h0.xor(ha)
 }
 
 func newLeaf2[T any](a, b T) *leaf2[T] {
@@ -20,7 +20,7 @@ func newLeaf2[T any](a, b T) *leaf2[T] {
 	return &leaf2[T]{data: [2]T{a, b}, h0: ha.xor(hb), ha: ha}
 }
 
-func newLeaf2WithHash[T any](a, b T, ha, hb h128) *leaf2[T] {
+func newLeaf2WithHash[T any](a, b T, ha, hb H128) *leaf2[T] {
 	return &leaf2[T]{data: [2]T{a, b}, h0: ha.xor(hb), ha: ha}
 }
 
@@ -40,10 +40,10 @@ func (l *leaf2[T]) String() string {
 	return fmt.Sprintf("%s", l)
 }
 
-func (l *leaf2[T]) H0() h128 { return l.h0 }
+func (l *leaf2[T]) H0() H128 { return l.h0 }
 
 // hb returns the cached hash of data[1].
-func (l *leaf2[T]) hb() h128 { return l.h0.xor(l.ha) }
+func (l *leaf2[T]) hb() H128 { return l.h0.xor(l.ha) }
 
 // node[T]
 
@@ -85,7 +85,7 @@ func (l *leaf2[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T
 			if args.eq(f, n.data) {
 				combined := args.f(f, n.data)
 				ch := newElemH128(combined, args.hash)
-				var otherH h128
+				var otherH H128
 				if j == 0 {
 					otherH = l.hb()
 				} else {
@@ -106,7 +106,7 @@ func (l *leaf2[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T
 }
 
 func (l *leaf2[T]) Difference(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
-	hashes := [2]h128{l.ha, l.hb()}
+	hashes := [2]H128{l.ha, l.hb()}
 	var found [2]bool
 	for i, e := range l.data {
 		h := hasherFromCached(hashes[i], depth, e, args.hash)
@@ -158,7 +158,7 @@ func (l *leaf2[T]) Get(args *EqArgs[T], v T, _ hasher, _ int) *T {
 }
 
 func (l *leaf2[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
-	hashes := [2]h128{l.ha, l.hb()}
+	hashes := [2]H128{l.ha, l.hb()}
 	var found [2]bool
 	for i, e := range l.data {
 		h := hasherFromCached(hashes[i], depth, e, args.hash)
@@ -209,7 +209,7 @@ func (l *leaf2[T]) Remove(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], mat
 }
 
 func (l *leaf2[T]) SubsetOf(args *EqArgs[T], n node[T], depth int) bool {
-	hashes := [2]h128{l.ha, l.hb()}
+	hashes := [2]H128{l.ha, l.hb()}
 	for i, e := range l.data {
 		h := hasherFromCached(hashes[i], depth, e, args.hash)
 		if n.Get(args, e, h, depth) == nil {
