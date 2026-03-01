@@ -6,9 +6,8 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/arr-ai/hash"
-
 	"github.com/arr-ai/frozen/internal/pkg/fu"
+	"github.com/arr-ai/frozen/internal/pkg/hash"
 )
 
 const (
@@ -21,8 +20,14 @@ type hasher uintptr
 
 var hashFuncCache sync.Map
 
+// toH128 converts a hash.H128 (exported fields) to tree's H128 (unexported).
+func toH128(h hash.H128) H128 {
+	return H128{h.Lo, h.Hi}
+}
+
 // resolveHashFunc returns a non-boxing hash function for T that computes both
-// hash halves (seeds 0 and 1) in a single call, returning H128.
+// hash halves in a single call, returning H128. On AES-capable hardware the
+// typed variants (Uint64H128, etc.) compute both halves from a single AES pass.
 func resolveHashFunc[T any]() func(T) H128 {
 	var t T
 	if _, ok := any(t).(hash.Hashable); ok {
@@ -36,38 +41,38 @@ func resolveHashFunc[T any]() func(T) H128 {
 	case float32:
 		return func(key T) H128 {
 			f := *(*float32)(unsafe.Pointer(&key))
-			return H128{hash.Float32(f, 0), hash.Float32(f, 1)}
+			return toH128(hash.Float32H128(f))
 		}
 	case float64:
 		return func(key T) H128 {
 			f := *(*float64)(unsafe.Pointer(&key))
-			return H128{hash.Float64(f, 0), hash.Float64(f, 1)}
+			return toH128(hash.Float64H128(f))
 		}
 	}
 	switch unsafe.Sizeof(t) {
 	case 1:
 		return func(key T) H128 {
 			v := *(*uint8)(unsafe.Pointer(&key))
-			return H128{hash.Uint8(v, 0), hash.Uint8(v, 1)}
+			return toH128(hash.Uint8H128(v))
 		}
 	case 2:
 		return func(key T) H128 {
 			v := *(*uint16)(unsafe.Pointer(&key))
-			return H128{hash.Uint16(v, 0), hash.Uint16(v, 1)}
+			return toH128(hash.Uint16H128(v))
 		}
 	case 4:
 		return func(key T) H128 {
 			v := *(*uint32)(unsafe.Pointer(&key))
-			return H128{hash.Uint32(v, 0), hash.Uint32(v, 1)}
+			return toH128(hash.Uint32H128(v))
 		}
 	case 8:
 		return func(key T) H128 {
 			v := *(*uint64)(unsafe.Pointer(&key))
-			return H128{hash.Uint64(v, 0), hash.Uint64(v, 1)}
+			return toH128(hash.Uint64H128(v))
 		}
 	}
 	return func(key T) H128 {
-		return H128{hash.Any(key, 0), hash.Any(key, 1)}
+		return toH128(hash.AnyH128(key))
 	}
 }
 

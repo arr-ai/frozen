@@ -3,14 +3,18 @@ package frozen
 import (
 	"fmt"
 
-	"github.com/arr-ai/hash"
-
 	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
+	"github.com/arr-ai/frozen/internal/pkg/hash"
 	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
 	"github.com/arr-ai/frozen/internal/pkg/value"
 )
+
+// Hashable represents a type that can evaluate its own hash.
+type Hashable interface {
+	Hash(seed uintptr) uintptr
+}
 
 // Set holds a set of values of type T. The zero value is the empty Set.
 type Set[T any] struct {
@@ -20,7 +24,7 @@ type Set[T any] struct {
 // Key represents a type that can be used as a key in a Map or a Set.
 type Key[T any] interface {
 	value.Equaler[T]
-	hash.Hashable
+	Hashable
 }
 
 var _ Key[Set[int]] = Set[int]{}

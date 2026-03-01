@@ -3,11 +3,10 @@ package frozen
 import (
 	"fmt"
 
-	"github.com/arr-ai/hash"
-
 	"github.com/arr-ai/frozen/internal/pkg/debug"
 	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
+	"github.com/arr-ai/frozen/internal/pkg/hash"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
 )
 

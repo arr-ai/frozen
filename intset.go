@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/arr-ai/hash"
-
 	"github.com/arr-ai/frozen/internal/pkg/fu"
+	"github.com/arr-ai/frozen/internal/pkg/hash"
 	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
 )
 
