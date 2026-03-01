@@ -177,6 +177,7 @@ func (m Map[K, V]) EqArgs() *tree.EqArgs[mapEntry[K, V]] {
 		depth.NewGauge(m.Count()),
 		mapEntryEqual[K, V],
 		mapEntryHash[K, V],
+		false,
 	)
 }
 
@@ -185,6 +186,7 @@ func (m Map[K, V]) EqKeyArgs() *tree.EqArgs[mapEntry[K, V]] {
 		depth.NewGauge(m.Count()),
 		mapEntryKeyEqual[K, V],
 		mapEntryHash[K, V],
+		false,
 	)
 }
 
@@ -227,6 +229,7 @@ func (m Map[K, V]) Equal(n Map[K, V]) bool {
 		depth.NewGauge(m.Count()),
 		mapEntryEqual[K, V],
 		mapEntryHash[K, V],
+		false,
 	)
 	return m.tree.Equal(args, n.tree)
 }

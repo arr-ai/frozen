@@ -53,26 +53,36 @@ func (a *CombineArgs[T]) Flip() *CombineArgs[T] {
 type EqArgs[T any] struct {
 	NodeArgs
 
-	eq func(a, b T) bool
-	// TODO
-	hash func(a T, seed uintptr) uintptr
+	eq       func(a, b T) bool
+	hash     func(a T) H128
+	fullHash bool // H128 match implies equality; skip element comparison
 }
 
+// NewEqArgs creates EqArgs from an old-style seeded hash function.
+// The seeded function is wrapped internally to produce H128 (calls with seeds 0 and 1).
 func NewEqArgs[T any](
 	gauge depth.Gauge,
 	eq func(a, b T) bool,
 	hash func(a T, seed uintptr) uintptr,
+	fullHash bool,
 ) *EqArgs[T] {
-	na := NewNodeArgs(gauge)
 	return &EqArgs[T]{
-		NodeArgs: na,
+		NodeArgs: NewNodeArgs(gauge),
 		eq:       eq,
-		hash:     hash,
+		hash:     func(a T) H128 { return H128{hash(a, 0), hash(a, 1)} },
+		fullHash: fullHash,
 	}
 }
 
+// NewDefaultEqArgs creates EqArgs using the resolved H128 hash function directly,
+// avoiding the seeded-function wrapper overhead.
 func NewDefaultEqArgs[T any](gauge depth.Gauge) *EqArgs[T] {
-	return NewEqArgs(gauge, value.EqualFuncFor[T](), getHashFunc[T]())
+	return &EqArgs[T]{
+		NodeArgs: NewNodeArgs(gauge),
+		eq:       value.EqualFuncFor[T](),
+		hash:     getHashFunc[T](),
+		fullHash: true,
+	}
 }
 
 type WhereArgs[T any] struct {

@@ -21,16 +21,16 @@ func UseLHS[T any](a, _ T) T { return a }
 type branch[T any] struct {
 	p     packer[T]
 	count int
-	h0    uintptr
+	h0    H128
 }
 
-func (b *branch[T]) H0() uintptr { return b.h0 }
+func (b *branch[T]) H0() H128 { return b.h0 }
 
 // childrenH0 computes the XOR of all children's H0 values.
-func childrenH0[T any](p *packer[T]) uintptr {
-	var h0 uintptr
+func childrenH0[T any](p *packer[T]) H128 {
+	var h0 H128
 	for m := p.mask; m != 0; m = m.Next() {
-		h0 ^= p.data[m.FirstIndex()].H0()
+		h0 = h0.xor(p.data[m.FirstIndex()].H0())
 	}
 	return h0
 }
@@ -53,7 +53,7 @@ func nextHasher[T any](v T, h hasher, depth int) hasher {
 
 // nextHasherWith is like nextHasher but uses a pre-resolved hash function,
 // avoiding the sync.Map lookup in newHasher.
-func nextHasherWith[T any](v T, h hasher, depth int, hf func(T, uintptr) uintptr) hasher {
+func nextHasherWith[T any](v T, h hasher, depth int, hf func(T) H128) hasher {
 	if (depth+1)%levelsPerRound == 0 {
 		return newHasherWith(v, depth+1, hf)
 	}
@@ -141,13 +141,13 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 		ret.h0 = childrenH0(&ret.p)
 		return ret, matches
 	case *leaf1[T]:
-		return b.with(args, n.data, depth, hasherFromCached(n.h0, depth, n.data, args.hash))
+		return b.with(args, n.data, depth, hasherFromCached(n.h0, depth))
 	case *leaf2[T]:
-		hashes := [2]uintptr{n.ha, n.hb()}
+		hashes := [2]H128{n.ha, n.hb()}
 		ret := b
 		for i, e := range n.data {
 			var m int
-			ret, m = ret.with(args, e, depth, hasherFromCached(hashes[i], depth, e, args.hash))
+			ret, m = ret.with(args, e, depth, hasherFromCached(hashes[i], depth))
 			matches += m
 		}
 		return ret, matches
@@ -167,6 +167,9 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 func (b *branch[T]) Difference(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
 	switch n := n.(type) {
 	case *branch[T]:
+		if b == n || (b.count == n.count && b.Equal(args, node[T](n), depth)) {
+			return nil, b.count
+		}
 		ret := newBranch[T](nil)
 		_, matches = args.Parallel(depth, b.p.mask, func(i int) (_ bool, matches int) {
 			x, y := b.p.data[i], n.p.data[i]
@@ -184,7 +187,7 @@ func (b *branch[T]) Difference(args *EqArgs[T], n node[T], depth int) (_ node[T]
 		ret.h0 = childrenH0(&ret.p)
 		return ret.collapse(), matches
 	case *leaf1[T]:
-		h := hasherFromCached(n.h0, depth, n.data, args.hash)
+		h := hasherFromCached(n.h0, depth)
 		return b.Without(args, n.data, depth, h)
 	case *leaf2[T]:
 		return differenceByElement(args, node[T](b), n.data[:], depth)
@@ -219,6 +222,9 @@ func (b *branch[T]) Equal(args *EqArgs[T], n node[T], depth int) bool {
 		if b.h0 != n.h0 || b.p.mask != n.p.mask {
 			return false
 		}
+		if args.fullHash && !b.h0.isZero() {
+			return true
+		}
 		equal, _ := args.Parallel(depth, b.p.mask, func(i int) (_ bool, matches int) {
 			x, y := b.p.data[i], n.p.data[i]
 			return x.Equal(args, y, depth+1), 0
@@ -239,6 +245,9 @@ func (b *branch[T]) Get(args *EqArgs[T], v T, h hasher, depth int) *T {
 func (b *branch[T]) Intersection(args *EqArgs[T], n node[T], depth int) (_ node[T], matches int) {
 	switch n := n.(type) {
 	case *branch[T]:
+		if b == n || (b.count == n.count && b.Equal(args, node[T](n), depth)) {
+			return b, b.count
+		}
 		ret := newBranch[T](nil)
 		_, matches = args.Parallel(depth, b.p.mask&n.p.mask, func(i int) (_ bool, matches int) {
 			x, y := b.p.data[i], n.p.data[i]
@@ -391,10 +400,10 @@ func (b *branch[T]) Vet() int {
 	return count
 }
 
-func (b *branch[T]) vetH0(hf func(T, uintptr) uintptr) {
+func (b *branch[T]) vetH0(hf func(T) H128) {
 	want := childrenH0(&b.p)
 	if b.h0 != want {
-		panic(fmt.Errorf("branch h0 mismatch: stored %x, computed %x", b.h0, want))
+		panic(fmt.Errorf("branch h0 mismatch: stored %v, computed %v", b.h0, want))
 	}
 	for m := b.p.mask; m != 0; m = m.Next() {
 		vetNodeH0(b.p.data[m.FirstIndex()], hf)
@@ -414,16 +423,16 @@ func (b *branch[T]) with(args *CombineArgs[T], v T, depth int, h hasher) (_ *bra
 			ret := *b
 			ret.p.data[i] = x2
 			ret.count = b.count + 1 - matches
-			ret.h0 = b.h0 ^ x.H0() ^ x2.H0()
+			ret.h0 = b.h0.xor(x.H0()).xor(x2.H0())
 			return &ret, matches
 		}
 		return b, matches
 	}
-	l := newLeaf1WithHash(v, args.hash(v, 0))
+	l := newLeaf1WithHash(v, newElemH128(v, args.hash))
 	ret := *b
 	ret.p.SetNonNilChild(i, l)
 	ret.count = b.count + 1
-	ret.h0 = b.h0 ^ l.h0
+	ret.h0 = b.h0.xor(l.h0)
 	return &ret, 0
 }
 
@@ -436,7 +445,7 @@ func (b *branch[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) 
 			ret := *b
 			ret.p.data[i] = x2
 			ret.count = b.count + 1 - matches
-			ret.h0 = b.h0 ^ x.H0() ^ x2.H0()
+			ret.h0 = b.h0.xor(x.H0()).xor(x2.H0())
 			return &ret, matches
 		}
 		return b, matches
@@ -445,7 +454,7 @@ func (b *branch[T]) WithFast(v T, depth int, h hasher) (_ node[T], matches int) 
 	ret := *b
 	ret.p.SetNonNilChild(i, l)
 	ret.count = b.count + 1
-	ret.h0 = b.h0 ^ l.h0
+	ret.h0 = b.h0.xor(l.h0)
 	return &ret, 0
 }
 
@@ -464,18 +473,18 @@ func buildSpine[T any](path []spineEntry[T], child node[T], countDelta int) *bra
 	oldChild := path[bottom].b.p.data[path[bottom].index]
 	spine[bottom].p.SetNonNilChild(path[bottom].index, child)
 	spine[bottom].count = path[bottom].b.count + countDelta
-	oldH0 := uintptr(0)
+	var oldH0 H128
 	if oldChild != nil {
 		oldH0 = oldChild.H0()
 	}
-	spine[bottom].h0 = path[bottom].b.h0 ^ oldH0 ^ child.H0()
+	spine[bottom].h0 = path[bottom].b.h0.xor(oldH0).xor(child.H0())
 
 	for j := bottom - 1; j >= 0; j-- {
 		s := path[j]
 		spine[j] = *s.b
 		spine[j].p.data[s.index] = &spine[j+1]
 		spine[j].count = s.b.count + countDelta
-		spine[j].h0 = s.b.h0 ^ s.b.p.data[s.index].H0() ^ spine[j+1].h0
+		spine[j].h0 = s.b.h0.xor(s.b.p.data[s.index].H0()).xor(spine[j+1].h0)
 	}
 	return &spine[0]
 }
@@ -483,7 +492,7 @@ func buildSpine[T any](path []spineEntry[T], child node[T], countDelta int) *bra
 // withFastBatched performs a With operation starting from a branch root using
 // batched allocation: all spine branch copies are allocated in a single slice
 // instead of one heap allocation per level.
-func withFastBatched[T any](root *branch[T], v T, h hasher, hf func(T, uintptr) uintptr) (node[T], int) {
+func withFastBatched[T any](root *branch[T], v T, h hasher, hf func(T) H128) (node[T], int) {
 	// Stack-allocated path buffer. levelsPerRound*2 covers two full hash
 	// rounds, far more than any realistic tree depth.
 	var path [levelsPerRound * 2]spineEntry[T]
@@ -502,7 +511,7 @@ func withFastBatched[T any](root *branch[T], v T, h hasher, hf func(T, uintptr) 
 		nextH := nextHasherWith(v, curHash, depth, hf)
 
 		if child == nil {
-			return buildSpine(path[:pathLen], node[T](newLeaf1WithHash(v, hf(v, 0))), 1), 0
+			return buildSpine(path[:pathLen], node[T](newLeaf1WithHash(v, newElemH128(v, hf))), 1), 0
 		}
 
 		if b2, ok := child.(*branch[T]); ok {
@@ -533,11 +542,11 @@ func buildSpineWithout[T any](path []spineEntry[T], child node[T], matches int) 
 	oldChild := path[bottom].b.p.data[path[bottom].index]
 	spine[bottom].p.SetChild(path[bottom].index, child)
 	spine[bottom].count = path[bottom].b.count - matches
-	childH0 := uintptr(0)
+	var childH0 H128
 	if child != nil {
 		childH0 = child.H0()
 	}
-	spine[bottom].h0 = path[bottom].b.h0 ^ oldChild.H0() ^ childH0
+	spine[bottom].h0 = path[bottom].b.h0.xor(oldChild.H0()).xor(childH0)
 
 	// The bottom branch may collapse to a leaf or nil.
 	var bottomNode node[T] = &spine[bottom]
@@ -549,7 +558,7 @@ func buildSpineWithout[T any](path []spineEntry[T], child node[T], matches int) 
 		return bottomNode
 	}
 
-	bottomH0 := uintptr(0)
+	var bottomH0 H128
 	if bottomNode != nil {
 		bottomH0 = bottomNode.H0()
 	}
@@ -559,14 +568,14 @@ func buildSpineWithout[T any](path []spineEntry[T], child node[T], matches int) 
 	spine[bottom-1] = *path[bottom-1].b
 	spine[bottom-1].p.SetChild(path[bottom-1].index, bottomNode)
 	spine[bottom-1].count = path[bottom-1].b.count - matches
-	spine[bottom-1].h0 = path[bottom-1].b.h0 ^ path[bottom-1].b.p.data[path[bottom-1].index].H0() ^ bottomH0
+	spine[bottom-1].h0 = path[bottom-1].b.h0.xor(path[bottom-1].b.p.data[path[bottom-1].index].H0()).xor(bottomH0)
 
 	for j := bottom - 2; j >= 0; j-- {
 		s := path[j]
 		spine[j] = *s.b
 		spine[j].p.data[s.index] = &spine[j+1]
 		spine[j].count = s.b.count - matches
-		spine[j].h0 = s.b.h0 ^ s.b.p.data[s.index].H0() ^ spine[j+1].h0
+		spine[j].h0 = s.b.h0.xor(s.b.p.data[s.index].H0()).xor(spine[j+1].h0)
 	}
 	return &spine[0]
 }
@@ -620,11 +629,11 @@ func (b *branch[T]) Without(args *EqArgs[T], v T, depth int, h hasher) (_ node[T
 			ret := *b
 			ret.p.SetChild(i, x2)
 			ret.count = b.count - matches
-			x2H0 := uintptr(0)
+			var x2H0 H128
 			if x2 != nil {
 				x2H0 = x2.H0()
 			}
-			ret.h0 = b.h0 ^ x.H0() ^ x2H0
+			ret.h0 = b.h0.xor(x.H0()).xor(x2H0)
 			return ret.collapse(), matches
 		}
 	}

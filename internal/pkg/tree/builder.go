@@ -25,7 +25,12 @@ func DefaultNPKeyCombineArgs[T any]() *CombineArgs[T] {
 }
 
 func NewDefaultKeyEqArgs[T any](gauge depth.Gauge) *EqArgs[T] {
-	return NewEqArgs(gauge, value.EqualFuncFor[T](), getHashFunc[T]())
+	return &EqArgs[T]{
+		NodeArgs: NewNodeArgs(gauge),
+		eq:       value.EqualFuncFor[T](),
+		hash:     getHashFunc[T](),
+		fullHash: true,
+	}
 }
 
 // Builder[T] provides a more efficient way to build nodes incrementally.
@@ -107,24 +112,24 @@ func (b *Builder[T]) Finish() Tree[T] {
 }
 
 // computeH0 recursively fills in h0 for all nodes, bottom-up.
-func computeH0[T any](n node[T], hf func(T, uintptr) uintptr) {
+func computeH0[T any](n node[T], hf func(T) H128) {
 	switch n := n.(type) {
 	case *leaf1[T]:
-		n.h0 = hf(n.data, 0)
+		n.h0 = newElemH128(n.data, hf)
 	case *leaf2[T]:
-		n.ha = hf(n.data[0], 0)
-		n.h0 = n.ha ^ hf(n.data[1], 0)
+		n.ha = newElemH128(n.data[0], hf)
+		n.h0 = n.ha.xor(newElemH128(n.data[1], hf))
 	case *leaf[T]:
-		n.h0 = 0
+		n.h0 = H128{}
 		for _, e := range n.data {
-			n.h0 ^= hf(e, 0)
+			n.h0 = n.h0.xor(newElemH128(e, hf))
 		}
 	case *branch[T]:
-		n.h0 = 0
+		n.h0 = H128{}
 		for m := n.p.mask; m != 0; m = m.Next() {
 			child := n.p.data[m.FirstIndex()]
 			computeH0(child, hf)
-			n.h0 ^= child.H0()
+			n.h0 = n.h0.xor(child.H0())
 		}
 	}
 }
