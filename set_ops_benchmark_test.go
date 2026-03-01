@@ -24,6 +24,7 @@ var benchSizes = []benchSize{
 //	Half:     a=[0,n), b=[n/2, n+n/2) — 50% overlap.
 //	Sparse:   a=[0,n), b=[n,2n) with 1% from a — 1% overlap.
 //	Disjoint: a=[0,n), b=[n,2n) — 0% overlap.
+//
 // onePercent returns max(n/100, 1).
 func onePercent(n int) int {
 	if d := n / 100; d > 0 {
