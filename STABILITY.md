@@ -7,7 +7,7 @@ so that each release can be mechanically audited for breakage.
 
 ## Interaction surface catalogue
 
-Snapshot as of v1.8.0.
+Snapshot as of v1.9.0.
 
 ### Package `frozen`
 
@@ -19,9 +19,13 @@ type Iterator[T any] interface {
     Value() T
 }
 
+type Hashable interface {
+    Hash(seed uintptr) uintptr
+}
+
 type Key[T any] interface {
     value.Equaler[T]  // Equal(T) bool
-    hash.Hashable     // Hash(seed uintptr) uintptr
+    Hashable          // Hash(seed uintptr) uintptr
 }
 ```
 
