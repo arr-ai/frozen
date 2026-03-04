@@ -76,8 +76,9 @@ func resolveHashFunc[T any]() func(T) H128 {
 	}
 }
 
-func getHashFunc[T any]() func(T) H128 {
-	key := typeKey[T]()
+// GetHashFunc returns a cached hash function for type T.
+func GetHashFunc[T any]() func(T) H128 {
+	key := TypeKeyOf[T]()
 	if f, ok := hashFuncCache.Load(key); ok {
 		return f.(func(T) H128) //nolint:forcetypeassert
 	}
@@ -86,19 +87,19 @@ func getHashFunc[T any]() func(T) H128 {
 	return fn
 }
 
-// typeKey returns a uintptr that uniquely identifies the type T, suitable for
+// TypeKeyOf returns a uintptr that uniquely identifies the type T, suitable for
 // use as a sync.Map key. It extracts the type-descriptor word from an eface
 // wrapping *T, which is a compile-time constant. Using uintptr instead of
 // reflect.Type avoids the expensive nilinterhash→typehash chain that sync.Map
 // incurs when hashing interface keys.
-func typeKey[T any]() uintptr {
+func TypeKeyOf[T any]() uintptr {
 	var t T
 	i := any(&t)
 	return *(*uintptr)(unsafe.Pointer(&i))
 }
 
 func newHasher[T any](key T, depth int) hasher {
-	return newHasherWith(key, depth, getHashFunc[T]())
+	return newHasherWith(key, depth, GetHashFunc[T]())
 }
 
 // hasherFromCached reconstructs a hasher from a cached H128 hash.

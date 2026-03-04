@@ -152,6 +152,43 @@ apples-to-apples comparison (no pointer shortcuts).
 
 **Trade-off**: Single-element `Has` is ~20-60% slower due to h0 bookkeeping overhead. The bulk-operation gains more than compensate in typical workloads.
 
+### EqHash interface refactoring
+
+The `EqHash[T]` interface replaces per-operation function resolution with cached
+concrete implementations. Map operations now use H128-native key hashing instead
+of double seeded calls. Key improvements (Apple M4 Max, Go 1.25, darwin/arm64):
+
+- **Map Merge 1M**: 39ms → 18ms (**53% faster**)
+- **Map Insert 1M**: 1032ns → 700ns (**32% faster**)
+- **Set Equal** (all variants): 42ns → 26ns (**38% faster**)
+- **Set Intersection/Difference** (Same/Equal): ~38% faster
+- **Overall geomean**: **19% faster**
+
+<details>
+<summary>Full benchstat comparison (before vs after EqHash)</summary>
+
+```
+                                                 │    before     │              after               │
+                                                 │    sec/op     │    sec/op     vs base            │
+InsertFrozenMap0-16                                   42.74n ± ∞    41.84n ± ∞        ~ (p=0.100)
+InsertFrozenMap1k-16                                  260.7n ± ∞    263.9n ± ∞        ~ (p=0.400)
+InsertFrozenMap1M-16                                 1032.0n ± ∞    700.0n ± ∞        ~ (p=0.100)
+MergeFrozenMap10-16                                   630.1n ± ∞    474.5n ± ∞        ~ (p=0.100)
+MergeFrozenMap100-16                                  6.344µ ± ∞    4.619µ ± ∞        ~ (p=0.100)
+MergeFrozenMap1k-16                                   81.56µ ± ∞    52.26µ ± ∞        ~ (p=0.100)
+MergeFrozenMap100k-16                                 9.708m ± ∞    5.811m ± ∞        ~ (p=0.100)
+MergeFrozenMap1M-16                                   38.97m ± ∞    18.35m ± ∞        ~ (p=0.100)
+SetOps/Equal/1ki/Same-16                              43.16n ± ∞    26.62n ± ∞        ~ (p=0.100)
+SetOps/Equal/1Mi/Equal-16                             42.18n ± ∞    26.43n ± ∞        ~ (p=0.100)
+SetOps/Intersection/1ki/Same-16                       43.62n ± ∞    27.46n ± ∞        ~ (p=0.100)
+SetOps/Intersection/1Mi/Same-16                       43.08n ± ∞    26.82n ± ∞        ~ (p=0.100)
+SetOps/Difference/1ki/Same-16                         42.91n ± ∞    26.56n ± ∞        ~ (p=0.100)
+SetOps/Difference/1Mi/Same-16                         42.30n ± ∞    26.64n ± ∞        ~ (p=0.100)
+geomean                                               11.73µ         6.533µ       -18.67%
+```
+
+</details>
+
 <details>
 <summary>Full benchstat comparison (v1.7.0 vs v1.8.0)</summary>
 

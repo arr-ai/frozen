@@ -14,7 +14,7 @@ type leaf2[T any] struct {
 }
 
 func newLeaf2[T any](a, b T) *leaf2[T] {
-	hf := getHashFunc[T]()
+	hf := GetHashFunc[T]()
 	ha := newElemH128(a, hf)
 	hb := newElemH128(b, hf)
 	return &leaf2[T]{data: [2]T{a, b}, h0: ha.xor(hb), ha: ha}
@@ -49,7 +49,7 @@ func (l *leaf2[T]) hb() H128 { return l.h0.xor(l.ha) }
 
 func (l *leaf2[T]) Add(args *CombineArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
 	for i, e := range l.data {
-		if args.eq(e, v) {
+		if args.Equal(e, v) {
 			l.data[i] = args.f(e, v)
 			// h0 left stale — Builder.Finish() recomputes.
 			return l, 1
@@ -82,9 +82,9 @@ func (l *leaf2[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[T
 		return n.Combine(args.Flip(), l, depth)
 	case *leaf1[T]:
 		for j, f := range l.data {
-			if args.eq(f, n.data) {
+			if args.Equal(f, n.data) {
 				combined := args.f(f, n.data)
-				ch := newElemH128(combined, args.hash)
+				ch := newElemH128(combined, args.hf)
 				var otherH H128
 				if j == 0 {
 					otherH = l.hb()
@@ -138,20 +138,20 @@ func (l *leaf2[T]) Equal(args *EqArgs[T], n node[T], _ int) bool {
 		if l.h0 != n.h0 {
 			return false
 		}
-		if args.fullHash && !l.h0.isZero() {
+		if args.FullHash() && !l.h0.isZero() {
 			return true
 		}
-		return (args.eq(l.data[0], n.data[0]) && args.eq(l.data[1], n.data[1])) ||
-			(args.eq(l.data[0], n.data[1]) && args.eq(l.data[1], n.data[0]))
+		return (args.Equal(l.data[0], n.data[0]) && args.Equal(l.data[1], n.data[1])) ||
+			(args.Equal(l.data[0], n.data[1]) && args.Equal(l.data[1], n.data[0]))
 	}
 	return false
 }
 
 func (l *leaf2[T]) Get(args *EqArgs[T], v T, _ hasher, _ int) *T {
-	if args.eq(l.data[0], v) {
+	if args.Equal(l.data[0], v) {
 		return &l.data[0]
 	}
-	if args.eq(l.data[1], v) {
+	if args.Equal(l.data[1], v) {
 		return &l.data[1]
 	}
 	return nil
@@ -187,9 +187,9 @@ func (l *leaf2[T]) Iterator([][]node[T]) Iterator[T] {
 
 func (l *leaf2[T]) Map(args *CombineArgs[T], _ int, f func(e T) T) (_ node[T], matches int) {
 	a, b := f(l.data[0]), f(l.data[1])
-	if args.eq(a, b) {
+	if args.Equal(a, b) {
 		combined := args.f(a, b)
-		return newLeaf1WithHash(combined, newElemH128(combined, args.hash)), 1
+		return newLeaf1WithHash(combined, newElemH128(combined, args.hf)), 1
 	}
 	return newLeaf2(a, b), 2
 }
@@ -199,10 +199,10 @@ func (l *leaf2[T]) Reduce(_ NodeArgs, _ int, r func(values ...T) T) T {
 }
 
 func (l *leaf2[T]) Remove(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
-	if args.eq(l.data[0], v) {
+	if args.Equal(l.data[0], v) {
 		return newLeaf1WithHash(l.data[1], l.hb()), 1
 	}
-	if args.eq(l.data[1], v) {
+	if args.Equal(l.data[1], v) {
 		return newLeaf1WithHash(l.data[0], l.ha), 1
 	}
 	return l, 0
@@ -250,17 +250,17 @@ func (l *leaf2[T]) Where(args *WhereArgs[T], _ int) (_ node[T], matches int) {
 }
 
 func (l *leaf2[T]) With(args *CombineArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
-	if args.eq(l.data[0], v) {
+	if args.Equal(l.data[0], v) {
 		combined := args.f(l.data[0], v)
-		ch := newElemH128(combined, args.hash)
+		ch := newElemH128(combined, args.hf)
 		return &leaf2[T]{data: [2]T{combined, l.data[1]}, h0: ch.xor(l.hb()), ha: ch}, 1
 	}
-	if args.eq(l.data[1], v) {
+	if args.Equal(l.data[1], v) {
 		combined := args.f(l.data[1], v)
-		ch := newElemH128(combined, args.hash)
+		ch := newElemH128(combined, args.hf)
 		return &leaf2[T]{data: [2]T{l.data[0], combined}, h0: l.ha.xor(ch), ha: l.ha}, 1
 	}
-	vh := newElemH128(v, args.hash)
+	vh := newElemH128(v, args.hf)
 	return &leaf[T]{data: []T{l.data[0], l.data[1], v}, h0: l.h0.xor(vh)}, 0
 }
 
@@ -273,16 +273,16 @@ func (l *leaf2[T]) WithFast(v T, _ int, _ hasher) (_ node[T], matches int) {
 		// Equal values have equal hashes — reuse l.hb().
 		return &leaf2[T]{data: [2]T{l.data[0], v}, h0: l.h0, ha: l.ha}, 1
 	}
-	hf := getHashFunc[T]()
+	hf := GetHashFunc[T]()
 	vh := newElemH128(v, hf)
 	return &leaf[T]{data: []T{l.data[0], l.data[1], v}, h0: l.h0.xor(vh)}, 0
 }
 
 func (l *leaf2[T]) Without(args *EqArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
-	if args.eq(l.data[0], v) {
+	if args.Equal(l.data[0], v) {
 		return newLeaf1WithHash(l.data[1], l.hb()), 1
 	}
-	if args.eq(l.data[1], v) {
+	if args.Equal(l.data[1], v) {
 		return newLeaf1WithHash(l.data[0], l.ha), 1
 	}
 	return l, 0

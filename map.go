@@ -10,6 +10,14 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/tree"
 )
 
+func (m Map[K, V]) mapEqArgs() *tree.EqArgs[mapEntry[K, V]] {
+	return tree.NewEqArgs[mapEntry[K, V]](depth.NewGauge(m.Count()), getMapEntryEqHash[K, V]())
+}
+
+func (m Map[K, V]) mapKeyEqArgs() *tree.EqArgs[mapEntry[K, V]] {
+	return tree.NewEqArgs[mapEntry[K, V]](depth.NewGauge(m.Count()), getMapKeyEqHash[K, V]())
+}
+
 // Map maps keys to values. The zero value is the empty Map.
 type Map[K any, V any] struct {
 	tree tree.Tree[mapEntry[K, V]]
@@ -172,21 +180,11 @@ func MapMap[K, V, U any](m Map[K, V], f func(key K, val V) U) Map[K, U] {
 }
 
 func (m Map[K, V]) EqArgs() *tree.EqArgs[mapEntry[K, V]] {
-	return tree.NewEqArgs(
-		depth.NewGauge(m.Count()),
-		mapEntryEqual[K, V],
-		mapEntryHash[K, V],
-		false,
-	)
+	return m.mapEqArgs()
 }
 
 func (m Map[K, V]) EqKeyArgs() *tree.EqArgs[mapEntry[K, V]] {
-	return tree.NewEqArgs(
-		depth.NewGauge(m.Count()),
-		mapEntryKeyEqual[K, V],
-		mapEntryHash[K, V],
-		false,
-	)
+	return m.mapKeyEqArgs()
 }
 
 // Merge returns a map from the merging between two maps, should there be a key overlap,
@@ -196,7 +194,7 @@ func (m Map[K, V]) Merge(n Map[K, V], resolve func(key K, a, b V) V) Map[K, V] {
 	extractAndResolve := func(a, b mapEntry[K, V]) mapEntry[K, V] {
 		return newMapEntry(a.Key, resolve(a.Key, a.Value, b.Value))
 	}
-	args := tree.NewCombineArgs(m.EqKeyArgs(), extractAndResolve)
+	args := tree.NewCombineArgs(m.mapKeyEqArgs(), extractAndResolve)
 	return newMap(m.tree.Combine(args, n.tree))
 }
 
@@ -208,7 +206,7 @@ func (m Map[K, V]) Update(n Map[K, V]) Map[K, V] {
 		m, n = n, m
 		f = tree.UseLHS[mapEntry[K, V]]
 	}
-	args := tree.NewCombineArgs(m.EqKeyArgs(), f)
+	args := tree.NewCombineArgs(m.mapKeyEqArgs(), f)
 	return newMap(m.tree.Combine(args, n.tree))
 }
 
@@ -224,13 +222,7 @@ func (m Map[K, V]) Hash(seed uintptr) uintptr {
 // Equal returns true iff i is a Map with all the same key-value pairs as this
 // Map.
 func (m Map[K, V]) Equal(n Map[K, V]) bool {
-	args := tree.NewEqArgs(
-		depth.NewGauge(m.Count()),
-		mapEntryEqual[K, V],
-		mapEntryHash[K, V],
-		false,
-	)
-	return m.tree.Equal(args, n.tree)
+	return m.tree.Equal(m.mapEqArgs(), n.tree)
 }
 
 // Same returns true iff a is a Map and m and n have all the same key-values.
