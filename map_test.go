@@ -1,6 +1,7 @@
 package frozen_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/arr-ai/frozen"
@@ -39,6 +40,15 @@ func TestMap2(t *testing.T) {
 	mb.Put(a, 100)
 	mb.Put(a, 101)
 	test.Equal(t, 1, mb.Finish().Count())
+}
+
+func TestMapUpdateFromEmptyDeepEqual(t *testing.T) {
+	t.Parallel()
+
+	m := frozen.NewMap[any, any]().With("key", "value")
+	roundTrip := frozen.NewMap[any, any]().Update(m)
+
+	test.True(t, reflect.DeepEqual(m, roundTrip))
 }
 
 func TestMapWithWithout(t *testing.T) {

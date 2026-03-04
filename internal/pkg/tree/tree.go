@@ -17,7 +17,7 @@ func packedIteratorBuf[T any](count int) [][]node[T] {
 type Tree[T any] struct {
 	root  node[T]
 	count int
-	hf    func(T) H128
+	hfr   hashFuncRef
 }
 
 func newTree[T any](n node[T], count int) (out Tree[T]) {
@@ -25,10 +25,7 @@ func newTree[T any](n node[T], count int) (out Tree[T]) {
 }
 
 func (t Tree[T]) hashFunc() func(T) H128 {
-	if t.hf != nil {
-		return t.hf
-	}
-	return getHashFunc[T]()
+	return resolveHashFuncRef[T](t.hfr)
 }
 
 func (t Tree[T]) Count() int {
@@ -65,18 +62,15 @@ func (t Tree[T]) Combine(args *CombineArgs[T], u Tree[T]) (out Tree[T]) {
 	if vetting {
 		defer vet[T](func() { t.Combine(args, u) }, &t, &u)(&out)
 	}
-	hf := t.hf
-	if hf == nil {
-		hf = u.hf
-	}
+	hfr := mergeHashFuncRef(t.hfr, u.hfr)
 	if t.root == nil {
-		return Tree[T]{root: u.root, count: u.count, hf: hf}
+		return Tree[T]{root: u.root, count: u.count, hfr: hfr}
 	}
 	if u.root == nil {
-		return Tree[T]{root: t.root, count: t.count, hf: hf}
+		return Tree[T]{root: t.root, count: t.count, hfr: hfr}
 	}
 	root, matches := t.root.Combine(args, u.root, 0)
-	return Tree[T]{root: root, count: t.count + u.count - matches, hf: hf}
+	return Tree[T]{root: root, count: t.count + u.count - matches, hfr: hfr}
 }
 
 func (t Tree[T]) Difference(args *EqArgs[T], u Tree[T]) (out Tree[T]) {
@@ -87,7 +81,7 @@ func (t Tree[T]) Difference(args *EqArgs[T], u Tree[T]) (out Tree[T]) {
 		return t
 	}
 	root, matches := t.root.Difference(args, u.root, 0)
-	return Tree[T]{root: root, count: t.count - matches, hf: t.hf}
+	return Tree[T]{root: root, count: t.count - matches, hfr: t.hfr}
 }
 
 func (t Tree[T]) Equal(args *EqArgs[T], u Tree[T]) bool {
@@ -118,19 +112,16 @@ func (t Tree[T]) Intersection(args *EqArgs[T], u Tree[T]) (out Tree[T]) {
 	if vetting {
 		defer vet[T](func() { t.Intersection(args, u) }, &t, &u)(&out)
 	}
-	hf := t.hf
-	if hf == nil {
-		hf = u.hf
-	}
+	hfr := mergeHashFuncRef(t.hfr, u.hfr)
 	if t.root == nil || u.root == nil {
-		return Tree[T]{hf: hf}
+		return Tree[T]{hfr: hfr}
 	}
 	if t.count > u.count {
 		t, u = u, t
 	}
 
 	root, matches := t.root.Intersection(args, u.root, 0)
-	return Tree[T]{root: root, count: matches, hf: hf}
+	return Tree[T]{root: root, count: matches, hfr: hfr}
 }
 
 func (t Tree[T]) Iterator() Iterator[T] {
@@ -201,7 +192,7 @@ func (t Tree[T]) Vet() {
 		if count != t.count {
 			panic(fmt.Errorf("count mismatch: measured (%d) != tracked (%d)", count, t.count))
 		}
-		vetNodeH0(t.root, t.hf)
+		vetNodeH0(t.root, t.hashFunc())
 	}
 }
 
@@ -213,7 +204,7 @@ func (t Tree[T]) Where(args *WhereArgs[T]) (out Tree[T]) {
 		return t
 	}
 	root, matches := t.root.Where(args, 0)
-	return Tree[T]{root: root, count: matches, hf: t.hf}
+	return Tree[T]{root: root, count: matches, hfr: t.hfr}
 }
 
 func (t Tree[T]) With(v T) (out Tree[T]) {
@@ -222,15 +213,15 @@ func (t Tree[T]) With(v T) (out Tree[T]) {
 	}
 	hf := t.hashFunc()
 	if t.root == nil {
-		return Tree[T]{root: newLeaf1WithHash(v, newElemH128(v, hf)), count: 1, hf: hf}
+		return Tree[T]{root: newLeaf1WithHash(v, newElemH128(v, hf)), count: 1, hfr: newHashFuncRef(hf)}
 	}
 	h := newHasherWith(v, 0, hf)
 	if b, ok := t.root.(*branch[T]); ok {
 		root, matches := withFastBatched(b, v, h, hf)
-		return Tree[T]{root: root, count: t.count + 1 - matches, hf: hf}
+		return Tree[T]{root: root, count: t.count + 1 - matches, hfr: newHashFuncRef(hf)}
 	}
 	root, matches := t.root.WithFast(v, 0, h)
-	return Tree[T]{root: root, count: t.count + 1 - matches, hf: hf}
+	return Tree[T]{root: root, count: t.count + 1 - matches, hfr: newHashFuncRef(hf)}
 }
 
 func (t Tree[T]) Without(v T) (out Tree[T]) {
@@ -244,10 +235,10 @@ func (t Tree[T]) Without(v T) (out Tree[T]) {
 	h := newHasherWith(v, 0, args.hash)
 	if b, ok := t.root.(*branch[T]); ok {
 		root, matches := withoutBatched(b, args, v, h)
-		return Tree[T]{root: root, count: t.count - matches, hf: t.hf}
+		return Tree[T]{root: root, count: t.count - matches, hfr: t.hfr}
 	}
 	root, matches := t.root.Without(args, v, 0, h)
-	return Tree[T]{root: root, count: t.count - matches, hf: t.hf}
+	return Tree[T]{root: root, count: t.count - matches, hfr: t.hfr}
 }
 
 func vetNodeH0[T any](n node[T], hf func(T) H128) {
@@ -267,5 +258,5 @@ func vetNodeH0[T any](n node[T], hf func(T) H128) {
 }
 
 func (t Tree[T]) clone() Tree[T] {
-	return Tree[T]{root: t.root.clone(), count: t.count, hf: t.hf}
+	return Tree[T]{root: t.root.clone(), count: t.count, hfr: t.hfr}
 }

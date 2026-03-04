@@ -106,7 +106,7 @@ func (b *Builder[T]) Finish() Tree[T] {
 	if t.root != nil {
 		computeH0(t.root, hf)
 	}
-	t.hf = hf
+	t.hfr = newHashFuncRef(hf)
 	b.t = Tree[T]{}
 	return t
 }
