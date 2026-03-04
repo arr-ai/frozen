@@ -7,7 +7,7 @@ so that each release can be mechanically audited for breakage.
 
 ## Interaction surface catalogue
 
-Snapshot as of v1.9.0.
+Snapshot as of v1.10.0.
 
 ### Package `frozen`
 
