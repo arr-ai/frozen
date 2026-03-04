@@ -17,18 +17,11 @@ func packedIteratorBuf[T any](count int) [][]node[T] {
 type Tree[T any] struct {
 	root  node[T]
 	count int
-	hf    func(T) H128
+	built bool // true after Builder.Finish() or immutable ops; enables h0 vetting
 }
 
 func newTree[T any](n node[T], count int) (out Tree[T]) {
 	return Tree[T]{root: n, count: count}
-}
-
-func (t Tree[T]) hashFunc() func(T) H128 {
-	if t.hf != nil {
-		return t.hf
-	}
-	return getHashFunc[T]()
 }
 
 func (t Tree[T]) Count() int {
@@ -65,18 +58,14 @@ func (t Tree[T]) Combine(args *CombineArgs[T], u Tree[T]) (out Tree[T]) {
 	if vetting {
 		defer vet[T](func() { t.Combine(args, u) }, &t, &u)(&out)
 	}
-	hf := t.hf
-	if hf == nil {
-		hf = u.hf
-	}
 	if t.root == nil {
-		return Tree[T]{root: u.root, count: u.count, hf: hf}
+		return Tree[T]{root: u.root, count: u.count, built: true}
 	}
 	if u.root == nil {
-		return Tree[T]{root: t.root, count: t.count, hf: hf}
+		return Tree[T]{root: t.root, count: t.count, built: true}
 	}
 	root, matches := t.root.Combine(args, u.root, 0)
-	return Tree[T]{root: root, count: t.count + u.count - matches, hf: hf}
+	return Tree[T]{root: root, count: t.count + u.count - matches, built: true}
 }
 
 func (t Tree[T]) Difference(args *EqArgs[T], u Tree[T]) (out Tree[T]) {
@@ -87,7 +76,7 @@ func (t Tree[T]) Difference(args *EqArgs[T], u Tree[T]) (out Tree[T]) {
 		return t
 	}
 	root, matches := t.root.Difference(args, u.root, 0)
-	return Tree[T]{root: root, count: t.count - matches, hf: t.hf}
+	return Tree[T]{root: root, count: t.count - matches, built: true}
 }
 
 func (t Tree[T]) Equal(args *EqArgs[T], u Tree[T]) bool {
@@ -98,7 +87,7 @@ func (t Tree[T]) Equal(args *EqArgs[T], u Tree[T]) bool {
 		return true
 	case t.root.H0() != u.root.H0():
 		return false
-	case args.fullHash && !t.root.H0().isZero():
+	case args.FullHash() && !t.root.H0().isZero():
 		return true
 	default:
 		return t.root.Equal(args, u.root, 0)
@@ -110,7 +99,7 @@ func (t Tree[T]) Get(v T) *T {
 		return nil
 	}
 	args := DefaultNPEqArgs[T]()
-	h := newHasherWith(v, 0, t.hashFunc())
+	h := newHasherWith(v, 0, args.hf)
 	return t.root.Get(args, v, h, 0)
 }
 
@@ -118,19 +107,15 @@ func (t Tree[T]) Intersection(args *EqArgs[T], u Tree[T]) (out Tree[T]) {
 	if vetting {
 		defer vet[T](func() { t.Intersection(args, u) }, &t, &u)(&out)
 	}
-	hf := t.hf
-	if hf == nil {
-		hf = u.hf
-	}
 	if t.root == nil || u.root == nil {
-		return Tree[T]{hf: hf}
+		return Tree[T]{built: true}
 	}
 	if t.count > u.count {
 		t, u = u, t
 	}
 
 	root, matches := t.root.Intersection(args, u.root, 0)
-	return Tree[T]{root: root, count: matches, hf: hf}
+	return Tree[T]{root: root, count: matches, built: true}
 }
 
 func (t Tree[T]) Iterator() Iterator[T] {
@@ -201,7 +186,9 @@ func (t Tree[T]) Vet() {
 		if count != t.count {
 			panic(fmt.Errorf("count mismatch: measured (%d) != tracked (%d)", count, t.count))
 		}
-		vetNodeH0(t.root, t.hf)
+		if t.built {
+			vetNodeH0(t.root, GetHashFunc[T]())
+		}
 	}
 }
 
@@ -213,24 +200,24 @@ func (t Tree[T]) Where(args *WhereArgs[T]) (out Tree[T]) {
 		return t
 	}
 	root, matches := t.root.Where(args, 0)
-	return Tree[T]{root: root, count: matches, hf: t.hf}
+	return Tree[T]{root: root, count: matches, built: true}
 }
 
 func (t Tree[T]) With(v T) (out Tree[T]) {
 	if vetting {
 		defer vet[T](func() { t.With(v) }, &t)(&out)
 	}
-	hf := t.hashFunc()
+	hf := GetHashFunc[T]()
 	if t.root == nil {
-		return Tree[T]{root: newLeaf1WithHash(v, newElemH128(v, hf)), count: 1, hf: hf}
+		return Tree[T]{root: newLeaf1WithHash(v, newElemH128(v, hf)), count: 1, built: true}
 	}
 	h := newHasherWith(v, 0, hf)
 	if b, ok := t.root.(*branch[T]); ok {
 		root, matches := withFastBatched(b, v, h, hf)
-		return Tree[T]{root: root, count: t.count + 1 - matches, hf: hf}
+		return Tree[T]{root: root, count: t.count + 1 - matches, built: true}
 	}
 	root, matches := t.root.WithFast(v, 0, h)
-	return Tree[T]{root: root, count: t.count + 1 - matches, hf: hf}
+	return Tree[T]{root: root, count: t.count + 1 - matches, built: true}
 }
 
 func (t Tree[T]) Without(v T) (out Tree[T]) {
@@ -241,19 +228,16 @@ func (t Tree[T]) Without(v T) (out Tree[T]) {
 		return t
 	}
 	args := DefaultNPEqArgs[T]()
-	h := newHasherWith(v, 0, args.hash)
+	h := newHasherWith(v, 0, args.hf)
 	if b, ok := t.root.(*branch[T]); ok {
 		root, matches := withoutBatched(b, args, v, h)
-		return Tree[T]{root: root, count: t.count - matches, hf: t.hf}
+		return Tree[T]{root: root, count: t.count - matches, built: true}
 	}
 	root, matches := t.root.Without(args, v, 0, h)
-	return Tree[T]{root: root, count: t.count - matches, hf: t.hf}
+	return Tree[T]{root: root, count: t.count - matches, built: true}
 }
 
 func vetNodeH0[T any](n node[T], hf func(T) H128) {
-	if hf == nil {
-		return // Builder-intermediate tree; h0 not yet computed.
-	}
 	switch n := n.(type) {
 	case *leaf1[T]:
 		n.vetH0(hf)
@@ -267,5 +251,5 @@ func vetNodeH0[T any](n node[T], hf func(T) H128) {
 }
 
 func (t Tree[T]) clone() Tree[T] {
-	return Tree[T]{root: t.root.clone(), count: t.count, hf: t.hf}
+	return Tree[T]{root: t.root.clone(), count: t.count, built: t.built}
 }

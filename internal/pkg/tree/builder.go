@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/arr-ai/frozen/internal/pkg/depth"
-	"github.com/arr-ai/frozen/internal/pkg/value"
 )
 
 func DefaultNPKeyEqArgs[T any]() *EqArgs[T] {
@@ -15,7 +14,7 @@ func DefaultNPKeyEqArgs[T any]() *EqArgs[T] {
 var defaultKeyCombineArgsCache sync.Map
 
 func DefaultNPKeyCombineArgs[T any]() *CombineArgs[T] {
-	key := typeKey[T]()
+	key := TypeKeyOf[T]()
 	if f, ok := defaultKeyCombineArgsCache.Load(key); ok {
 		return f.(*CombineArgs[T]) //nolint:forcetypeassert
 	}
@@ -25,12 +24,7 @@ func DefaultNPKeyCombineArgs[T any]() *CombineArgs[T] {
 }
 
 func NewDefaultKeyEqArgs[T any](gauge depth.Gauge) *EqArgs[T] {
-	return &EqArgs[T]{
-		NodeArgs: NewNodeArgs(gauge),
-		eq:       value.EqualFuncFor[T](),
-		hash:     getHashFunc[T](),
-		fullHash: true,
-	}
+	return NewDefaultEqArgs[T](gauge)
 }
 
 // Builder[T] provides a more efficient way to build nodes incrementally.
@@ -52,7 +46,7 @@ func (b *Builder[T]) add(args *CombineArgs[T], v T) {
 		b.t.root = newLeaf1(v)
 		b.t.count = 1
 	} else {
-		h := newHasherWith(v, 0, args.hash)
+		h := newHasherWith(v, 0, args.hf)
 		if vetting {
 			backup := b.clone()
 			defer vet[T](func() { backup.add(args, v) }, &b.t)(nil)
@@ -75,7 +69,7 @@ func (b *Builder[T]) Remove(v T) {
 		if b.args == nil {
 			b.args = DefaultNPKeyCombineArgs[T]()
 		}
-		h := newHasherWith(v, 0, b.args.hash)
+		h := newHasherWith(v, 0, b.args.hf)
 		if vetting {
 			backup := b.clone()
 			defer vet[T](func() { backup.Remove(v) }, &b.t)(nil)
@@ -93,7 +87,7 @@ func (b *Builder[T]) Get(el T) *T {
 	if b.args == nil {
 		b.args = DefaultNPKeyCombineArgs[T]()
 	}
-	h := newHasherWith(el, 0, b.args.hash)
+	h := newHasherWith(el, 0, b.args.hf)
 	return b.t.root.Get(b.args.EqArgs, el, h, 0)
 }
 
@@ -102,11 +96,11 @@ func (b *Builder[T]) Finish() Tree[T] {
 	if b.args == nil {
 		b.args = DefaultNPKeyCombineArgs[T]()
 	}
-	hf := b.args.hash
+	hf := b.args.hf
 	if t.root != nil {
 		computeH0(t.root, hf)
 	}
-	t.hf = hf
+	t.built = true
 	b.t = Tree[T]{}
 	return t
 }

@@ -155,7 +155,7 @@ func (b *branch[T]) Combine(args *CombineArgs[T], n node[T], depth int) (_ node[
 		ret := b
 		for _, e := range n.data {
 			var m int
-			ret, m = ret.with(args, e, depth, newHasherWith(e, depth, args.hash))
+			ret, m = ret.with(args, e, depth, newHasherWith(e, depth, args.hf))
 			matches += m
 		}
 		return ret, matches
@@ -205,7 +205,7 @@ func differenceByElement[T any](args *EqArgs[T], base node[T], elements []T, dep
 		if ret == nil {
 			break
 		}
-		h := newHasherWith(e, depth, args.hash)
+		h := newHasherWith(e, depth, args.hf)
 		var m int
 		ret, m = ret.Without(args, e, depth, h)
 		matches += m
@@ -222,7 +222,7 @@ func (b *branch[T]) Equal(args *EqArgs[T], n node[T], depth int) bool {
 		if b.h0 != n.h0 || b.p.mask != n.p.mask {
 			return false
 		}
-		if args.fullHash && !b.h0.isZero() {
+		if args.FullHash() && !b.h0.isZero() {
 			return true
 		}
 		equal, _ := args.Parallel(depth, b.p.mask, func(i int) (_ bool, matches int) {
@@ -236,7 +236,7 @@ func (b *branch[T]) Equal(args *EqArgs[T], n node[T], depth int) bool {
 
 func (b *branch[T]) Get(args *EqArgs[T], v T, h hasher, depth int) *T {
 	if x := b.p.data[h.hash()]; x != nil {
-		h2 := nextHasherWith(v, h, depth, args.hash)
+		h2 := nextHasherWith(v, h, depth, args.hf)
 		return x.Get(args, v, h2, depth+1)
 	}
 	return nil
@@ -293,7 +293,7 @@ func (b *branch[T]) Reduce(args NodeArgs, depth int, r func(values ...T) T) T {
 func (b *branch[T]) Remove(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
 	i := h.hash()
 	if n := b.p.data[i]; n != nil {
-		h2 := nextHasherWith(v, h, depth, args.hash)
+		h2 := nextHasherWith(v, h, depth, args.hf)
 		var n2 node[T]
 		n2, matches = n.Remove(args, v, depth+1, h2)
 		b := *b
@@ -428,7 +428,7 @@ func (b *branch[T]) with(args *CombineArgs[T], v T, depth int, h hasher) (_ *bra
 		}
 		return b, matches
 	}
-	l := newLeaf1WithHash(v, newElemH128(v, args.hash))
+	l := newLeaf1WithHash(v, newElemH128(v, args.hf))
 	ret := *b
 	ret.p.SetNonNilChild(i, l)
 	ret.count = b.count + 1
@@ -602,7 +602,7 @@ func withoutBatched[T any](root *branch[T], args *EqArgs[T], v T, h hasher) (nod
 		path[pathLen] = spineEntry[T]{b: cur, index: i}
 		pathLen++
 
-		nextH := nextHasherWith(v, curHash, curDepth, args.hash)
+		nextH := nextHasherWith(v, curHash, curDepth, args.hf)
 
 		if b2, ok := child.(*branch[T]); ok {
 			cur = b2
@@ -622,7 +622,7 @@ func withoutBatched[T any](root *branch[T], args *EqArgs[T], v T, h hasher) (nod
 
 func (b *branch[T]) Without(args *EqArgs[T], v T, depth int, h hasher) (_ node[T], matches int) {
 	i := h.hash()
-	g := nextHasherWith(v, h, depth, args.hash)
+	g := nextHasherWith(v, h, depth, args.hf)
 	if x := b.p.data[i]; x != nil {
 		var x2 node[T]
 		if x2, matches = x.Without(args, v, depth+1, g); x2 != x {

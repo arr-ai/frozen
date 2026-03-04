@@ -1,6 +1,8 @@
 package tree
 
 import (
+	"sync"
+
 	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/value"
 )
@@ -50,38 +52,35 @@ func (a *CombineArgs[T]) Flip() *CombineArgs[T] {
 	return a.flipped
 }
 
-type EqArgs[T any] struct {
-	NodeArgs
-
-	eq       func(a, b T) bool
-	hash     func(a T) H128
-	fullHash bool // H128 match implies equality; skip element comparison
+// EqHash provides equality and hashing operations for tree elements.
+type EqHash[T any] interface {
+	Equal(a, b T) bool
+	Hash(a T) H128
+	FullHash() bool
 }
 
-// NewEqArgs creates EqArgs from an old-style seeded hash function.
-// The seeded function is wrapped internally to produce H128 (calls with seeds 0 and 1).
-func NewEqArgs[T any](
-	gauge depth.Gauge,
-	eq func(a, b T) bool,
-	hash func(a T, seed uintptr) uintptr,
-	fullHash bool,
-) *EqArgs[T] {
+type EqArgs[T any] struct {
+	NodeArgs
+	EqHash[T]
+	hf func(T) H128 // cached from EqHash.Hash; avoids method-value closure in hot paths
+}
+
+// NewEqArgs creates EqArgs from an EqHash implementation.
+func NewEqArgs[T any](gauge depth.Gauge, ops EqHash[T]) *EqArgs[T] {
 	return &EqArgs[T]{
 		NodeArgs: NewNodeArgs(gauge),
-		eq:       eq,
-		hash:     func(a T) H128 { return H128{hash(a, 0), hash(a, 1)} },
-		fullHash: fullHash,
+		EqHash:   ops,
+		hf:       ops.Hash,
 	}
 }
 
-// NewDefaultEqArgs creates EqArgs using the resolved H128 hash function directly,
-// avoiding the seeded-function wrapper overhead.
+// NewDefaultEqArgs creates EqArgs using the default resolved hash and equality functions.
 func NewDefaultEqArgs[T any](gauge depth.Gauge) *EqArgs[T] {
+	ops := getDefaultEqHash[T]()
 	return &EqArgs[T]{
 		NodeArgs: NewNodeArgs(gauge),
-		eq:       value.EqualFuncFor[T](),
-		hash:     getHashFunc[T](),
-		fullHash: true,
+		EqHash:   ops,
+		hf:       ops.hash,
 	}
 }
 
@@ -89,4 +88,31 @@ type WhereArgs[T any] struct {
 	NodeArgs
 
 	Pred func(elem T) bool
+}
+
+// defaultEqHash is the default EqHash implementation for Set (fullHash=true).
+type defaultEqHash[T any] struct {
+	eq   func(a, b T) bool
+	hash func(T) H128
+}
+
+func (d *defaultEqHash[T]) Equal(a, b T) bool { return d.eq(a, b) }
+
+func (d *defaultEqHash[T]) Hash(a T) H128 { return d.hash(a) }
+
+func (d *defaultEqHash[T]) FullHash() bool { return true }
+
+var defaultEqHashCache sync.Map
+
+func getDefaultEqHash[T any]() *defaultEqHash[T] {
+	key := TypeKeyOf[T]()
+	if f, ok := defaultEqHashCache.Load(key); ok {
+		return f.(*defaultEqHash[T]) //nolint:forcetypeassert
+	}
+	ops := &defaultEqHash[T]{
+		eq:   value.EqualFuncFor[T](),
+		hash: GetHashFunc[T](),
+	}
+	defaultEqHashCache.Store(key, ops)
+	return ops
 }
