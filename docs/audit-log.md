@@ -12,3 +12,8 @@ maintenance activities. Append-only — newest entries at the bottom.
 
 - **Commit**: `6bc3bbe`
 - **Outcome**: Released v1.9.0. H128 single-call 128-bit AES hash internalized from arr-ai/hash, eliminating external dependency. Added `frozen.Hashable` interface (additive, non-breaking). NOTICES file added for vendored code attribution. Breaking change audit passed — no removals or signature changes.
+
+## 2026-03-04 — /release v1.10.0
+
+- **Commit**: TBD
+- **Outcome**: Released v1.10.0. EqHash interface refactoring for 19% geomean perf improvement. Restored `reflect.DeepEqual` compatibility broken in v1.8.0 by removing func-valued field from Tree struct. Retracted v1.8.0–v1.9.0. Breaking change audit passed — all changes internal.
