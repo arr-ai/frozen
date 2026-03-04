@@ -65,11 +65,11 @@ func (m *mapKeyEqHash[K, V]) Hash(a mapEntry[K, V]) tree.H128 {
 
 func (m *mapKeyEqHash[K, V]) FullHash() bool { return false }
 
-// mapEntryHashFunc returns an H128-native hash function for mapEntry[K, V]
-// that hashes only the key using the type-specialized H128 path.
+// mapEntryHashFunc returns the resolved H128 hash function for mapEntry[K, V].
+// This dispatches through mapEntry.Hash (which hashes only the key), ensuring
+// consistency with the default path used by Tree.Get/With/Without.
 func mapEntryHashFunc[K, V any]() func(mapEntry[K, V]) tree.H128 {
-	keyHash := tree.GetHashFunc[K]()
-	return func(e mapEntry[K, V]) tree.H128 { return keyHash(e.Key) }
+	return tree.GetHashFunc[mapEntry[K, V]]()
 }
 
 var mapEntryEqHashCache sync.Map
