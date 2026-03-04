@@ -15,5 +15,5 @@ maintenance activities. Append-only — newest entries at the bottom.
 
 ## 2026-03-04 — /release v1.10.0
 
-- **Commit**: TBD
+- **Commit**: `afba489`
 - **Outcome**: Released v1.10.0. EqHash interface refactoring for 19% geomean perf improvement. Restored `reflect.DeepEqual` compatibility broken in v1.8.0 by removing func-valued field from Tree struct. Retracted v1.8.0–v1.9.0. Breaking change audit passed — all changes internal.
