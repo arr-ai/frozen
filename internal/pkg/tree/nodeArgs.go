@@ -7,9 +7,19 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/value"
 )
 
+var defaultNPEqArgsCache sync.Map
+
 // DefaultNPEqArgs provides default equality with non-parallel behaviour.
+// The result is cached per type T since Gauge is a constant (NonParallel = -1)
+// and EqArgs is read-only during Get/Without.
 func DefaultNPEqArgs[T any]() *EqArgs[T] {
-	return NewDefaultEqArgs[T](depth.NonParallel)
+	key := TypeKeyOf[T]()
+	if f, ok := defaultNPEqArgsCache.Load(key); ok {
+		return f.(*EqArgs[T]) //nolint:forcetypeassert
+	}
+	args := NewDefaultEqArgs[T](depth.NonParallel)
+	defaultNPEqArgsCache.Store(key, args)
+	return args
 }
 
 // DefaultNPCombineArgs provides default combiner with non-parallel

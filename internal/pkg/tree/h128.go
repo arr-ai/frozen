@@ -13,6 +13,9 @@ func (h H128) String() string {
 	return fmt.Sprintf("%x:%x", h.lo, h.hi)
 }
 
+// MakeH128 constructs an H128 from lo and hi halves.
+func MakeH128(lo, hi uintptr) H128 { return H128{lo, hi} }
+
 func newElemH128[T any](v T, hf func(T) H128) H128 {
 	return hf(v)
 }

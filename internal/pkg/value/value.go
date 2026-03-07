@@ -60,6 +60,10 @@ func EqualFuncFor[T any]() func(a, b T) bool {
 		return func(a, b T) bool {
 			return *(*float64)(unsafe.Pointer(&a)) == *(*float64)(unsafe.Pointer(&b))
 		}
+	case string:
+		return func(a, b T) bool {
+			return *(*string)(unsafe.Pointer(&a)) == *(*string)(unsafe.Pointer(&b))
+		}
 	case nil:
 		return equalSlow[T]
 	}
