@@ -2,6 +2,7 @@ package frozen
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/arr-ai/frozen/internal/pkg/debug"
 	"github.com/arr-ai/frozen/internal/pkg/depth"
@@ -16,6 +17,18 @@ func (m Map[K, V]) mapEqArgs() *tree.EqArgs[mapEntry[K, V]] {
 
 func (m Map[K, V]) mapKeyEqArgs() *tree.EqArgs[mapEntry[K, V]] {
 	return tree.NewEqArgs[mapEntry[K, V]](depth.NewGauge(m.Count()), getMapKeyEqHash[K, V]())
+}
+
+var mapKeyNPEqArgsCache sync.Map
+
+func getMapKeyNPEqArgs[K, V any]() *tree.EqArgs[mapEntry[K, V]] {
+	key := tree.TypeKeyOf[mapEntry[K, V]]()
+	if f, ok := mapKeyNPEqArgsCache.Load(key); ok {
+		return f.(*tree.EqArgs[mapEntry[K, V]]) //nolint:forcetypeassert
+	}
+	args := tree.NewEqArgs[mapEntry[K, V]](depth.NonParallel, getMapKeyEqHash[K, V]())
+	mapKeyNPEqArgsCache.Store(key, args)
+	return args
 }
 
 // Map maps keys to values. The zero value is the empty Map.
@@ -83,7 +96,8 @@ func (m Map[K, V]) With(key K, val V) Map[K, V] {
 // Without returns a new Map with all keys retained from m except the elements
 // of keys.
 func (m Map[K, V]) Without(key K) Map[K, V] {
-	m.tree = m.tree.Without(newMapKey[K, V](key))
+	args := getMapKeyNPEqArgs[K, V]()
+	m.tree = m.tree.WithoutWith(args, newMapKey[K, V](key))
 	return m
 }
 
@@ -95,7 +109,8 @@ func (m Map[K, V]) Has(key K) bool {
 
 // Get returns the value associated with key in m and true iff the key is found.
 func (m Map[K, V]) Get(key K) (_ V, _ bool) {
-	if kv := m.tree.Get(newMapKey[K, V](key)); kv != nil {
+	args := getMapKeyNPEqArgs[K, V]()
+	if kv := m.tree.GetWith(args, newMapKey[K, V](key)); kv != nil {
 		return kv.Value, true
 	}
 	return

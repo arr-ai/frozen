@@ -103,6 +103,16 @@ func (t Tree[T]) Get(v T) *T {
 	return t.root.Get(args, v, h, 0)
 }
 
+// GetWith is like Get but accepts pre-built EqArgs, avoiding the per-call
+// allocation of DefaultNPEqArgs.
+func (t Tree[T]) GetWith(args *EqArgs[T], v T) *T {
+	if t.root == nil {
+		return nil
+	}
+	h := newHasherWith(v, 0, args.hf)
+	return t.root.Get(args, v, h, 0)
+}
+
 func (t Tree[T]) Intersection(args *EqArgs[T], u Tree[T]) (out Tree[T]) {
 	if vetting {
 		defer vet[T](func() { t.Intersection(args, u) }, &t, &u)(&out)
@@ -228,6 +238,24 @@ func (t Tree[T]) Without(v T) (out Tree[T]) {
 		return t
 	}
 	args := DefaultNPEqArgs[T]()
+	h := newHasherWith(v, 0, args.hf)
+	if b, ok := t.root.(*branch[T]); ok {
+		root, matches := withoutBatched(b, args, v, h)
+		return Tree[T]{root: root, count: t.count - matches, built: true}
+	}
+	root, matches := t.root.Without(args, v, 0, h)
+	return Tree[T]{root: root, count: t.count - matches, built: true}
+}
+
+// WithoutWith is like Without but accepts pre-built EqArgs, avoiding the
+// per-call allocation of DefaultNPEqArgs.
+func (t Tree[T]) WithoutWith(args *EqArgs[T], v T) (out Tree[T]) {
+	if vetting {
+		defer vet[T](func() { t.WithoutWith(args, v) }, &t)(&out)
+	}
+	if t.root == nil {
+		return t
+	}
 	h := newHasherWith(v, 0, args.hf)
 	if b, ok := t.root.(*branch[T]); ok {
 		root, matches := withoutBatched(b, args, v, h)

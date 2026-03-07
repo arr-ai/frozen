@@ -48,6 +48,11 @@ func resolveHashFunc[T any]() func(T) H128 {
 			f := *(*float64)(unsafe.Pointer(&key))
 			return toH128(hash.Float64H128(f))
 		}
+	case string:
+		return func(key T) H128 {
+			s := *(*string)(unsafe.Pointer(&key))
+			return toH128(hash.StringH128(s))
+		}
 	}
 	switch unsafe.Sizeof(t) {
 	case 1:
@@ -84,6 +89,42 @@ func GetHashFunc[T any]() func(T) H128 {
 	}
 	fn := resolveHashFunc[T]()
 	hashFuncCache.Store(key, fn)
+	return fn
+}
+
+var seededHashFuncCache sync.Map
+
+// resolveSeededHashFunc returns a non-boxing seeded hash function for T that
+// produces the same values as hash.Any(t, seed). Used by mapEntryHashFunc to
+// hash keys directly without boxing the enclosing mapEntry struct.
+func resolveSeededHashFunc[T any]() func(T, uintptr) uintptr {
+	var t T
+	if _, ok := any(t).(hash.Hashable); ok {
+		// For interface types, boxing to any is free.
+		return func(key T, seed uintptr) uintptr {
+			return any(key).(hash.Hashable).Hash(seed) //nolint:forcetypeassert
+		}
+	}
+	switch any(t).(type) {
+	case string:
+		return func(key T, seed uintptr) uintptr {
+			s := *(*string)(unsafe.Pointer(&key))
+			return hash.String(s, seed)
+		}
+	}
+	return func(key T, seed uintptr) uintptr {
+		return hash.Any(key, seed)
+	}
+}
+
+// GetSeededHashFunc returns a cached seeded hash function for type T.
+func GetSeededHashFunc[T any]() func(T, uintptr) uintptr {
+	key := TypeKeyOf[T]()
+	if f, ok := seededHashFuncCache.Load(key); ok {
+		return f.(func(T, uintptr) uintptr) //nolint:forcetypeassert
+	}
+	fn := resolveSeededHashFunc[T]()
+	seededHashFuncCache.Store(key, fn)
 	return fn
 }
 
