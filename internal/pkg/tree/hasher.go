@@ -57,11 +57,7 @@ func resolveHashFunc[T any]() func(T) H128 {
 			f := *(*float64)(unsafe.Pointer(&key))
 			return toH128(hash.Float64H128(f))
 		}
-	case reflect.Complex64:
-		return func(key T) H128 {
-			return toH128(hash.AnyH128(key))
-		}
-	case reflect.Complex128:
+	case reflect.Complex64, reflect.Complex128:
 		return func(key T) H128 {
 			return toH128(hash.AnyH128(key))
 		}
@@ -71,6 +67,11 @@ func resolveHashFunc[T any]() func(T) H128 {
 			return toH128(hash.StringH128(s))
 		}
 	}
+	return resolveHashFuncBySize[T]()
+}
+
+func resolveHashFuncBySize[T any]() func(T) H128 {
+	var t T
 	switch unsafe.Sizeof(t) {
 	case 1:
 		return func(key T) H128 {
@@ -149,6 +150,11 @@ func resolveSeededHashFunc[T any]() func(T, uintptr) uintptr {
 			return hash.String(s, seed)
 		}
 	}
+	return resolveSeededHashFuncBySize[T]()
+}
+
+func resolveSeededHashFuncBySize[T any]() func(T, uintptr) uintptr {
+	var t T
 	switch unsafe.Sizeof(t) {
 	case 1:
 		return func(key T, seed uintptr) uintptr {
