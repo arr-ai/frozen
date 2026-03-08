@@ -17,3 +17,8 @@ maintenance activities. Append-only — newest entries at the bottom.
 
 - **Commit**: `afba489`
 - **Outcome**: Released v1.10.0. EqHash interface refactoring for 19% geomean perf improvement. Restored `reflect.DeepEqual` compatibility broken in v1.8.0 by removing func-valued field from Tree struct. Retracted v1.8.0–v1.9.0. Breaking change audit passed — all changes internal.
+
+## 2026-03-08 — /release v1.11.0
+
+- **Commit**: `431cd1c`
+- **Outcome**: Released v1.11.0. Eliminated per-call allocations in Map.Get, Map.Without, Set.Has via cached EqArgs and non-boxing seeded hash functions. Added string fast-path specializations. Map.Get 2.5x faster at 1k entries (6→1 allocs). Breaking change audit passed — all changes internal.
