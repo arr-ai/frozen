@@ -8,9 +8,11 @@ import (
 )
 
 // Derived types for testing type independence.
-type ID int
-type Name string
-type Score float64
+type (
+	ID    int
+	Name  string
+	Score float64
+)
 
 // setOps exercises all core Set operations for a given type.
 func setOps[T comparable](t *testing.T, elems []T) {
@@ -37,17 +39,14 @@ func setOps[T comparable](t *testing.T, elems []T) {
 		test.Equal(t, n, s2.Count())
 	}
 
-	// Without
+	// Without + idempotent Without (absent element)
 	removed := s.Without(elems[0])
 	test.Equal(t, n-1, removed.Count())
 	test.False(t, removed.Has(elems[0]))
+	test.Equal(t, n-1, removed.Without(elems[0]).Count())
 	for _, e := range elems[1:] {
 		test.True(t, removed.Has(e))
 	}
-
-	// Without absent element
-	absent := s.Without(elems[0]).Without(elems[0])
-	test.Equal(t, n-1, absent.Count())
 
 	// Equal
 	var s2 frozen.Set[T]
