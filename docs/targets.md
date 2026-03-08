@@ -1,19 +1,8 @@
 # Targets
 
-<!-- last-evaluated: 431cd1c -->
+<!-- last-evaluated: bf5e07b -->
 
 ## Active
-
-### 🎯T2 All read operations are zero-alloc
-- **Weight**: 5 (value 8 / cost 2)
-- **Estimated-cost**: 2
-- **Acceptance**:
-  - `Map.Get`, `Map.Has`, `Set.Has` report 0 B/op, 0 allocs/op in benchmarks at 1k and 1M sizes
-  - No regression in throughput (ns/op must not increase)
-  - All existing tests pass
-- **Context**: Currently 1 alloc/op remains in Map.Get from `resolveSeededHashFunc` fallback boxing `int` through `hash.Any(key, seed)`. Adding an `int` fast-path (like the existing `string` and `float64` paths) would eliminate it. Similar pattern applies to other common key types.
-- **Status**: identified
-- **Discovered**: 2026-03-08
 
 ### 🎯T3 No-op write operations are zero-alloc
 - **Weight**: 3 (value 5 / cost 2)
@@ -30,6 +19,18 @@
 - **Discovered**: 2026-03-08
 
 ## Achieved
+
+### 🎯T2 All read operations are zero-alloc
+- **Weight**: 5 (value 8 / cost 2)
+- **Estimated-cost**: 2
+- **Acceptance**:
+  - `Map.Get`, `Map.Has`, `Set.Has` report 0 B/op, 0 allocs/op in benchmarks at 1k and 1M sizes
+  - No regression in throughput (ns/op must not increase)
+  - All existing tests pass
+- **Context**: Used reflect.Kind dispatch in resolveHashFunc, resolveSeededHashFunc, and EqualFuncFor to catch derived types and route through direct hash/equality functions. Added size-based integer fast-paths to resolveSeededHashFunc.
+- **Status**: achieved
+- **Discovered**: 2026-03-08
+- **Achieved**: 2026-03-08
 
 ### 🎯T1 Map[K,V] hot-path operations avoid per-call allocations
 - **Weight**: 5 (value 8 / cost 2)
