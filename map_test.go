@@ -570,6 +570,24 @@ func BenchmarkGetFrozenMap1M(b *testing.B) {
 	benchmarkGetFrozenMap(b, 1<<20)
 }
 
+func benchmarkHasFrozenMap(b *testing.B, n int) {
+	b.Helper()
+
+	m := prepopFrozenMap(n)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		m.Has(i % n)
+	}
+}
+
+func BenchmarkHasFrozenMap1k(b *testing.B) {
+	benchmarkHasFrozenMap(b, 1<<10)
+}
+
+func BenchmarkHasFrozenMap1M(b *testing.B) {
+	benchmarkHasFrozenMap(b, 1<<20)
+}
+
 func benchmarkWithoutFrozenMap(b *testing.B, n int) {
 	b.Helper()
 

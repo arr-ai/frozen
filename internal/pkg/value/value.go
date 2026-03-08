@@ -1,6 +1,7 @@
 package value
 
 import (
+	"reflect"
 	"unsafe"
 )
 
@@ -52,20 +53,24 @@ func EqualFuncFor[T any]() func(a, b T) bool {
 		return equalEqualer[T]
 	case Samer:
 		return equalSamer[T]
-	case float32:
+	case nil:
+		return equalSlow[T]
+	}
+	// Use reflect.Kind to catch derived types (e.g., type MyFloat float64).
+	// Float and string need direct comparison via unsafe to avoid boxing.
+	switch reflect.TypeOf(t).Kind() { //nolint:exhaustive
+	case reflect.Float32:
 		return func(a, b T) bool {
 			return *(*float32)(unsafe.Pointer(&a)) == *(*float32)(unsafe.Pointer(&b))
 		}
-	case float64:
+	case reflect.Float64:
 		return func(a, b T) bool {
 			return *(*float64)(unsafe.Pointer(&a)) == *(*float64)(unsafe.Pointer(&b))
 		}
-	case string:
+	case reflect.String:
 		return func(a, b T) bool {
 			return *(*string)(unsafe.Pointer(&a)) == *(*string)(unsafe.Pointer(&b))
 		}
-	case nil:
-		return equalSlow[T]
 	}
 	if f := equalScalar[T](); f != nil {
 		return f

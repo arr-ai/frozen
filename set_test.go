@@ -857,3 +857,21 @@ func BenchmarkInsertFrozenSet1k(b *testing.B) {
 func BenchmarkInsertFrozenSet1M(b *testing.B) {
 	benchmarkInsertFrozenSet(b, 1<<20)
 }
+
+func benchmarkHasFrozenSet(b *testing.B, n int) {
+	b.Helper()
+
+	s := prepopFrozenSet(n).(frozen.Set[int])
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.Has(i % n)
+	}
+}
+
+func BenchmarkHasFrozenSet1k(b *testing.B) {
+	benchmarkHasFrozenSet(b, 1<<10)
+}
+
+func BenchmarkHasFrozenSet1M(b *testing.B) {
+	benchmarkHasFrozenSet(b, 1<<20)
+}

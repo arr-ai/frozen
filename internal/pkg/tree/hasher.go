@@ -2,6 +2,7 @@ package tree
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"unsafe"
@@ -36,24 +37,41 @@ func resolveHashFunc[T any]() func(T) H128 {
 			return H128{h.Hash(0), h.Hash(1)}
 		}
 	}
-	var i any = t
-	switch i.(type) {
-	case float32:
+	// Use reflect.Kind to catch derived types (e.g., type MyFloat float64)
+	// that need special hashing (±0, NaN) before falling through to the
+	// size-based integer dispatch.
+	rt := reflect.TypeOf(t)
+	if rt == nil {
+		return func(key T) H128 {
+			return toH128(hash.AnyH128(key))
+		}
+	}
+	switch rt.Kind() { //nolint:exhaustive
+	case reflect.Float32:
 		return func(key T) H128 {
 			f := *(*float32)(unsafe.Pointer(&key))
 			return toH128(hash.Float32H128(f))
 		}
-	case float64:
+	case reflect.Float64:
 		return func(key T) H128 {
 			f := *(*float64)(unsafe.Pointer(&key))
 			return toH128(hash.Float64H128(f))
 		}
-	case string:
+	case reflect.Complex64, reflect.Complex128:
+		return func(key T) H128 {
+			return toH128(hash.AnyH128(key))
+		}
+	case reflect.String:
 		return func(key T) H128 {
 			s := *(*string)(unsafe.Pointer(&key))
 			return toH128(hash.StringH128(s))
 		}
 	}
+	return resolveHashFuncBySize[T]()
+}
+
+func resolveHashFuncBySize[T any]() func(T) H128 {
+	var t T
 	switch unsafe.Sizeof(t) {
 	case 1:
 		return func(key T) H128 {
@@ -105,11 +123,58 @@ func resolveSeededHashFunc[T any]() func(T, uintptr) uintptr {
 			return any(key).(hash.Hashable).Hash(seed) //nolint:forcetypeassert
 		}
 	}
-	switch any(t).(type) {
-	case string:
+	rt := reflect.TypeOf(t)
+	if rt == nil {
+		return func(key T, seed uintptr) uintptr {
+			return hash.Any(key, seed)
+		}
+	}
+	switch rt.Kind() { //nolint:exhaustive
+	case reflect.Float32:
+		return func(key T, seed uintptr) uintptr {
+			f := *(*float32)(unsafe.Pointer(&key))
+			return hash.Float32(f, seed)
+		}
+	case reflect.Float64:
+		return func(key T, seed uintptr) uintptr {
+			f := *(*float64)(unsafe.Pointer(&key))
+			return hash.Float64(f, seed)
+		}
+	case reflect.Complex64, reflect.Complex128:
+		return func(key T, seed uintptr) uintptr {
+			return hash.Any(key, seed)
+		}
+	case reflect.String:
 		return func(key T, seed uintptr) uintptr {
 			s := *(*string)(unsafe.Pointer(&key))
 			return hash.String(s, seed)
+		}
+	}
+	return resolveSeededHashFuncBySize[T]()
+}
+
+func resolveSeededHashFuncBySize[T any]() func(T, uintptr) uintptr {
+	var t T
+	switch unsafe.Sizeof(t) {
+	case 1:
+		return func(key T, seed uintptr) uintptr {
+			v := *(*uint8)(unsafe.Pointer(&key))
+			return hash.Uint8(v, seed)
+		}
+	case 2:
+		return func(key T, seed uintptr) uintptr {
+			v := *(*uint16)(unsafe.Pointer(&key))
+			return hash.Uint16(v, seed)
+		}
+	case 4:
+		return func(key T, seed uintptr) uintptr {
+			v := *(*uint32)(unsafe.Pointer(&key))
+			return hash.Uint32(v, seed)
+		}
+	case 8:
+		return func(key T, seed uintptr) uintptr {
+			v := *(*uint64)(unsafe.Pointer(&key))
+			return hash.Uint64(v, seed)
 		}
 	}
 	return func(key T, seed uintptr) uintptr {
