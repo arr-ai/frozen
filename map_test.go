@@ -606,6 +606,42 @@ func BenchmarkWithoutFrozenMap1M(b *testing.B) {
 	benchmarkWithoutFrozenMap(b, 1<<20)
 }
 
+func benchmarkWithExistingFrozenMap(b *testing.B, n int) {
+	b.Helper()
+
+	m := prepopFrozenMap(n)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		m.With(i%n, (i%n)*(i%n))
+	}
+}
+
+func BenchmarkWithExistingFrozenMap1k(b *testing.B) {
+	benchmarkWithExistingFrozenMap(b, 1<<10)
+}
+
+func BenchmarkWithExistingFrozenMap1M(b *testing.B) {
+	benchmarkWithExistingFrozenMap(b, 1<<20)
+}
+
+func benchmarkWithoutAbsentFrozenMap(b *testing.B, n int) {
+	b.Helper()
+
+	m := prepopFrozenMap(n)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		m.Without(n + i%n)
+	}
+}
+
+func BenchmarkWithoutAbsentFrozenMap1k(b *testing.B) {
+	benchmarkWithoutAbsentFrozenMap(b, 1<<10)
+}
+
+func BenchmarkWithoutAbsentFrozenMap1M(b *testing.B) {
+	benchmarkWithoutAbsentFrozenMap(b, 1<<20)
+}
+
 func BenchmarkMergeFrozenMap10(b *testing.B) {
 	benchmarkMergeFrozenMap(b, 10)
 }

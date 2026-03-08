@@ -251,11 +251,17 @@ func (l *leaf2[T]) Where(args *WhereArgs[T], _ int) (_ node[T], matches int) {
 
 func (l *leaf2[T]) With(args *CombineArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
 	if args.Equal(l.data[0], v) {
+		if args.same != nil && args.same(l.data[0], v) {
+			return l, 1
+		}
 		combined := args.f(l.data[0], v)
 		ch := newElemH128(combined, args.hf)
 		return &leaf2[T]{data: [2]T{combined, l.data[1]}, h0: ch.xor(l.hb()), ha: ch}, 1
 	}
 	if args.Equal(l.data[1], v) {
+		if args.same != nil && args.same(l.data[1], v) {
+			return l, 1
+		}
 		combined := args.f(l.data[1], v)
 		ch := newElemH128(combined, args.hf)
 		return &leaf2[T]{data: [2]T{l.data[0], combined}, h0: l.ha.xor(ch), ha: l.ha}, 1

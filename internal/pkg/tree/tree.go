@@ -230,6 +230,25 @@ func (t Tree[T]) With(v T) (out Tree[T]) {
 	return Tree[T]{root: root, count: t.count + 1 - matches, built: true}
 }
 
+// WithWith is like With but uses pre-built CombineArgs, avoiding per-call
+// allocation of equality/hash functions and enabling no-op detection via
+// CombineArgs.same.
+func (t Tree[T]) WithWith(args *CombineArgs[T], v T) (out Tree[T]) {
+	if vetting {
+		defer vet[T](func() { t.WithWith(args, v) }, &t)(&out)
+	}
+	if t.root == nil {
+		return Tree[T]{root: newLeaf1WithHash(v, newElemH128(v, args.hf)), count: 1, built: true}
+	}
+	h := newHasherWith(v, 0, args.hf)
+	if b, ok := t.root.(*branch[T]); ok {
+		root, matches := withBatched(b, args, v, h)
+		return Tree[T]{root: root, count: t.count + 1 - matches, built: true}
+	}
+	root, matches := t.root.With(args, v, 0, h)
+	return Tree[T]{root: root, count: t.count + 1 - matches, built: true}
+}
+
 func (t Tree[T]) Without(v T) (out Tree[T]) {
 	if vetting {
 		defer vet[T](func() { t.Without(v) }, &t)(&out)

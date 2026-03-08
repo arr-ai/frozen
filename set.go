@@ -203,7 +203,8 @@ func (s Set[T]) Has(val T) bool {
 
 // With returns a new Set retaining all the elements of the Set as well as values.
 func (s Set[T]) With(v T) Set[T] {
-	s.tree = s.tree.With(v)
+	args := tree.CachedNPCombineArgs[T]()
+	s.tree = s.tree.WithWith(args, v)
 	return s
 }
 

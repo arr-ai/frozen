@@ -28,6 +28,24 @@ func DefaultNPCombineArgs[T any]() *CombineArgs[T] {
 	return NewCombineArgs(DefaultNPEqArgs[T](), UseRHS[T])
 }
 
+var cachedNPCombineArgsCache sync.Map
+
+// CachedNPCombineArgs returns a cached default CombineArgs with non-parallel
+// behaviour and same set to the type's equality function. Suitable for
+// Set.With where Equal is full equality and identical elements should not
+// cause allocation.
+func CachedNPCombineArgs[T any]() *CombineArgs[T] {
+	key := TypeKeyOf[T]()
+	if f, ok := cachedNPCombineArgsCache.Load(key); ok {
+		return f.(*CombineArgs[T]) //nolint:forcetypeassert
+	}
+	ea := DefaultNPEqArgs[T]()
+	eqHash := getDefaultEqHash[T]()
+	args := NewCombineArgsWithSame(ea, UseRHS[T], eqHash.eq)
+	cachedNPCombineArgsCache.Store(key, args)
+	return args
+}
+
 type NodeArgs struct {
 	depth.Gauge
 }
@@ -43,11 +61,25 @@ type CombineArgs[T any] struct {
 
 	f func(a, b T) T
 
+	// same checks whether two values are identical for no-op detection.
+	// When non-nil, leaf With methods check same(old, new) BEFORE
+	// computing the combine result. If true, they return the original
+	// node unchanged (zero allocations). When nil, the combine function
+	// is always called and a new node is allocated (default behavior).
+	same func(a, b T) bool
+
 	flipped *CombineArgs[T]
 }
 
 func NewCombineArgs[T any](ea *EqArgs[T], combine func(a, b T) T) *CombineArgs[T] {
 	return &CombineArgs[T]{EqArgs: ea, f: combine}
+}
+
+// NewCombineArgsWithSame creates CombineArgs with a full-equality check for
+// no-op detection. Use this when Equal is weaker than structural equality
+// (e.g. Map's key-only equality).
+func NewCombineArgsWithSame[T any](ea *EqArgs[T], combine func(a, b T) T, same func(a, b T) bool) *CombineArgs[T] {
+	return &CombineArgs[T]{EqArgs: ea, f: combine, same: same}
 }
 
 func (a *CombineArgs[T]) Flip() *CombineArgs[T] {
@@ -56,6 +88,7 @@ func (a *CombineArgs[T]) Flip() *CombineArgs[T] {
 		a.flipped = &CombineArgs[T]{
 			EqArgs:  a.EqArgs,
 			f:       func(a, b T) T { return f(b, a) },
+			same:    a.same,
 			flipped: a,
 		}
 	}

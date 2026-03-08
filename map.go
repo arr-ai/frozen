@@ -9,6 +9,7 @@ import (
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/hash"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
+	"github.com/arr-ai/frozen/internal/pkg/value"
 )
 
 func (m Map[K, V]) mapEqArgs() *tree.EqArgs[mapEntry[K, V]] {
@@ -28,6 +29,23 @@ func getMapKeyNPEqArgs[K, V any]() *tree.EqArgs[mapEntry[K, V]] {
 	}
 	args := tree.NewEqArgs[mapEntry[K, V]](depth.NonParallel, getMapKeyEqHash[K, V]())
 	mapKeyNPEqArgsCache.Store(key, args)
+	return args
+}
+
+var mapWithCombineArgsCache sync.Map
+
+func getMapWithCombineArgs[K, V any]() *tree.CombineArgs[mapEntry[K, V]] {
+	key := tree.TypeKeyOf[mapEntry[K, V]]()
+	if f, ok := mapWithCombineArgsCache.Load(key); ok {
+		return f.(*tree.CombineArgs[mapEntry[K, V]]) //nolint:forcetypeassert
+	}
+	eqV := value.EqualFuncFor[V]()
+	args := tree.NewCombineArgsWithSame(
+		getMapKeyNPEqArgs[K, V](),
+		tree.UseRHS[mapEntry[K, V]],
+		func(a, b mapEntry[K, V]) bool { return eqV(a.Value, b.Value) },
+	)
+	mapWithCombineArgsCache.Store(key, args)
 	return args
 }
 
@@ -90,7 +108,8 @@ func (m Map[K, V]) Any() (key K, value V) {
 // retained from m.
 func (m Map[K, V]) With(key K, val V) Map[K, V] {
 	kval := newMapEntry(key, val)
-	return newMap(m.tree.With(kval))
+	args := getMapWithCombineArgs[K, V]()
+	return newMap(m.tree.WithWith(args, kval))
 }
 
 // Without returns a new Map with all keys retained from m except the elements
