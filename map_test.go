@@ -534,6 +534,60 @@ func benchmarkMergeFrozenMap(b *testing.B, limit int) {
 	}
 }
 
+func benchmarkGetMapInt(b *testing.B, n int) {
+	b.Helper()
+
+	m := prepopMapInterface(n)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = m[i%n]
+	}
+}
+
+func BenchmarkGetMapInt1k(b *testing.B) {
+	benchmarkGetMapInt(b, 1<<10)
+}
+
+func BenchmarkGetMapInt1M(b *testing.B) {
+	benchmarkGetMapInt(b, 1<<20)
+}
+
+func benchmarkGetFrozenMap(b *testing.B, n int) {
+	b.Helper()
+
+	m := prepopFrozenMap(n)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		m.Get(i % n)
+	}
+}
+
+func BenchmarkGetFrozenMap1k(b *testing.B) {
+	benchmarkGetFrozenMap(b, 1<<10)
+}
+
+func BenchmarkGetFrozenMap1M(b *testing.B) {
+	benchmarkGetFrozenMap(b, 1<<20)
+}
+
+func benchmarkWithoutFrozenMap(b *testing.B, n int) {
+	b.Helper()
+
+	m := prepopFrozenMap(n)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		m.Without(i % n)
+	}
+}
+
+func BenchmarkWithoutFrozenMap1k(b *testing.B) {
+	benchmarkWithoutFrozenMap(b, 1<<10)
+}
+
+func BenchmarkWithoutFrozenMap1M(b *testing.B) {
+	benchmarkWithoutFrozenMap(b, 1<<20)
+}
+
 func BenchmarkMergeFrozenMap10(b *testing.B) {
 	benchmarkMergeFrozenMap(b, 10)
 }
