@@ -4,6 +4,10 @@
 
 ## Active
 
+(none)
+
+## Achieved
+
 ### 🎯T4 Set and Map operations are correct across diverse key/value types
 - **Weight**: 4 (value 8 / cost 2)
 - **Estimated-cost**: 2
@@ -13,11 +17,10 @@
   - `Map[int, V]` and `Map[ID, V]` behave independently for same underlying key values
   - Derived-type sets/maps round-trip correctly through all operations (insert N elements, verify Has for all, verify Count, verify Without removes correctly)
   - All tests pass with `-race`
-- **Context**: The hash infrastructure uses `reflect.Kind` dispatch and unsafe pointer tricks for fast-paths. Derived types (e.g., `type ID int`) must hash differently from their underlying types to prevent cross-type collisions. This is also flagged in `docs/TODO.md`. A comprehensive type-matrix test suite would catch regressions in hash/equality dispatch.
-- **Status**: identified
+- **Context**: 17 parametric tests in `typematrix_test.go` cover Set and Map across int, string, float64, derived types (ID, Name, Score), and structs. Independence tests verify Set[int]/Set[ID] and Map[int,V]/Map[ID,V] function independently. Large round-trip test exercises 1000-element insert/verify/remove cycle for derived types. All pass with -race.
+- **Status**: achieved
 - **Discovered**: 2026-03-09
-
-## Achieved
+- **Achieved**: 2026-03-09
 
 ### 🎯T3 No-op write operations are zero-alloc
 - **Weight**: 3 (value 5 / cost 2)
