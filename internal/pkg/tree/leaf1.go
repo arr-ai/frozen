@@ -165,6 +165,9 @@ func (l *leaf1[T]) Where(args *WhereArgs[T], _ int) (_ node[T], matches int) {
 
 func (l *leaf1[T]) With(args *CombineArgs[T], v T, _ int, _ hasher) (_ node[T], matches int) {
 	if args.Equal(l.data, v) {
+		if args.same != nil && args.same(l.data, v) {
+			return l, 1
+		}
 		combined := args.f(l.data, v)
 		return newLeaf1WithHash(combined, newElemH128(combined, args.hf)), 1
 	}

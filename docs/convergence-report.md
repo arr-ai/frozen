@@ -2,53 +2,55 @@
 
 Standing invariants: all green.
 
-## Recovered from interrupted wrap
-
-Previous session completed 🎯T2 implementation: added `reflect.Kind` dispatch for int/float/string fast-paths in `resolveHashFunc`, `resolveSeededHashFunc`, and `EqualFuncFor`. All read benchmarks confirmed 0 allocs/op. Changes are uncommitted and need to go through PR flow.
-
 ## Movement
 
-- 🎯T2: not started → close (implementation complete, uncommitted)
-- 🎯T3: (unchanged)
+- 🎯T3: achieved → achieved (unchanged, but **not yet delivered** — 12 files uncommitted on master)
+- 🎯T4: (new) identified
 
 ## Gap report
 
-### 🎯T2 All read operations are zero-alloc  [weight 5, effective 4.0]
-Gap: close
-All acceptance criteria met in code: Map.Get, Map.Has, Set.Has all report 0 B/op, 0 allocs/op at 1k and 1M sizes. Tests pass. Not yet committed or delivered (no PR).
+### 🎯T4 Set and Map operations are correct across diverse key/value types  [weight 4]
+Gap: not started
+No type-matrix test suite exists yet. The target was created after 🎯T3 was achieved. Acceptance criteria require parametric tests across int/string/float64/derived types for all core Set and Map operations, plus derived-type independence verification.
 
-  Implied: not yet delivered (changes uncommitted, no PR)
-
-### 🎯T3 No-op write operations are zero-alloc  [weight 3, effective 2.5]
-Gap: not started (status only)
-No work started. No changed-file overlap.
+### Implied delivery gap: 🎯T3 uncommitted changes
+12 files with 🎯T3 implementation (zero-alloc no-op writes) are modified but uncommitted on master. These need to be committed and pushed via PR before 🎯T3 is fully delivered.
 
 ## Recommendation
 
-Work on: **🎯T2 All read operations are zero-alloc**
-Reason: Highest effective weight (4.0), code is done, just needs delivery. Closing this is nearly free.
+Work on: **delivering 🎯T3 changes first**, then **🎯T4 Set and Map operations are correct across diverse key/value types**
+Reason: 🎯T3 code is complete but undelivered — 12 uncommitted files on master. Deliver that first, then 🎯T4 is the only active target with effective weight 4 and a clear, bounded scope.
 
 ## Suggested action
 
-Commit the uncommitted changes and run `/push` to create a PR and drive it through CI.
+Commit the 🎯T3 changes and run `/push` to create a PR and merge. Then begin 🎯T4 by writing parametric type-matrix tests.
 
 Type **go** to execute the suggested action.
 
 <!-- convergence-deps
-evaluated: 2026-03-08T14:00:00Z
-sha: 431cd1c
+evaluated: 2026-03-09T12:00:00Z
+sha: f4d3a4d
 
-🎯T2:
-  gap: close
-  assessment: "All read benchmarks 0 allocs/op. reflect.Kind dispatch implemented. Uncommitted, needs PR."
+🎯T4:
+  gap: not started
+  assessment: "No type-matrix test suite exists. Target just created."
   read:
-    - internal/pkg/tree/hasher.go
-    - internal/pkg/value/value.go
-    - map_test.go
-    - set_test.go
+    - docs/targets.md
 
 🎯T3:
-  gap: not started
-  assessment: "No work started."
-  read: []
+  gap: achieved
+  assessment: "Code complete, 12 files uncommitted on master. Delivery pending."
+  read:
+    - map.go
+    - set.go
+    - map_test.go
+    - set_test.go
+    - internal/pkg/tree/nodeArgs.go
+    - internal/pkg/tree/tree.go
+    - internal/pkg/tree/branch.go
+    - internal/pkg/tree/leaf1.go
+    - internal/pkg/tree/leaf2.go
+    - internal/pkg/tree/leaf.go
+    - docs/targets.md
+    - docs/convergence-report.md
 -->

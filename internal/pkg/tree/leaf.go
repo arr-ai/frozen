@@ -372,8 +372,11 @@ func (l *leaf[T]) Where(args *WhereArgs[T], _ int) (_ node[T], matches int) {
 func (l *leaf[T]) With(args *CombineArgs[T], v T, depth int, _ hasher) (_ node[T], matches int) {
 	for i, e := range l.data {
 		if args.Equal(e, v) {
-			ret := &leaf[T]{data: append([]T(nil), l.data...)}
+			if args.same != nil && args.same(e, v) {
+				return l, 1
+			}
 			combined := args.f(e, v)
+			ret := &leaf[T]{data: append([]T(nil), l.data...)}
 			ret.data[i] = combined
 			// h0: remove old element hash, add new.
 			ret.h0 = l.h0.xor(newElemH128(e, args.hf)).xor(newElemH128(combined, args.hf))

@@ -858,6 +858,42 @@ func BenchmarkInsertFrozenSet1M(b *testing.B) {
 	benchmarkInsertFrozenSet(b, 1<<20)
 }
 
+func benchmarkWithExistingFrozenSet(b *testing.B, n int) {
+	b.Helper()
+
+	s := prepopFrozenSet(n).(frozen.Set[int])
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.With(i % n)
+	}
+}
+
+func BenchmarkWithExistingFrozenSet1k(b *testing.B) {
+	benchmarkWithExistingFrozenSet(b, 1<<10)
+}
+
+func BenchmarkWithExistingFrozenSet1M(b *testing.B) {
+	benchmarkWithExistingFrozenSet(b, 1<<20)
+}
+
+func benchmarkWithoutAbsentFrozenSet(b *testing.B, n int) {
+	b.Helper()
+
+	s := prepopFrozenSet(n).(frozen.Set[int])
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		s.Without(n + i%n)
+	}
+}
+
+func BenchmarkWithoutAbsentFrozenSet1k(b *testing.B) {
+	benchmarkWithoutAbsentFrozenSet(b, 1<<10)
+}
+
+func BenchmarkWithoutAbsentFrozenSet1M(b *testing.B) {
+	benchmarkWithoutAbsentFrozenSet(b, 1<<20)
+}
+
 func benchmarkHasFrozenSet(b *testing.B, n int) {
 	b.Helper()
 

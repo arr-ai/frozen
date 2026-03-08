@@ -530,6 +530,44 @@ func withFastBatched[T any](root *branch[T], v T, h hasher, hf func(T) H128) (no
 	}
 }
 
+// withBatched performs a With operation using CombineArgs, with batched
+// spine allocation like withFastBatched. The CombineArgs path uses cached
+// equality functions (no boxing) and supports no-op detection via same.
+func withBatched[T any](root *branch[T], args *CombineArgs[T], v T, h hasher) (node[T], int) {
+	var path [levelsPerRound * 2]spineEntry[T]
+	pathLen := 0
+
+	cur := root
+	curHash := h
+	depth := 0
+
+	for {
+		i := curHash.hash()
+		child := cur.p.data[i]
+		path[pathLen] = spineEntry[T]{b: cur, index: i}
+		pathLen++
+
+		nextH := nextHasherWith(v, curHash, depth, args.hf)
+
+		if child == nil {
+			return buildSpine(path[:pathLen], node[T](newLeaf1WithHash(v, newElemH128(v, args.hf))), 1), 0
+		}
+
+		if b2, ok := child.(*branch[T]); ok {
+			cur = b2
+			curHash = nextH
+			depth++
+			continue
+		}
+
+		x2, matches := child.With(args, v, depth+1, nextH)
+		if x2 == child {
+			return root, matches
+		}
+		return buildSpine(path[:pathLen], x2, 1-matches), matches
+	}
+}
+
 // buildSpineWithout batch-allocates branch copies for Without. Unlike
 // buildSpine, the bottom branch uses SetChild (handles nil) and is collapsed
 // if its count drops to ≤maxLeafLen.
