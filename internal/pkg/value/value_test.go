@@ -170,6 +170,58 @@ func TestEqualFuncForUint32(t *testing.T) {
 	}
 }
 
+// --- uncomparable dynamic types (regression: comparing uncomparable type) ---
+
+// uncomparableStruct embeds a slice, so its zero value is comparable
+// (interfaces are always "comparable" per the language spec at compile
+// time), but any two instances of it panic on == at runtime.
+type uncomparableStruct struct {
+	items []int
+}
+
+func TestEqualWithUncomparableDynamicTypeDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	a := uncomparableStruct{items: []int{1, 2, 3}}
+	b := uncomparableStruct{items: []int{1, 2, 3}}
+
+	// The dynamic type (uncomparableStruct) implements neither Equaler nor
+	// Samer and is not comparable with ==, so the only panic-free answer is
+	// false, even though the two values are "the same" by content.
+	if value.Equal(a, b) {
+		t.Error("Equal(a, b) must be false for uncomparable dynamic types (no panic, but no equality either)")
+	}
+	if value.Equal(a, a) {
+		t.Error("Equal(a, a) must be false for uncomparable dynamic types, even for the same value")
+	}
+}
+
+func TestEqualFuncForAnyWithUncomparableDynamicTypeDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	// T = any is the shape that triggers equalSlow: EqualFuncFor can't tell
+	// from any's nil zero value whether real values will be comparable.
+	eq := value.EqualFuncFor[any]()
+
+	var a any = uncomparableStruct{items: []int{1, 2, 3}}
+	var b any = uncomparableStruct{items: []int{4, 5, 6}}
+
+	if eq(a, b) {
+		t.Error("EqualFuncFor[any]()(a, b) must be false for uncomparable dynamic types")
+	}
+}
+
+func TestEqualWithMismatchedUncomparableDynamicTypesDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	var a any = uncomparableStruct{items: []int{1}}
+	var b any = []int{1}
+
+	if value.Equal(a, b) {
+		t.Error("Equal(a, b) must be false for mismatched dynamic types")
+	}
+}
+
 // TestEqualTableDriven provides a broader set of int cases.
 func TestEqualTableDriven(t *testing.T) {
 	t.Parallel()

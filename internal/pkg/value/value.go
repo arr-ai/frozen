@@ -41,7 +41,7 @@ func Equal[T any](a, b T) bool {
 	case Samer:
 		return a.Same(b)
 	}
-	return i == any(b)
+	return equalBoxed(i, any(b))
 }
 
 // EqualFuncFor returns an equality tester optimised for T.
@@ -94,7 +94,26 @@ func equalSlow[T any](a, b T) bool {
 	case Samer:
 		return a.Same(b)
 	}
-	return i == any(b)
+	return equalBoxed(i, any(b))
+}
+
+// equalBoxed compares two already-boxed values with ==, which is only valid
+// when their dynamic type (once the two sides agree on one) is comparable.
+// T being a statically comparable/interface type does not guarantee that: a
+// generic parameter such as `any` accepts dynamic types (e.g. structs or
+// slices embedding a slice/map) that panic on ==. Neither Equaler nor Samer
+// caught a.'s type above, so falling back here is a last resort; treat
+// mismatched or uncomparable dynamic types as unequal rather than panicking.
+func equalBoxed(a, b any) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	// == on interfaces only panics when both dynamic types match and that
+	// type is uncomparable; mismatched dynamic types safely compare unequal.
+	if ta := reflect.TypeOf(a); ta == reflect.TypeOf(b) && !ta.Comparable() {
+		return false
+	}
+	return a == b
 }
 
 // equalScalar returns a non-boxing equality function for types that fit in a
