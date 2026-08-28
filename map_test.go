@@ -28,6 +28,25 @@ func TestMapEmpty(t *testing.T) {
 	test.Panic(t, func() { m.MustGet(1) })
 }
 
+// TestMapWithUncomparableValueTypeDoesNotPanic guards against a regression
+// where Map.With's no-op-write detection (added to skip allocation when the
+// value at an existing key is unchanged) compared V values with a bare ==.
+// When V is an interface type (e.g. any) holding a dynamic type that embeds
+// a slice or map, == panics with "comparing uncomparable type" instead of
+// returning a bool. Overwriting an existing key must never panic just
+// because the values being compared aren't Go-comparable.
+func TestMapWithUncomparableValueTypeDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	var m frozen.Map[string, any]
+	m = m.With("k", []int{1, 2, 3})
+	m = m.With("k", []int{4, 5, 6})
+
+	v, has := m.Get("k")
+	test.True(t, has)
+	test.Equal(t, []int{4, 5, 6}, v)
+}
+
 func TestMap2(t *testing.T) {
 	t.Parallel()
 
