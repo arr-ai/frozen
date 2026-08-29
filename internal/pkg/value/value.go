@@ -2,6 +2,7 @@ package value
 
 import (
 	"reflect"
+	"runtime"
 	"unsafe"
 )
 
@@ -104,7 +105,15 @@ func equalSlow[T any](a, b T) bool {
 // slices embedding a slice/map) that panic on ==. Neither Equaler nor Samer
 // caught a.'s type above, so falling back here is a last resort; treat
 // mismatched or uncomparable dynamic types as unequal rather than panicking.
-func equalBoxed(a, b any) bool {
+//
+// reflect.Type.Comparable is a static check and is not sufficient on its own:
+// a struct whose fields are interfaces (or an array of interfaces) is
+// comparable by type, yet == still panics at runtime when those interface
+// fields hold uncomparable dynamic values. Only the runtime can decide that,
+// so the == itself runs under a recover that turns the comparison panic into
+// "unequal". Callers only use this answer to decide whether an existing
+// value can be reused, so unequal is always the safe answer.
+func equalBoxed(a, b any) (eq bool) {
 	if a == nil || b == nil {
 		return a == nil && b == nil
 	}
@@ -113,6 +122,14 @@ func equalBoxed(a, b any) bool {
 	if ta := reflect.TypeOf(a); ta == reflect.TypeOf(b) && !ta.Comparable() {
 		return false
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			if _, is := r.(runtime.Error); !is {
+				panic(r)
+			}
+			eq = false
+		}
+	}()
 	return a == b
 }
 

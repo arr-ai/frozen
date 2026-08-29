@@ -47,6 +47,34 @@ func TestMapWithUncomparableValueTypeDoesNotPanic(t *testing.T) {
 	test.Equal(t, []int{4, 5, 6}, v)
 }
 
+// TestMapWithComparableTypeHoldingUncomparableFieldsDoesNotPanic covers the
+// case reflect.Type.Comparable cannot catch: the value's type is a struct of
+// interface fields (comparable by type) but those fields hold slices, so ==
+// on two such values panics at runtime. Arr.ai stores exactly this shape in
+// Map[string, any].
+func TestMapWithComparableTypeHoldingUncomparableFieldsDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	type at struct{ At, Value any }
+	type withSlice struct{ items []int }
+
+	v := at{At: 1, Value: withSlice{items: []int{1, 2}}}
+	var m frozen.Map[string, any]
+	m = m.With("k", v)
+	m = m.With("k", at{At: 1, Value: withSlice{items: []int{1, 2}}})
+	test.Equal(t, 1, m.Count())
+	got, has := m.Get("k")
+	test.True(t, has)
+	test.Equal(t, 1, got.(at).At)
+
+	m = m.Update(frozen.NewMap(frozen.KV[string, any]("k", v)))
+	test.Equal(t, 1, m.Count())
+	m = m.With("k", at{At: 2, Value: withSlice{items: []int{3}}})
+	test.Equal(t, 1, m.Count())
+	got, _ = m.Get("k")
+	test.Equal(t, 2, got.(at).At)
+}
+
 func TestMap2(t *testing.T) {
 	t.Parallel()
 
