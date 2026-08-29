@@ -3,6 +3,8 @@ package frozen
 import (
 	"fmt"
 
+	"github.com/arr-ai/hash/hash128"
+
 	"github.com/arr-ai/frozen/internal/pkg/depth"
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/hash"
@@ -15,6 +17,11 @@ import (
 type Hashable interface {
 	Hash(seed uintptr) uintptr
 }
+
+// Hashable128 represents a type that can evaluate its own 128-bit hash in a
+// single pass. When a type implements both Hashable128 and Hashable, frozen
+// uses Hashable128; the two need not agree numerically.
+type Hashable128 = hash128.Hashable
 
 // Set holds a set of values of type T. The zero value is the empty Set.
 type Set[T any] struct {
@@ -162,6 +169,12 @@ func (s Set[T]) Format(f fmt.State, verb rune) {
 // a specified order.
 func (s Set[T]) OrderedRange(less tree.Less[T]) Iterator[T] {
 	return s.tree.OrderedIterator(less, s.Count())
+}
+
+// Hash128 returns the set's 128-bit hash, maintained incrementally by the
+// tree, so it costs O(1).
+func (s Set[T]) Hash128() hash128.H128 {
+	return s.tree.H0().ToHash128()
 }
 
 // Hash computes a hash value for s.

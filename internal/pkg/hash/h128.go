@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"unsafe"
+
+	"github.com/arr-ai/hash/hash128"
 )
 
 // H128 holds a 128-bit hash computed in a single pass on AES-capable hardware.
@@ -139,10 +141,14 @@ func StringH128(s string) H128 {
 }
 
 // AnyH128 returns an H128 hash for i, dispatching to the appropriate H128
-// function by type. For types implementing Hashable, falls back to two
+// function by type. Types implementing hash128.Hashable hash themselves in
+// one pass; types implementing only the seeded Hashable fall back to two
 // seeded calls.
 func AnyH128(i any) H128 { //nolint:cyclop
 	switch k := i.(type) {
+	case hash128.Hashable:
+		h := k.Hash128()
+		return H128{uintptr(h.Lo), uintptr(h.Hi)}
 	case Hashable:
 		return H128{k.Hash(0), k.Hash(1)}
 	case int:

@@ -1,6 +1,8 @@
 package frozen
 
 import (
+	"github.com/arr-ai/hash/hash128"
+
 	"sync"
 
 	"github.com/arr-ai/frozen/internal/pkg/hash"
@@ -27,9 +29,16 @@ func (e mapEntry[K, V]) Equal(e2 mapEntry[K, V]) bool {
 	return value.Equal(e.Key, e2.Key)
 }
 
-// Hash implements hash.Hashable for key-only hashing in the default path.
+// Hash implements hash.Hashable for key-only hashing.
 func (e mapEntry[K, V]) Hash(seed uintptr) uintptr {
 	return hash.Any(e.Key, seed)
+}
+
+// Hash128 implements hash128.Hashable for key-only hashing. It takes
+// precedence over Hash wherever entries are hashed, so every path that hashes
+// a mapEntry agrees with mapEntryHashFunc.
+func (e mapEntry[K, V]) Hash128() hash128.H128 {
+	return tree.GetHashFunc[K]()(e.Key).ToHash128()
 }
 
 // mapEntryEqHash provides full entry equality (key + value) for Map.Equal and similar.
@@ -66,13 +75,13 @@ func (m *mapKeyEqHash[K, V]) Hash(a mapEntry[K, V]) tree.H128 {
 func (m *mapKeyEqHash[K, V]) FullHash() bool { return false }
 
 // mapEntryHashFunc returns a non-boxing H128 hash function for mapEntry[K, V].
-// It hashes only the key, consistent with mapEntry.Hash, but avoids boxing the
-// mapEntry struct through the Hashable interface and avoids boxing the key
-// through hash.Any.
+// It hashes only the key, consistent with mapEntry.Hash128, but avoids boxing
+// the mapEntry struct through the Hashable interface. The key is hashed in a
+// single pass by the key type's own H128 function.
 func mapEntryHashFunc[K, V any]() func(mapEntry[K, V]) tree.H128 {
-	kHash := tree.GetSeededHashFunc[K]()
+	kHash := tree.GetHashFunc[K]()
 	return func(e mapEntry[K, V]) tree.H128 {
-		return tree.MakeH128(kHash(e.Key, 0), kHash(e.Key, 1))
+		return kHash(e.Key)
 	}
 }
 

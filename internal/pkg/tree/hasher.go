@@ -7,6 +7,8 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/arr-ai/hash/hash128"
+
 	"github.com/arr-ai/frozen/internal/pkg/fu"
 	"github.com/arr-ai/frozen/internal/pkg/hash"
 )
@@ -26,11 +28,28 @@ func toH128(h hash.H128) H128 {
 	return H128{h.Lo, h.Hi}
 }
 
+// fromHash128 converts a public hash128.H128 to tree's H128. On 32-bit
+// targets the halves are truncated, which still yields a well-mixed hash.
+func fromHash128(h hash128.H128) H128 {
+	return H128{uintptr(h.Lo), uintptr(h.Hi)}
+}
+
+// ToHash128 converts tree's H128 to the public hash128.H128.
+func (h H128) ToHash128() hash128.H128 {
+	return hash128.H128{Lo: uint64(h.lo), Hi: uint64(h.hi)}
+}
+
 // resolveHashFunc returns a non-boxing hash function for T that computes both
 // hash halves in a single call, returning H128. On AES-capable hardware the
 // typed variants (Uint64H128, etc.) compute both halves from a single AES pass.
 func resolveHashFunc[T any]() func(T) H128 {
 	var t T
+	if _, ok := any(t).(hash128.Hashable); ok {
+		// Single-pass 128-bit hash; takes precedence over the seeded interface.
+		return func(key T) H128 {
+			return fromHash128(any(key).(hash128.Hashable).Hash128()) //nolint:forcetypeassert
+		}
+	}
 	if _, ok := any(t).(hash.Hashable); ok {
 		return func(key T) H128 {
 			h := any(key).(hash.Hashable) //nolint:forcetypeassert
