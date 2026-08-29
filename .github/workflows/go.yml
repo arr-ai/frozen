@@ -28,9 +28,9 @@ jobs:
       run: TESTFLAGS='-cover' make ci
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v6
+      uses: golangci/golangci-lint-action@v8
       with:
-        version: v1.60.1
+        version: v2.12.2
 
   # Much slower, so don't require for PR merge.
   races:

@@ -10,7 +10,7 @@ import (
 )
 
 func packedIteratorBuf[T any](count int) [][]node[T] {
-	depth := (bits.Len64(uint64(count)) + 1) * 3 / 2 // 1.5 (log₈(count) + 1)
+	depth := (bits.Len64(uint64(count)) + 1) * 3 / 2 //nolint:gosec // 1.5 (log₈(count) + 1); count is non-negative
 	return make([][]node[T], 0, depth)
 }
 

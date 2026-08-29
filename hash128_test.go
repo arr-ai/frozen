@@ -23,7 +23,7 @@ type bothVal struct{ n int }
 var seededCalls int64
 
 func (v bothVal) Hash128() hash128.H128 { return hash128.Int(v.n) }
-func (v bothVal) Hash(seed uintptr) uintptr {
+func (v bothVal) Hash(_ uintptr) uintptr {
 	atomic.AddInt64(&seededCalls, 1)
 	return 0
 }
@@ -52,6 +52,7 @@ func TestHashable128_MapMatrix(t *testing.T) {
 }
 
 func TestHashable128_TakesPrecedenceOverSeeded(t *testing.T) {
+	t.Parallel()
 	var s frozen.Set[bothVal]
 	for i := 0; i < 100; i++ {
 		s = s.With(bothVal{i})
@@ -70,6 +71,7 @@ func TestHashable128_TakesPrecedenceOverSeeded(t *testing.T) {
 }
 
 func TestHashable128_DynamicDispatchThroughAny(t *testing.T) {
+	t.Parallel()
 	// T = any: the element's dynamic type decides how it is hashed.
 	var s frozen.Set[any]
 	for i := 0; i < 50; i++ {
@@ -88,6 +90,7 @@ func TestHashable128_DynamicDispatchThroughAny(t *testing.T) {
 }
 
 func TestHash128_SetAndMapAreOrderIndependent(t *testing.T) {
+	t.Parallel()
 	a := frozen.NewSet(1, 2, 3, 4, 5)
 	b := frozen.NewSet(5, 4, 3, 2, 1)
 	test.Equal(t, a.Hash128(), b.Hash128())
@@ -102,6 +105,7 @@ func TestHash128_SetAndMapAreOrderIndependent(t *testing.T) {
 }
 
 func TestHashable128_SetOfSets(t *testing.T) {
+	t.Parallel()
 	inner := func(xs ...int) frozen.Set[int] { return frozen.NewSet(xs...) }
 	outer := frozen.NewSet(inner(1, 2), inner(3), inner(1, 2))
 	test.Equal(t, 2, outer.Count())

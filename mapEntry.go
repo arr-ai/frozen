@@ -1,9 +1,9 @@
 package frozen
 
 import (
-	"github.com/arr-ai/hash/hash128"
-
 	"sync"
+
+	"github.com/arr-ai/hash/hash128"
 
 	"github.com/arr-ai/frozen/internal/pkg/hash"
 	"github.com/arr-ai/frozen/internal/pkg/tree"

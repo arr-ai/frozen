@@ -13,7 +13,7 @@ func difference(a, b Set) Set {
 		return a
 	}
 	s := &differenceSet{a: a, b: b}
-	s.baseSet.set = s
+	s.set = s
 	return memo(s)
 }
 

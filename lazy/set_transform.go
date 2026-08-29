@@ -8,7 +8,7 @@ type mapperSet struct {
 
 func mapper(set Set, m Mapper) Set {
 	s := &mapperSet{src: set, m: m}
-	s.baseSet.set = s
+	s.set = s
 	return memo(s)
 }
 

@@ -26,7 +26,7 @@ const (
 
 //nolint:funlen,cyclop
 func memhash(p unsafe.Pointer, seed, s Seed) Seed {
-	if (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") &&
+	if (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") && //nolint:goconst // arch names read better inline
 		runtime.GOOS != "nacl" && useAeshash {
 		return aeshash(p, seed, s)
 	}

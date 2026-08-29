@@ -271,7 +271,7 @@ func (h hasher) String() string {
 		sb.WriteByte('#')
 		// Braille-encode octal digits in pairs.
 		for ; h != 0; h <<= 6 {
-			sb.WriteRune(rune(0x2800 + h.hash() + h.next().hash()<<3))
+			sb.WriteRune(rune(0x2800 + h.hash() + h.next().hash()<<3)) //nolint:gosec // braille block offset, bounded by fanout
 		}
 		return sb.String()
 	case 4:
