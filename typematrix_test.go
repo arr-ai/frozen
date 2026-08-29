@@ -130,9 +130,9 @@ func TestTypeMatrix_Set_Int(t *testing.T) {
 	setOps(t, []int{1, 2, 3, 4, 5, 100, 200, 300})
 }
 
-func TestTypeMatrix_Set_String(t *testing.T) { //nolint:goconst // test data
+func TestTypeMatrix_Set_String(t *testing.T) {
 	t.Parallel()
-	setOps(t, []string{"a", "bb", "ccc", "dddd", "hello", "world", "foo", "bar"})
+	setOps(t, []string{"a", "bb", "ccc", "dddd", "hello", "world", "foo", "bar"}) //nolint:goconst // test data
 }
 
 func TestTypeMatrix_Set_Float64(t *testing.T) {
