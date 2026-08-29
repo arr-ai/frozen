@@ -7,7 +7,7 @@ type unionSet struct {
 
 func union(a, b Set) Set {
 	s := &unionSet{a: a, b: b}
-	s.baseSet.set = s
+	s.set = s
 	return memo(s)
 }
 

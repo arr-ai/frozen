@@ -20,13 +20,13 @@ func TestMaskerFirstIsIn(t *testing.T) {
 	for a := 1; a <= 0b1_0000; a += 2 {
 		for b := 0; b < 0b1_0000; b += 2 {
 			test.False(t, masker.Masker(a).FirstIsIn(masker.Masker(b)), "%b %b", a, b)
-			test.True(t, masker.Masker(a).FirstIsIn(masker.Masker(b|1)), "%b %b", a, b)
+			test.True(t, masker.Masker(a).FirstIsIn(masker.Masker(b|1)), "%b %b", a, b) //nolint:gosec // small test values
 		}
 	}
 	for a := 2; a <= 0b1_0000; a += 4 {
 		for b := 0; b <= 0b1_0000; b += 4 {
 			test.False(t, masker.Masker(a).FirstIsIn(masker.Masker(b)), "%b %b", a, b)
-			test.True(t, masker.Masker(a).FirstIsIn(masker.Masker(b|10)), "%b %b", a, b)
+			test.True(t, masker.Masker(a).FirstIsIn(masker.Masker(b|10)), "%b %b", a, b) //nolint:gosec // small test values
 		}
 	}
 	test.False(t, masker.Masker(8).FirstIsIn(masker.Masker(0)))

@@ -8,7 +8,7 @@ type whereSet struct {
 
 func where(set Set, pred Predicate) Set {
 	s := &whereSet{src: set, pred: pred}
-	s.baseSet.set = s
+	s.set = s
 	return memo(s)
 }
 

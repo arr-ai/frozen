@@ -105,7 +105,7 @@ func CartesianProduct(relations ...Relation) Relation {
 func buildCartesianProduct(b *RelationBuilder, t Tuple, relations ...Relation) {
 	if len(relations) > 0 {
 		for i := relations[0].Range(); i.Next(); {
-			buildCartesianProduct(b, t.Update(i.Value()), relations[1:]...)
+			buildCartesianProduct(b, t.Update(i.Value()), relations[1:]...) //nolint:gosec // guarded by len(relations) > 0
 		}
 	} else {
 		b.Add(t)

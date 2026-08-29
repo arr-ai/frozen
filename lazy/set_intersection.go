@@ -13,7 +13,7 @@ func intersection(a, b Set) Set {
 		return EmptySet{}
 	}
 	s := &intersectionSet{a: a, b: b}
-	s.baseSet.set = s
+	s.set = s
 	return memo(s)
 }
 

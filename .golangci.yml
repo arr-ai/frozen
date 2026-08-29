@@ -1,27 +1,6 @@
-issues:
-  max-same-issues: 0
-
-linters-settings:
-  errcheck:
-    check-blank: true
-  goimports:
-    local-prefixes: github.com/arr-ai/frozen
-  dupl:
-    threshold: 100
-  lll:
-    line-length: 120
-  gocritic:
-    enabled-tags:
-    - diagnostic
-    - experimental
-    - opinionated
-    - performance
-    - style
-
+version: "2"
 linters:
-  # please, do not use `enable-all`: it's deprecated and will be removed soon.
-  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
-  disable-all: true
+  default: none
   enable:
     - asasalint
     - asciicheck
@@ -31,7 +10,6 @@ linters:
     - contextcheck
     - cyclop
     - decorder
-    # - depguard
     - dogsled
     - dupl
     - dupword
@@ -41,39 +19,24 @@ linters:
     - errname
     - errorlint
     - exhaustive
-    # - exhaustruct
-    - exportloopref
     - forbidigo
-    # - forcetypeassert
     - funlen
-    # - gci
     - ginkgolinter
     - gocheckcompilerdirectives
-    # - gochecknoglobals
     - gochecknoinits
     - gocognit
     - goconst
-    # - gocritic
     - gocyclo
     - godot
-    # - godox
-    # - goerr113
-    - gofmt
-    - gofumpt
     - goheader
-    - goimports
-    # - gomnd
     - gomoddirectives
     - gomodguard
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - grouper
     - importas
     - ineffassign
-    # - interfacebloat
-    # - ireturn
     - lll
     - loggercheck
     - maintidx
@@ -84,10 +47,7 @@ linters:
     - nestif
     - nilerr
     - nilnil
-    # - nlreturn
     - noctx
-    # - nolintlint
-    # - nonamedreturns
     - nosprintfhostport
     - paralleltest
     - prealloc
@@ -98,20 +58,52 @@ linters:
     - rowserrcheck
     - sqlclosecheck
     - staticcheck
-    - stylecheck
     - tagliatelle
-    - tenv
     - testableexamples
-    # - testpackage
-    # - thelper
     - tparallel
-    - typecheck
     - unconvert
-    # - unparam
-    # - unused
     - usestdlibvars
-    # - varnamelen
     - wastedassign
     - whitespace
-    # - wrapcheck
-    # - wsl
+  settings:
+    dupl:
+      threshold: 100
+    errcheck:
+      check-blank: true
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    lll:
+      line-length: 120
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/arr-ai/frozen
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

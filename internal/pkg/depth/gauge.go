@@ -41,7 +41,7 @@ var (
 type Gauge int
 
 func NewGauge(count int) Gauge {
-	g := (bits.Len64(uint64(count)) - maxConcurrency) / FanoutBits
+	g := (bits.Len64(uint64(count)) - maxConcurrency) / FanoutBits //nolint:gosec // count is a non-negative element count
 	if g > maxDepth {
 		g = maxDepth
 	}
