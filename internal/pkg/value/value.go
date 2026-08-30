@@ -3,6 +3,7 @@ package value
 import (
 	"reflect"
 	"runtime"
+	"sync"
 	"unsafe"
 )
 
@@ -35,14 +36,10 @@ func equalComparable[T any](a, b T) bool {
 // type assertions to avoid the overhead of a sync.Map cache lookup, which
 // costs more than the dispatch itself.
 func Equal[T any](a, b T) bool {
-	var i any = a
-	switch a := i.(type) {
-	case Equaler[T]:
-		return a.Equal(b)
-	case Samer:
-		return a.Same(b)
-	}
-	return equalBoxed(i, any(b))
+	// Same dispatch as the function EqualFuncFor returns for the slow path;
+	// keeping one implementation means both the Map/Set operations and the
+	// builders (which compare through mapEntry.Equal) agree on equality.
+	return equalSlow(a, b)
 }
 
 // EqualFuncFor returns an equality tester optimised for T.
@@ -76,14 +73,57 @@ func EqualFuncFor[T any]() func(a, b T) bool {
 	if f := equalScalar[T](); f != nil {
 		return f
 	}
-	if func() (comp bool) {
-		defer recover() //nolint:errcheck
-		_ = map[any]struct{}{i: {}}
-		return true
-	}() {
+	// == is only safe for T when it is comparable for *every* value of T. A
+	// type containing an interface (an array or struct of them) is
+	// statically comparable but panics at runtime once that interface holds
+	// an uncomparable value, so those go to the checked slow path.
+	if !containsInterface(reflect.TypeOf(t)) && isComparable(i) {
 		return equalComparable[T]
 	}
 	return equalSlow[T]
+}
+
+// isComparable reports whether values of i's dynamic type can be used as map
+// keys, which is Go's own definition of comparable. The probe panics for
+// uncomparable types, so it runs under a real recover: `defer recover()`
+// does not stop a panic, because recover must be *called by* a deferred
+// function rather than be one.
+func isComparable(i any) (comp bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			comp = false
+		}
+	}()
+	_ = map[any]struct{}{i: {}}
+	return true
+}
+
+// containsInterface reports whether t is, or transitively contains, an
+// interface — the case where == compiles but can panic at runtime.
+func containsInterface(t reflect.Type) bool {
+	return containsInterfaceDepth(t, 0)
+}
+
+func containsInterfaceDepth(t reflect.Type, depth int) bool {
+	// Recursive types are possible; a struct cannot nest deeply enough for
+	// this bound to matter in practice, and exceeding it fails safe.
+	const maxDepth = 16
+	if t == nil || depth > maxDepth {
+		return true
+	}
+	switch t.Kind() { //nolint:exhaustive
+	case reflect.Interface:
+		return true
+	case reflect.Array:
+		return containsInterfaceDepth(t.Elem(), depth+1)
+	case reflect.Struct:
+		for i := 0; i < t.NumField(); i++ {
+			if containsInterfaceDepth(t.Field(i).Type, depth+1) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // equalSlow is the fallback path that always boxes.
@@ -95,7 +135,47 @@ func equalSlow[T any](a, b T) bool {
 	case Samer:
 		return a.Same(b)
 	}
-	return equalBoxed(i, any(b))
+	j := any(b)
+	// When T is an interface, the element's own Equal method may take an
+	// interface that T does not name — e.g. T is `any` but the values are
+	// arr.ai Values with Equal(Value) bool. Neither Equaler[T] nor Samer
+	// matches, yet the type does define equality, and falling through to ==
+	// would report two equal values as unequal whenever their type is not
+	// comparable. Dispatch on the dynamic type instead.
+	if ta := reflect.TypeOf(i); ta != nil && ta == reflect.TypeOf(j) {
+		if f := dynamicEqualFunc(ta); f != nil {
+			return f(i, j)
+		}
+	}
+	return equalBoxed(i, j)
+}
+
+// equalMethodCache memoises the reflective Equal lookup per dynamic type.
+var equalMethodCache sync.Map // reflect.Type -> equalMethod
+
+type equalMethod struct {
+	f func(a, b any) bool
+}
+
+// dynamicEqualFunc returns a function calling t's own Equal method, or nil
+// if t has no method of the form Equal(X) bool with a value of t assignable
+// to X.
+func dynamicEqualFunc(t reflect.Type) func(a, b any) bool {
+	if m, ok := equalMethodCache.Load(t); ok {
+		return m.(equalMethod).f //nolint:forcetypeassert
+	}
+	var f func(a, b any) bool
+	if m, ok := t.MethodByName("Equal"); ok &&
+		m.Type.NumIn() == 2 && m.Type.NumOut() == 1 &&
+		m.Type.Out(0).Kind() == reflect.Bool &&
+		t.AssignableTo(m.Type.In(1)) {
+		method := m.Func
+		f = func(a, b any) bool {
+			return method.Call([]reflect.Value{reflect.ValueOf(a), reflect.ValueOf(b)})[0].Bool()
+		}
+	}
+	equalMethodCache.Store(t, equalMethod{f: f})
+	return f
 }
 
 // equalBoxed compares two already-boxed values with ==, which is only valid
