@@ -72,26 +72,34 @@ type CombineArgs[T any] struct {
 }
 
 func NewCombineArgs[T any](ea *EqArgs[T], combine func(a, b T) T) *CombineArgs[T] {
-	return &CombineArgs[T]{EqArgs: ea, f: combine}
+	return newCombinePair(ea, combine, nil)
 }
 
 // NewCombineArgsWithSame creates CombineArgs with a full-equality check for
 // no-op detection. Use this when Equal is weaker than structural equality
 // (e.g. Map's key-only equality).
 func NewCombineArgsWithSame[T any](ea *EqArgs[T], combine func(a, b T) T, same func(a, b T) bool) *CombineArgs[T] {
-	return &CombineArgs[T]{EqArgs: ea, f: combine, same: same}
+	return newCombinePair(ea, combine, same)
 }
 
-func (a *CombineArgs[T]) Flip() *CombineArgs[T] {
-	if a.flipped == nil {
-		f := a.f
-		a.flipped = &CombineArgs[T]{
-			EqArgs:  a.EqArgs,
-			f:       func(a, b T) T { return f(b, a) },
-			same:    a.same,
-			flipped: a,
-		}
+// newCombinePair builds the arguments and their flipped counterpart, each
+// referring to the other, so that Flip never has to assign anything.
+func newCombinePair[T any](ea *EqArgs[T], combine func(a, b T) T, same func(a, b T) bool) *CombineArgs[T] {
+	args := &CombineArgs[T]{EqArgs: ea, f: combine, same: same}
+	args.flipped = &CombineArgs[T]{
+		EqArgs:  ea,
+		f:       func(a, b T) T { return combine(b, a) },
+		same:    same,
+		flipped: args,
 	}
+	return args
+}
+
+// Flip returns the arguments with the combining function's operands
+// reversed. The pair is built when the arguments are constructed, not on
+// first use: Combine runs on several goroutines once a tree is large enough
+// to fan out, and a lazily assigned field would be a data race between them.
+func (a *CombineArgs[T]) Flip() *CombineArgs[T] {
 	return a.flipped
 }
 

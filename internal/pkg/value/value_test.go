@@ -222,6 +222,55 @@ func TestEqualWithMismatchedUncomparableDynamicTypesDoesNotPanic(t *testing.T) {
 	}
 }
 
+// interfaceFieldStruct is comparable by type (reflect.Type.Comparable
+// returns true) because its fields are interfaces, but == panics at runtime
+// whenever those fields hold uncomparable dynamic values.
+type interfaceFieldStruct struct {
+	At, Value any
+}
+
+func TestEqualWithComparableTypeHoldingUncomparableFieldsDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	a := interfaceFieldStruct{At: 1, Value: uncomparableStruct{items: []int{1}}}
+	b := interfaceFieldStruct{At: 1, Value: uncomparableStruct{items: []int{1}}}
+
+	if value.Equal(a, b) {
+		t.Error("Equal(a, b) must be false when fields hold uncomparable values")
+	}
+	if value.Equal(a, a) {
+		t.Error("Equal(a, a) must be false when fields hold uncomparable values")
+	}
+
+	// A differing comparable field short-circuits before the uncomparable
+	// one is reached; must still not panic.
+	c := interfaceFieldStruct{At: 2, Value: uncomparableStruct{items: []int{1}}}
+	if value.Equal(a, c) {
+		t.Error("Equal(a, c) must be false")
+	}
+
+	// Comparable field contents still compare normally.
+	d := interfaceFieldStruct{At: 1, Value: "x"}
+	e := interfaceFieldStruct{At: 1, Value: "x"}
+	if !value.Equal(d, e) {
+		t.Error("Equal(d, e) must be true for comparable field contents")
+	}
+	if value.Equal(d, interfaceFieldStruct{At: 1, Value: "y"}) {
+		t.Error("Equal(d, {1, y}) must be false")
+	}
+}
+
+func TestEqualFuncForAnyWithComparableTypeHoldingUncomparableFieldsDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	eq := value.EqualFuncFor[any]()
+	var a any = [1]any{[]int{1}}
+	var b any = [1]any{[]int{1}}
+	if eq(a, b) {
+		t.Error("EqualFuncFor[any]()(a, b) must be false for arrays of uncomparable interface values")
+	}
+}
+
 // TestEqualTableDriven provides a broader set of int cases.
 func TestEqualTableDriven(t *testing.T) {
 	t.Parallel()
