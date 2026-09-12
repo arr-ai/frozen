@@ -183,16 +183,9 @@ func UnsafePointer(p unsafe.Pointer) uintptr {
 	return Uintptr(uintptr(p))
 }
 
-// Value returns a hash for v. The type's name is mixed in so a defined
-// type (type ID int) does not hash like its underlying type. PkgPath and
-// Name are interned in the runtime type descriptor; hashing them is
-// cheaper than a sync.Map keyed on reflect.Type, and Type is an interface
-// whose own address is not a stable seed.
+// Value returns a hash for v. Defined types hash like their underlying
+// kind; Equal distinguishes int(5) from ID(5) when they share a slot.
 func Value(v reflect.Value) uintptr {
-	return Combine(typeNameHash(v.Type()), valueHash(v))
-}
-
-func valueHash(v reflect.Value) uintptr {
 	// These cause dependency cycles if added to valueHashes.
 	switch kind := v.Kind(); kind { //nolint:exhaustive
 	case reflect.Struct:
@@ -207,16 +200,6 @@ func valueHash(v reflect.Value) uintptr {
 	default:
 		return valueHashes[kind](v)
 	}
-}
-
-func typeNameHash(t reflect.Type) uintptr {
-	if name := t.Name(); name != "" {
-		if pkg := t.PkgPath(); pkg != "" {
-			return Combine(String(pkg), String(name))
-		}
-		return String(name)
-	}
-	return String(t.String())
 }
 
 var valueHashes = func() []func(v reflect.Value) uintptr {

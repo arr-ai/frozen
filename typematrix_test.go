@@ -259,9 +259,9 @@ func TestTypeMatrix_DerivedTypeIndependence(t *testing.T) {
 	test.False(t, sd3.Has(ID(1)))
 }
 
-// A Set[any] must treat int(5) and ID(5) as distinct elements, not as a
-// hash collision that happens to compare unequal. Same for string/Name
-// and float64/Score.
+// A Set[any] must treat int(5) and ID(5) as distinct elements even when
+// they share a hash (defined types hash like their underlying kind).
+// Same for string/Name and float64/Score.
 func TestTypeMatrix_AnySetDistinguishesDerivedTypes(t *testing.T) {
 	t.Parallel()
 
