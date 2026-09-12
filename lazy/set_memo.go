@@ -65,7 +65,7 @@ func (s *memoSet) Count() int                      { return s.getSet().Count() }
 func (s *memoSet) FastCount() (count int, ok bool) { return s.getSet().FastCount() }
 func (s *memoSet) CountUpTo(limit int) int         { return s.getSet().CountUpTo(limit) }
 func (s *memoSet) Freeze() Set                     { return s.getSet().Freeze() }
-func (s *memoSet) Hash(seed uintptr) uintptr       { return s.getSet().Hash(seed) }
+func (s *memoSet) Hash() uintptr                   { return s.getSet().Hash() }
 func (s *memoSet) Equal(set any) bool              { return s.getSet().Equal(set) }
 func (s *memoSet) EqualSet(set Set) bool           { return s.getSet().EqualSet(set) }
 func (s *memoSet) IsSubsetOf(set Set) bool         { return s.getSet().IsSubsetOf(set) }

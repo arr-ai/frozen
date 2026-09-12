@@ -392,8 +392,8 @@ func TestMapHashAndEqual(t *testing.T) {
 	for i, a := range maps {
 		for j, b := range maps {
 			test.Equal(t, i == j, a.Equal(b), "i=%v j=%v a=%v b=%v", i, j, a, b)
-			test.Equal(t, i == j, a.Hash(0) == b.Hash(0),
-				"i=%v j=%v a=%v b=%v a.Hash()=%v b.Hash()=%v", i, j, a, b, a.Hash(0), b.Hash(0))
+			test.Equal(t, i == j, a.Hash() == b.Hash(),
+				"i=%v j=%v a=%v b=%v a.Hash()=%v b.Hash()=%v", i, j, a, b, a.Hash(), b.Hash())
 		}
 	}
 }

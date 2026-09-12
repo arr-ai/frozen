@@ -67,7 +67,7 @@ go test -run=^$ -bench=BenchmarkName ./...
 ## Key Conventions
 
 - Immutable-by-design: all mutations produce new values via structural sharing
-- Hashing uses `github.com/arr-ai/hash` with seed-based `hash.Any(value, seed)`
+- Hashing uses seedless `hash.Any(value)`; scalars and strings/`[]byte` of at most 16 bytes go through an inlined multiply-fold mixer, longer byte sequences through AES
 - External test packages (`frozen_test`, etc.)
 - Line length limit: 120 characters
 - Imports grouped with `goimports` local prefix: `github.com/arr-ai/frozen`

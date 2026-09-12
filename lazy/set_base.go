@@ -72,12 +72,12 @@ func (s *baseSet) EqualSet(t Set) bool {
 	return s.Freeze().Equal(t.Freeze())
 }
 
-func (s *baseSet) Hash(seed uintptr) uintptr {
-	h := hash.Uintptr(hashSeed, seed)
+func (s *baseSet) Hash() uintptr {
+	var acc uintptr
 	for i := s.set.Range(); i.Next(); {
-		h = hash.Any(i.Value(), h)
+		acc ^= hash.Any(i.Value())
 	}
-	return h
+	return hash.Uintptr(acc ^ hashSeed)
 }
 
 func (s *baseSet) Has(el any) bool {

@@ -46,8 +46,8 @@ func (EmptySet) EqualSet(set Set) bool {
 	return set.IsEmpty()
 }
 
-func (EmptySet) Hash(seed uintptr) uintptr {
-	return hash.Uintptr(hashSeed, seed)
+func (EmptySet) Hash() uintptr {
+	return hash.Uintptr(hashSeed)
 }
 
 func (EmptySet) Has(any) bool {

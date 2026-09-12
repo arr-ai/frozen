@@ -20,12 +20,12 @@ type Iterator[T any] interface {
 }
 
 type Hashable interface {
-    Hash(seed uintptr) uintptr
+    Hash() uintptr
 }
 
 type Key[T any] interface {
     value.Equaler[T]  // Equal(T) bool
-    Hashable          // Hash(seed uintptr) uintptr
+    Hashable          // Hash() uintptr
 }
 ```
 
@@ -70,7 +70,7 @@ func (s Set[T]) SymmetricDifference(t Set[T]) Set[T]
 func (s Set[T]) IsSubsetOf(t Set[T]) bool
 func (s Set[T]) Equal(t Set[T]) bool
 func (s Set[T]) Same(a any) bool
-func (s Set[T]) Hash(seed uintptr) uintptr
+func (s Set[T]) Hash() uintptr
 func (s Set[T]) AsSetAny() Set[any]
 func (s Set[T]) String() string
 func (s Set[T]) Format(f fmt.State, verb rune)
@@ -126,7 +126,7 @@ func (m Map[K, V]) Update(n Map[K, V]) Map[K, V]
 func (m Map[K, V]) Range() MapIterator[K, V]
 func (m Map[K, V]) Equal(n Map[K, V]) bool
 func (m Map[K, V]) Same(a any) bool
-func (m Map[K, V]) Hash(seed uintptr) uintptr
+func (m Map[K, V]) Hash() uintptr
 func (m Map[K, V]) String() string
 func (m Map[K, V]) Format(f fmt.State, verb rune)
 func (m Map[K, V]) MarshalJSON() ([]byte, error)
@@ -182,7 +182,7 @@ func (s IntSet[I]) IsSubsetOf(t IntSet[I]) bool
 func (s IntSet[I]) Equal(t IntSet[I]) bool
 func (s IntSet[I]) EqualSet(t IntSet[I]) bool  // Deprecated: use Equal
 func (s IntSet[I]) Same(t any) bool
-func (s IntSet[I]) Hash(seed uintptr) uintptr
+func (s IntSet[I]) Hash() uintptr
 func (s IntSet[I]) String() string
 func (s IntSet[I]) Format(f fmt.State, verb rune)
 ```
@@ -197,7 +197,7 @@ type KeyValue[K, V any] struct {
 
 func KV[K, V any](k K, v V) KeyValue[K, V]
 
-func (kv KeyValue[K, V]) Hash(seed uintptr) uintptr
+func (kv KeyValue[K, V]) Hash() uintptr
 func (kv KeyValue[K, V]) Equal(kv2 KeyValue[K, V]) bool
 func (kv KeyValue[K, V]) Same(a any) bool
 func (kv KeyValue[K, V]) String() string
@@ -233,7 +233,7 @@ type Set interface {
     FastCountUpTo(limit int) (count int, ok bool)
     Freeze() Set
     Range() SetIterator
-    Hash(seed uintptr) uintptr
+    Hash() uintptr
     Equal(set any) bool
     EqualSet(set Set) bool
     IsSubsetOf(set Set) bool

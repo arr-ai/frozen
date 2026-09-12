@@ -13,7 +13,7 @@ import (
 
 // Hashable represents a type that can evaluate its own hash.
 type Hashable interface {
-	Hash(seed uintptr) uintptr
+	Hash() uintptr
 }
 
 // Set holds a set of values of type T. The zero value is the empty Set.
@@ -164,13 +164,14 @@ func (s Set[T]) OrderedRange(less tree.Less[T]) Iterator[T] {
 	return s.tree.OrderedIterator(less, s.Count())
 }
 
+const setSalt = uintptr(10538386443025343807 & uint64(^uintptr(0)))
+
 // Hash computes a hash value for s. It is derived from the content hash the
 // tree maintains incrementally, so it costs O(1). The content hash is an XOR
-// of element hashes; rehashing it here keeps the result non-linear in the
-// elements, so sets of sets do not collide on repartitioned contents.
-func (s Set[T]) Hash(seed uintptr) uintptr {
-	h := hash.Uintptr(uintptr(10538386443025343807&uint64(^uintptr(0))), seed)
-	return h ^ hash.Uintptr(s.tree.H0(), seed)
+// of element hashes; mixing it with a salt here keeps the result non-linear
+// in the elements, so sets of sets do not collide on repartitioned contents.
+func (s Set[T]) Hash() uintptr {
+	return hash.Uintptr(s.tree.H0() ^ setSalt)
 }
 
 // Equal returns true iff s and set have all the same elements.

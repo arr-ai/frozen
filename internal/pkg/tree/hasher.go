@@ -21,17 +21,12 @@ type hasher uintptr
 
 var hashFuncCache sync.Map
 
-// ElemSeed is the seed every element hash is computed with. Element hashes
-// are seedless by design: each is computed once, cached in the node that
-// holds the element, and combined by XOR into the node's h0.
-const ElemSeed uintptr = 0
-
 // resolveHashFunc returns a non-boxing hash function for T.
 func resolveHashFunc[T any]() func(T) uintptr {
 	var t T
 	if _, ok := any(t).(hash.Hashable); ok {
 		return func(key T) uintptr {
-			return any(key).(hash.Hashable).Hash(ElemSeed) //nolint:forcetypeassert
+			return any(key).(hash.Hashable).Hash() //nolint:forcetypeassert
 		}
 	}
 	// Use reflect.Kind to catch derived types (e.g., type MyFloat float64)
@@ -40,28 +35,34 @@ func resolveHashFunc[T any]() func(T) uintptr {
 	rt := reflect.TypeOf(t)
 	if rt == nil {
 		return func(key T) uintptr {
-			return hash.Any(key, ElemSeed)
+			return hash.Any(key)
 		}
 	}
 	switch rt.Kind() { //nolint:exhaustive
 	case reflect.Float32:
 		return func(key T) uintptr {
 			f := *(*float32)(unsafe.Pointer(&key))
-			return hash.Float32(f, ElemSeed)
+			return hash.Float32(f)
 		}
 	case reflect.Float64:
 		return func(key T) uintptr {
 			f := *(*float64)(unsafe.Pointer(&key))
-			return hash.Float64(f, ElemSeed)
+			return hash.Float64(f)
 		}
 	case reflect.Complex64, reflect.Complex128:
 		return func(key T) uintptr {
-			return hash.Any(key, ElemSeed)
+			return hash.Any(key)
 		}
 	case reflect.String:
 		return func(key T) uintptr {
 			s := *(*string)(unsafe.Pointer(&key))
-			return hash.String(s, ElemSeed)
+			return hash.String(s)
+		}
+	case reflect.Slice:
+		if rt.Elem().Kind() == reflect.Uint8 {
+			return func(key T) uintptr {
+				return hash.Bytes(*(*[]byte)(unsafe.Pointer(&key)))
+			}
 		}
 	}
 	return resolveHashFuncBySize[T]()
@@ -73,26 +74,26 @@ func resolveHashFuncBySize[T any]() func(T) uintptr {
 	case 1:
 		return func(key T) uintptr {
 			v := *(*uint8)(unsafe.Pointer(&key))
-			return hash.Uint8(v, ElemSeed)
+			return hash.Uint8(v)
 		}
 	case 2:
 		return func(key T) uintptr {
 			v := *(*uint16)(unsafe.Pointer(&key))
-			return hash.Uint16(v, ElemSeed)
+			return hash.Uint16(v)
 		}
 	case 4:
 		return func(key T) uintptr {
 			v := *(*uint32)(unsafe.Pointer(&key))
-			return hash.Uint32(v, ElemSeed)
+			return hash.Uint32(v)
 		}
 	case 8:
 		return func(key T) uintptr {
 			v := *(*uint64)(unsafe.Pointer(&key))
-			return hash.Uint64(v, ElemSeed)
+			return hash.Uint64(v)
 		}
 	}
 	return func(key T) uintptr {
-		return hash.Any(key, ElemSeed)
+		return hash.Any(key)
 	}
 }
 

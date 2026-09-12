@@ -102,11 +102,14 @@ func (s IntSet[I]) Format(f fmt.State, verb rune) {
 	fu.WriteString(f, "]")
 }
 
-func (s IntSet[I]) Hash(seed uintptr) uintptr {
+const intSetSalt = uintptr(0xBF58476D1CE4E5B9 & uint64(^uintptr(0)))
+
+func (s IntSet[I]) Hash() uintptr {
+	var acc uintptr
 	for i := s.Range(); i.Next(); {
-		seed ^= hash.Any(i.Value(), 0)
+		acc ^= hash.Any(i.Value())
 	}
-	return seed
+	return hash.Uintptr(acc ^ intSetSalt)
 }
 
 // EqualSet is deprecated. Use Equal instead.

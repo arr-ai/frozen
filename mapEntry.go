@@ -3,7 +3,6 @@ package frozen
 import (
 	"sync"
 
-	"github.com/arr-ai/frozen/internal/pkg/hash"
 	"github.com/arr-ai/frozen/internal/pkg/tree"
 	"github.com/arr-ai/frozen/internal/pkg/value"
 )
@@ -27,15 +26,10 @@ func (e mapEntry[K, V]) Equal(e2 mapEntry[K, V]) bool {
 	return value.Equal(e.Key, e2.Key)
 }
 
-// Hash implements hash.Hashable for key-only hashing. At the tree's element
-// seed it returns exactly what mapEntryHashFunc returns, so every path that
-// hashes a mapEntry agrees.
-func (e mapEntry[K, V]) Hash(seed uintptr) uintptr {
-	h := tree.GetHashFunc[K]()(e.Key)
-	if seed == tree.ElemSeed {
-		return h
-	}
-	return hash.Uintptr(h, seed)
+// Hash implements hash.Hashable for key-only hashing so every path that
+// hashes a mapEntry agrees with mapEntryHashFunc.
+func (e mapEntry[K, V]) Hash() uintptr {
+	return tree.GetHashFunc[K]()(e.Key)
 }
 
 // mapEntryEqHash provides full entry equality (key + value) for Map.Equal and similar.

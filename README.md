@@ -81,7 +81,7 @@ A constraint interface that types must satisfy to be usable as custom map keys o
 ```go
 type Key[T any] interface {
     value.Equaler[T]   // Equal(T) bool
-    hash.Hashable      // Hash(seed uintptr) uintptr
+    hash.Hashable      // Hash() uintptr
 }
 ```
 

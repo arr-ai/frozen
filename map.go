@@ -244,13 +244,16 @@ func (m Map[K, V]) Update(n Map[K, V]) Map[K, V] {
 	return newMap(m.tree.Combine(args, n.tree))
 }
 
+const mapSalt = uintptr(3167960924819262823 & uint64(^uintptr(0)))
+
 // Hash computes a hash val for s.
-func (m Map[K, V]) Hash(seed uintptr) uintptr {
-	h := hash.Uintptr(uintptr(3167960924819262823&uint64(^uintptr(0))), seed)
+func (m Map[K, V]) Hash() uintptr {
+	kHash := tree.GetHashFunc[K]()
+	var acc uintptr
 	for i := m.Range(); i.Next(); {
-		h ^= hash.Any(i.Value(), hash.Any(i.Key(), seed))
+		acc ^= hash.Combine(kHash(i.Key()), hash.Any(i.Value()))
 	}
-	return h
+	return hash.Uintptr(acc ^ mapSalt)
 }
 
 // Equal returns true iff i is a Map with all the same key-value pairs as this
