@@ -25,15 +25,3 @@ TEXT ·aeshash64(SB),NOSPLIT,$0-12
 TEXT ·return0(SB), NOSPLIT, $0
 	MOVL	$0, AX
 	RET
-
-TEXT ·aeshash32H128(SB),NOSPLIT,$0-12
-	RET
-
-TEXT ·aeshash64H128(SB),NOSPLIT,$0-12
-	RET
-
-TEXT ·aeshashH128(SB),NOSPLIT,$0-16
-	RET
-
-TEXT ·aeshashstrH128(SB),NOSPLIT,$0-12
-	RET

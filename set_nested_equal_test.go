@@ -6,18 +6,14 @@ import (
 	"github.com/arr-ai/frozen"
 )
 
-// The h0 content hash is an XOR of element hashes, and a nested collection's
-// Hash128 is its h0. XOR is associative, so collections with the same
-// flattened elements but different partitions share an h0. Equal must never
-// treat a matching h0 as proof of equality.
+// The h0 content hash is an XOR of element hashes. Equal must never treat a
+// matching h0 as proof of equality: user-supplied hashes need only satisfy
+// equal ⇒ equal-hash, and XOR is not injective.
 func TestSetEqualNestedPartitionsDiffer(t *testing.T) {
 	t.Parallel()
 
 	a := frozen.NewSet(frozen.NewSet(1, 2), frozen.NewSet(3))
 	b := frozen.NewSet(frozen.NewSet(1), frozen.NewSet(2, 3))
-	if a.Hash128() != b.Hash128() {
-		t.Log("hashes differ; the equality check below is not exercising an h0 match")
-	}
 	if a.Equal(b) {
 		t.Errorf("%v.Equal(%v) reported true", a, b)
 	}

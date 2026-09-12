@@ -391,16 +391,3 @@ DATA shifts<>+0xf8(SB)/4, $0x0c0b0a09
 DATA shifts<>+0xfc(SB)/4, $0xff0f0e0d
 
 GLOBL shifts<>(SB),RODATA,$256
-
-// H128 stubs — 386 uses software fallback for H128 (see initAlgAES).
-TEXT ·aeshash32H128(SB),NOSPLIT,$0-12
-	RET
-
-TEXT ·aeshash64H128(SB),NOSPLIT,$0-12
-	RET
-
-TEXT ·aeshashH128(SB),NOSPLIT,$0-16
-	RET
-
-TEXT ·aeshashstrH128(SB),NOSPLIT,$0-12
-	RET

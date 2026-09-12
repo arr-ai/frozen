@@ -28,9 +28,9 @@ func (t Tree[T]) Count() int {
 	return t.count
 }
 
-func (t Tree[T]) H0() H128 {
+func (t Tree[T]) H0() uintptr {
 	if t.root == nil {
-		return H128{}
+		return 0
 	}
 	return t.root.H0()
 }
@@ -223,7 +223,7 @@ func (t Tree[T]) With(v T) (out Tree[T]) {
 	}
 	hf := GetHashFunc[T]()
 	if t.root == nil {
-		return Tree[T]{root: newLeaf1WithHash(v, newElemH128(v, hf)), count: 1, built: true}
+		return Tree[T]{root: newLeaf1WithHash(v, hf(v)), count: 1, built: true}
 	}
 	h := newHasherWith(v, 0, hf)
 	if b, ok := t.root.(*branch[T]); ok {
@@ -242,7 +242,7 @@ func (t Tree[T]) WithWith(args *CombineArgs[T], v T) (out Tree[T]) {
 		defer vet[T](func() { t.WithWith(args, v) }, &t)(&out)
 	}
 	if t.root == nil {
-		return Tree[T]{root: newLeaf1WithHash(v, newElemH128(v, args.hf)), count: 1, built: true}
+		return Tree[T]{root: newLeaf1WithHash(v, args.hf(v)), count: 1, built: true}
 	}
 	h := newHasherWith(v, 0, args.hf)
 	if b, ok := t.root.(*branch[T]); ok {
@@ -288,7 +288,7 @@ func (t Tree[T]) WithoutWith(args *EqArgs[T], v T) (out Tree[T]) {
 	return Tree[T]{root: root, count: t.count - matches, built: true}
 }
 
-func vetNodeH0[T any](n node[T], hf func(T) H128) {
+func vetNodeH0[T any](n node[T], hf func(T) uintptr) {
 	switch n := n.(type) {
 	case *leaf1[T]:
 		n.vetH0(hf)

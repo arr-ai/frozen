@@ -155,8 +155,8 @@ apples-to-apples comparison (no pointer shortcuts).
 ### EqHash interface refactoring
 
 The `EqHash[T]` interface replaces per-operation function resolution with cached
-concrete implementations. Map operations now use H128-native key hashing instead
-of double seeded calls. Key improvements (Apple M4 Max, Go 1.25, darwin/arm64):
+concrete implementations. Map operations hash keys directly instead of
+boxing entries. Key improvements (Apple M4 Max, Go 1.25, darwin/arm64):
 
 - **Map Merge 1M**: 39ms → 18ms (**53% faster**)
 - **Map Insert 1M**: 1032ns → 700ns (**32% faster**)

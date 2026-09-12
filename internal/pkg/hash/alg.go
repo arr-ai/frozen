@@ -184,7 +184,6 @@ var _ = func() (_ struct{}) {
 		hashkey[1] |= 1
 		hashkey[2] |= 1
 		hashkey[3] |= 1
-		initH128Software()
 	}
 	return
 }()
@@ -200,13 +199,6 @@ func initAlgAES() {
 	algarray[algSTRING] = aeshashstr
 	// Initialize with random data so hash collisions will be hard to engineer.
 	getRandomData(aeskeysched[:])
-	// H128 assembly is only implemented for amd64 and arm64.
-	// On 386, fall back to software H128 (two seeded calls).
-	if runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64" {
-		initH128AES()
-	} else {
-		initH128Software()
-	}
 }
 
 // Note: These routines perform the read with an native endianness.
