@@ -56,8 +56,6 @@ func (m *mapEntryEqHash[K, V]) Hash(a mapEntry[K, V]) tree.H128 {
 	return m.hash(a)
 }
 
-func (m *mapEntryEqHash[K, V]) FullHash() bool { return false }
-
 // mapKeyEqHash provides key-only equality for Map operations (With, Without, etc.).
 type mapKeyEqHash[K, V any] struct {
 	eqK  func(K, K) bool
@@ -71,8 +69,6 @@ func (m *mapKeyEqHash[K, V]) Equal(a, b mapEntry[K, V]) bool {
 func (m *mapKeyEqHash[K, V]) Hash(a mapEntry[K, V]) tree.H128 {
 	return m.hash(a)
 }
-
-func (m *mapKeyEqHash[K, V]) FullHash() bool { return false }
 
 // mapEntryHashFunc returns a non-boxing H128 hash function for mapEntry[K, V].
 // It hashes only the key, consistent with mapEntry.Hash128, but avoids boxing

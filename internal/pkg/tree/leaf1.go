@@ -99,9 +99,6 @@ func (l *leaf1[T]) Equal(args *EqArgs[T], n node[T], _ int) bool {
 		if l.h0 != n.h0 {
 			return false
 		}
-		if args.FullHash() && !l.h0.isZero() {
-			return true
-		}
 		return args.Equal(l.data, n.data)
 	}
 	return false

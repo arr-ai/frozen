@@ -107,7 +107,6 @@ func (a *CombineArgs[T]) Flip() *CombineArgs[T] {
 type EqHash[T any] interface {
 	Equal(a, b T) bool
 	Hash(a T) H128
-	FullHash() bool
 }
 
 type EqArgs[T any] struct {
@@ -141,7 +140,7 @@ type WhereArgs[T any] struct {
 	Pred func(elem T) bool
 }
 
-// defaultEqHash is the default EqHash implementation for Set (fullHash=true).
+// defaultEqHash is the default EqHash implementation for Set.
 type defaultEqHash[T any] struct {
 	eq   func(a, b T) bool
 	hash func(T) H128
@@ -150,8 +149,6 @@ type defaultEqHash[T any] struct {
 func (d *defaultEqHash[T]) Equal(a, b T) bool { return d.eq(a, b) }
 
 func (d *defaultEqHash[T]) Hash(a T) H128 { return d.hash(a) }
-
-func (d *defaultEqHash[T]) FullHash() bool { return true }
 
 var defaultEqHashCache sync.Map
 

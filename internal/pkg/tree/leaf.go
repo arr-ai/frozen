@@ -243,9 +243,6 @@ func (l *leaf[T]) Equal(args *EqArgs[T], n node[T], _ int) bool {
 	if !ok || l.h0 != n2.h0 || len(l.data) != len(n2.data) {
 		return false
 	}
-	if args.FullHash() && !l.h0.isZero() {
-		return true
-	}
 outer:
 	for _, e := range l.data {
 		for _, f := range n2.data {

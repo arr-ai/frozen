@@ -222,9 +222,6 @@ func (b *branch[T]) Equal(args *EqArgs[T], n node[T], depth int) bool {
 		if b.h0 != n.h0 || b.p.mask != n.p.mask {
 			return false
 		}
-		if args.FullHash() && !b.h0.isZero() {
-			return true
-		}
 		equal, _ := args.Parallel(depth, b.p.mask, func(i int) (_ bool, matches int) {
 			x, y := b.p.data[i], n.p.data[i]
 			return x.Equal(args, y, depth+1), 0

@@ -148,7 +148,7 @@ apples-to-apples comparison (no pointer shortcuts).
 
 ![Set operations benchmark](assets/set-ops-benchmark.svg)
 
-**h0 early rejection**: When sets have *different* content, `Equal` on 1M-element sets drops from ~25 us to ~50 ns — over **500x faster** — because the h0 hash mismatch is detected at the root without any traversal.
+**h0 early rejection**: When sets have *different* content, `Equal` on 1M-element sets drops from ~25 us to ~50 ns — over **500x faster** — because the h0 hash mismatch is detected at the root without any traversal. h0 is strictly a rejection filter: a matching h0 never short-circuits to "equal", so correctness depends only on the ordinary contract that equal values hash equal, never on hash injectivity.
 
 **Trade-off**: Single-element `Has` is ~20-60% slower due to h0 bookkeeping overhead. The bulk-operation gains more than compensate in typical workloads.
 

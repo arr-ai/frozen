@@ -85,10 +85,14 @@ func (t Tree[T]) Equal(args *EqArgs[T], u Tree[T]) bool {
 		return false
 	case t.count == 0 && u.count == 0:
 		return true
-	case t.root.H0() != u.root.H0():
-		return false
-	case args.FullHash() && !t.root.H0().isZero():
+	case t.root == u.root:
 		return true
+	case t.root.H0() != u.root.H0():
+		// h0 is a rejection filter only: a mismatch proves inequality, but a
+		// match never proves equality. XOR of element hashes is not injective
+		// (e.g. {{1,2},{3}} and {{1},{2,3}} share an h0), and user-supplied
+		// hashes need only satisfy equal ⇒ equal-hash.
+		return false
 	default:
 		return t.root.Equal(args, u.root, 0)
 	}
