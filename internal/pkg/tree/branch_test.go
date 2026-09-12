@@ -4,8 +4,8 @@ import (
 	"log"
 	"testing"
 
-	"github.com/arr-ai/frozen/internal/pkg/test"
-	"github.com/arr-ai/frozen/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
 )
 
 func TestBranchRemove(t *testing.T) {

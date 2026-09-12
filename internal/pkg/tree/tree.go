@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/arr-ai/frozen/internal/pkg/depth"
-	"github.com/arr-ai/frozen/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
 )
 
 func packedIteratorBuf[T any](count int) [][]node[T] {
@@ -28,9 +28,9 @@ func (t Tree[T]) Count() int {
 	return t.count
 }
 
-func (t Tree[T]) H0() H128 {
+func (t Tree[T]) H0() uintptr {
 	if t.root == nil {
-		return H128{}
+		return 0
 	}
 	return t.root.H0()
 }
@@ -85,10 +85,14 @@ func (t Tree[T]) Equal(args *EqArgs[T], u Tree[T]) bool {
 		return false
 	case t.count == 0 && u.count == 0:
 		return true
-	case t.root.H0() != u.root.H0():
-		return false
-	case args.FullHash() && !t.root.H0().isZero():
+	case t.root == u.root:
 		return true
+	case t.root.H0() != u.root.H0():
+		// h0 is a rejection filter only: a mismatch proves inequality, but a
+		// match never proves equality. XOR of element hashes is not injective
+		// (e.g. {{1,2},{3}} and {{1},{2,3}} share an h0), and user-supplied
+		// hashes need only satisfy equal ⇒ equal-hash.
+		return false
 	default:
 		return t.root.Equal(args, u.root, 0)
 	}
@@ -219,7 +223,7 @@ func (t Tree[T]) With(v T) (out Tree[T]) {
 	}
 	hf := GetHashFunc[T]()
 	if t.root == nil {
-		return Tree[T]{root: newLeaf1WithHash(v, newElemH128(v, hf)), count: 1, built: true}
+		return Tree[T]{root: newLeaf1WithHash(v, hf(v)), count: 1, built: true}
 	}
 	h := newHasherWith(v, 0, hf)
 	if b, ok := t.root.(*branch[T]); ok {
@@ -238,7 +242,7 @@ func (t Tree[T]) WithWith(args *CombineArgs[T], v T) (out Tree[T]) {
 		defer vet[T](func() { t.WithWith(args, v) }, &t)(&out)
 	}
 	if t.root == nil {
-		return Tree[T]{root: newLeaf1WithHash(v, newElemH128(v, args.hf)), count: 1, built: true}
+		return Tree[T]{root: newLeaf1WithHash(v, args.hf(v)), count: 1, built: true}
 	}
 	h := newHasherWith(v, 0, args.hf)
 	if b, ok := t.root.(*branch[T]); ok {
@@ -284,7 +288,7 @@ func (t Tree[T]) WithoutWith(args *EqArgs[T], v T) (out Tree[T]) {
 	return Tree[T]{root: root, count: t.count - matches, built: true}
 }
 
-func vetNodeH0[T any](n node[T], hf func(T) H128) {
+func vetNodeH0[T any](n node[T], hf func(T) uintptr) {
 	switch n := n.(type) {
 	case *leaf1[T]:
 		n.vetH0(hf)

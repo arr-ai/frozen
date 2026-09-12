@@ -3,8 +3,8 @@ package depth_test
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen/internal/pkg/depth"
-	"github.com/arr-ai/frozen/internal/pkg/masker"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/masker"
 )
 
 // buildMask builds a Masker with bits set at every index in indices.

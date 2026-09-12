@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/arr-ai/hash/hash128"
-
-	"github.com/arr-ai/frozen/internal/pkg/debug"
-	"github.com/arr-ai/frozen/internal/pkg/depth"
-	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
-	"github.com/arr-ai/frozen/internal/pkg/tree"
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/debug"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 func (m Map[K, V]) mapEqArgs() *tree.EqArgs[mapEntry[K, V]] {
@@ -246,25 +244,16 @@ func (m Map[K, V]) Update(n Map[K, V]) Map[K, V] {
 	return newMap(m.tree.Combine(args, n.tree))
 }
 
-// Hash128 returns the map's 128-bit hash. The tree maintains the hash of
-// the key set incrementally; values are folded in per entry, so this is O(n)
-// in the number of entries.
-func (m Map[K, V]) Hash128() hash128.H128 {
-	kHash := tree.GetHashFunc[K]()
-	h := m.tree.H0().ToHash128()
-	for i := m.Range(); i.Next(); {
-		h = h.Xor(kHash(i.Key()).ToHash128().Mix(hash128.Any(i.Value())))
-	}
-	return h
-}
+const mapSalt = uintptr(3167960924819262823 & uint64(^uintptr(0)))
 
 // Hash computes a hash val for s.
-func (m Map[K, V]) Hash(seed uintptr) uintptr {
-	h := hash.Uintptr(uintptr(3167960924819262823&uint64(^uintptr(0))), seed)
+func (m Map[K, V]) Hash() uintptr {
+	kHash := tree.GetHashFunc[K]()
+	var acc uintptr
 	for i := m.Range(); i.Next(); {
-		h ^= hash.Any(i.Value(), hash.Any(i.Key(), seed))
+		acc ^= hash.Combine(kHash(i.Key()), hash.Any(i.Value()))
 	}
-	return h
+	return hash.Uintptr(acc ^ mapSalt)
 }
 
 // Equal returns true iff i is a Map with all the same key-value pairs as this

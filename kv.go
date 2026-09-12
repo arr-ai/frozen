@@ -3,9 +3,9 @@ package frozen
 import (
 	"fmt"
 
-	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 // KeyValue[K, V] represents a key-value pair for insertion into a Map.
@@ -20,8 +20,8 @@ func KV[K, V any](k K, v V) KeyValue[K, V] {
 }
 
 // Hash computes a hash for a KeyValue[K, V].
-func (kv KeyValue[K, V]) Hash(seed uintptr) uintptr {
-	return hash.Any(kv.Key, seed)
+func (kv KeyValue[K, V]) Hash() uintptr {
+	return hash.Any(kv.Key)
 }
 
 // String returns a string representation of a KeyValue[K, V].

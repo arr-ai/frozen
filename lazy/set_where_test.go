@@ -3,9 +3,9 @@ package lazy_test
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/test"
-	"github.com/arr-ai/frozen/lazy"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2/lazy"
 )
 
 func TestSetWhereEmpty(t *testing.T) {
@@ -24,7 +24,7 @@ func TestSetWhereEmpty(t *testing.T) {
 	test.True(t, f.Equal(lazy.Frozen(frozen.Set[any]{})))
 	test.True(t, f.EqualSet(lazy.Frozen(frozen.Set[any]{})))
 	test.False(t, f.EqualSet(lazy.Frozen(frozen.NewSet[any](1))))
-	test.NotEqual(t, 0, f.Hash(0))
+	test.NotEqual(t, 0, f.Hash())
 	test.False(t, f.Has(3))
 	assertFastNotHas(t, f, 3)
 	test.True(t, f.IsSubsetOf(lazy.Frozen(frozen.Set[any]{})))

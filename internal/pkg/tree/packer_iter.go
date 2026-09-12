@@ -3,7 +3,7 @@ package tree
 import (
 	"container/heap"
 
-	"github.com/arr-ai/frozen/internal/pkg/masker"
+	"github.com/arr-ai/frozen/v2/internal/pkg/masker"
 )
 
 // Less dictates the order of two elements.

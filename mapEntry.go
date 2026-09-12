@@ -3,11 +3,8 @@ package frozen
 import (
 	"sync"
 
-	"github.com/arr-ai/hash/hash128"
-
-	"github.com/arr-ai/frozen/internal/pkg/hash"
-	"github.com/arr-ai/frozen/internal/pkg/tree"
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 type mapEntry[K, V any] struct {
@@ -29,58 +26,47 @@ func (e mapEntry[K, V]) Equal(e2 mapEntry[K, V]) bool {
 	return value.Equal(e.Key, e2.Key)
 }
 
-// Hash implements hash.Hashable for key-only hashing.
-func (e mapEntry[K, V]) Hash(seed uintptr) uintptr {
-	return hash.Any(e.Key, seed)
-}
-
-// Hash128 implements hash128.Hashable for key-only hashing. It takes
-// precedence over Hash wherever entries are hashed, so every path that hashes
-// a mapEntry agrees with mapEntryHashFunc.
-func (e mapEntry[K, V]) Hash128() hash128.H128 {
-	return tree.GetHashFunc[K]()(e.Key).ToHash128()
+// Hash implements hash.Hashable for key-only hashing so every path that
+// hashes a mapEntry agrees with mapEntryHashFunc.
+func (e mapEntry[K, V]) Hash() uintptr {
+	return tree.GetHashFunc[K]()(e.Key)
 }
 
 // mapEntryEqHash provides full entry equality (key + value) for Map.Equal and similar.
 type mapEntryEqHash[K, V any] struct {
 	eqK  func(K, K) bool
 	eqV  func(V, V) bool
-	hash func(mapEntry[K, V]) tree.H128
+	hash func(mapEntry[K, V]) uintptr
 }
 
 func (m *mapEntryEqHash[K, V]) Equal(a, b mapEntry[K, V]) bool {
 	return m.eqK(a.Key, b.Key) && m.eqV(a.Value, b.Value)
 }
 
-func (m *mapEntryEqHash[K, V]) Hash(a mapEntry[K, V]) tree.H128 {
+func (m *mapEntryEqHash[K, V]) Hash(a mapEntry[K, V]) uintptr {
 	return m.hash(a)
 }
-
-func (m *mapEntryEqHash[K, V]) FullHash() bool { return false }
 
 // mapKeyEqHash provides key-only equality for Map operations (With, Without, etc.).
 type mapKeyEqHash[K, V any] struct {
 	eqK  func(K, K) bool
-	hash func(mapEntry[K, V]) tree.H128
+	hash func(mapEntry[K, V]) uintptr
 }
 
 func (m *mapKeyEqHash[K, V]) Equal(a, b mapEntry[K, V]) bool {
 	return m.eqK(a.Key, b.Key)
 }
 
-func (m *mapKeyEqHash[K, V]) Hash(a mapEntry[K, V]) tree.H128 {
+func (m *mapKeyEqHash[K, V]) Hash(a mapEntry[K, V]) uintptr {
 	return m.hash(a)
 }
 
-func (m *mapKeyEqHash[K, V]) FullHash() bool { return false }
-
-// mapEntryHashFunc returns a non-boxing H128 hash function for mapEntry[K, V].
-// It hashes only the key, consistent with mapEntry.Hash128, but avoids boxing
-// the mapEntry struct through the Hashable interface. The key is hashed in a
-// single pass by the key type's own H128 function.
-func mapEntryHashFunc[K, V any]() func(mapEntry[K, V]) tree.H128 {
+// mapEntryHashFunc returns a non-boxing hash function for mapEntry[K, V].
+// It hashes only the key, consistent with mapEntry.Hash, but avoids boxing
+// the mapEntry struct through the Hashable interface.
+func mapEntryHashFunc[K, V any]() func(mapEntry[K, V]) uintptr {
 	kHash := tree.GetHashFunc[K]()
-	return func(e mapEntry[K, V]) tree.H128 {
+	return func(e mapEntry[K, V]) uintptr {
 		return kHash(e.Key)
 	}
 }

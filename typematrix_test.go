@@ -3,8 +3,8 @@ package frozen_test
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
 )
 
 // Derived types for testing type independence.
@@ -257,6 +257,24 @@ func TestTypeMatrix_DerivedTypeIndependence(t *testing.T) {
 	test.Equal(t, len(vals)-1, sd3.Count())
 	test.False(t, si3.Has(1))
 	test.False(t, sd3.Has(ID(1)))
+}
+
+// A Set[any] must treat int(5) and ID(5) as distinct elements even when
+// they share a hash (defined types hash like their underlying kind).
+// Same for string/Name and float64/Score.
+func TestTypeMatrix_AnySetDistinguishesDerivedTypes(t *testing.T) {
+	t.Parallel()
+
+	s := frozen.NewSet[any](int(5), ID(5), "5", Name("5"), float64(0), Score(0))
+	test.Equal(t, 6, s.Count())
+	test.True(t, s.Has(int(5)))
+	test.True(t, s.Has(ID(5)))
+	test.True(t, s.Has("5"))
+	test.True(t, s.Has(Name("5")))
+	test.True(t, s.Has(float64(0)))
+	test.True(t, s.Has(Score(0)))
+	test.False(t, s.Has(int(6)))
+	test.False(t, s.Has(ID(6)))
 }
 
 // TestTypeMatrix_MapDerivedKeyIndependence verifies Map[int,V] and Map[ID,V]

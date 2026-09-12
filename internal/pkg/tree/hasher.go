@@ -7,10 +7,8 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/arr-ai/hash/hash128"
-
-	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
 )
 
 const (
@@ -23,37 +21,12 @@ type hasher uintptr
 
 var hashFuncCache sync.Map
 
-// toH128 converts a hash.H128 (exported fields) to tree's H128 (unexported).
-func toH128(h hash.H128) H128 {
-	return H128{h.Lo, h.Hi}
-}
-
-// fromHash128 converts a public hash128.H128 to tree's H128. On 32-bit
-// targets the halves are truncated, which still yields a well-mixed hash.
-func fromHash128(h hash128.H128) H128 {
-	return H128{uintptr(h.Lo), uintptr(h.Hi)}
-}
-
-// ToHash128 converts tree's H128 to the public hash128.H128.
-func (h H128) ToHash128() hash128.H128 {
-	return hash128.H128{Lo: uint64(h.lo), Hi: uint64(h.hi)}
-}
-
-// resolveHashFunc returns a non-boxing hash function for T that computes both
-// hash halves in a single call, returning H128. On AES-capable hardware the
-// typed variants (Uint64H128, etc.) compute both halves from a single AES pass.
-func resolveHashFunc[T any]() func(T) H128 {
+// resolveHashFunc returns a non-boxing hash function for T.
+func resolveHashFunc[T any]() func(T) uintptr {
 	var t T
-	if _, ok := any(t).(hash128.Hashable); ok {
-		// Single-pass 128-bit hash; takes precedence over the seeded interface.
-		return func(key T) H128 {
-			return fromHash128(any(key).(hash128.Hashable).Hash128()) //nolint:forcetypeassert
-		}
-	}
 	if _, ok := any(t).(hash.Hashable); ok {
-		return func(key T) H128 {
-			h := any(key).(hash.Hashable) //nolint:forcetypeassert
-			return H128{h.Hash(0), h.Hash(1)}
+		return func(key T) uintptr {
+			return any(key).(hash.Hashable).Hash() //nolint:forcetypeassert
 		}
 	}
 	// Use reflect.Kind to catch derived types (e.g., type MyFloat float64)
@@ -61,154 +34,77 @@ func resolveHashFunc[T any]() func(T) H128 {
 	// size-based integer dispatch.
 	rt := reflect.TypeOf(t)
 	if rt == nil {
-		return func(key T) H128 {
-			return toH128(hash.AnyH128(key))
+		return func(key T) uintptr {
+			return hash.Any(key)
 		}
 	}
 	switch rt.Kind() { //nolint:exhaustive
 	case reflect.Float32:
-		return func(key T) H128 {
+		return func(key T) uintptr {
 			f := *(*float32)(unsafe.Pointer(&key))
-			return toH128(hash.Float32H128(f))
+			return hash.Float32(f)
 		}
 	case reflect.Float64:
-		return func(key T) H128 {
+		return func(key T) uintptr {
 			f := *(*float64)(unsafe.Pointer(&key))
-			return toH128(hash.Float64H128(f))
+			return hash.Float64(f)
 		}
 	case reflect.Complex64, reflect.Complex128:
-		return func(key T) H128 {
-			return toH128(hash.AnyH128(key))
+		return func(key T) uintptr {
+			return hash.Any(key)
 		}
 	case reflect.String:
-		return func(key T) H128 {
+		return func(key T) uintptr {
 			s := *(*string)(unsafe.Pointer(&key))
-			return toH128(hash.StringH128(s))
+			return hash.String(s)
+		}
+	case reflect.Slice:
+		if rt.Elem().Kind() == reflect.Uint8 {
+			return func(key T) uintptr {
+				return hash.Bytes(*(*[]byte)(unsafe.Pointer(&key)))
+			}
 		}
 	}
 	return resolveHashFuncBySize[T]()
 }
 
-func resolveHashFuncBySize[T any]() func(T) H128 {
+func resolveHashFuncBySize[T any]() func(T) uintptr {
 	var t T
 	switch unsafe.Sizeof(t) {
 	case 1:
-		return func(key T) H128 {
+		return func(key T) uintptr {
 			v := *(*uint8)(unsafe.Pointer(&key))
-			return toH128(hash.Uint8H128(v))
+			return hash.Uint8(v)
 		}
 	case 2:
-		return func(key T) H128 {
+		return func(key T) uintptr {
 			v := *(*uint16)(unsafe.Pointer(&key))
-			return toH128(hash.Uint16H128(v))
+			return hash.Uint16(v)
 		}
 	case 4:
-		return func(key T) H128 {
+		return func(key T) uintptr {
 			v := *(*uint32)(unsafe.Pointer(&key))
-			return toH128(hash.Uint32H128(v))
+			return hash.Uint32(v)
 		}
 	case 8:
-		return func(key T) H128 {
+		return func(key T) uintptr {
 			v := *(*uint64)(unsafe.Pointer(&key))
-			return toH128(hash.Uint64H128(v))
+			return hash.Uint64(v)
 		}
 	}
-	return func(key T) H128 {
-		return toH128(hash.AnyH128(key))
+	return func(key T) uintptr {
+		return hash.Any(key)
 	}
 }
 
 // GetHashFunc returns a cached hash function for type T.
-func GetHashFunc[T any]() func(T) H128 {
+func GetHashFunc[T any]() func(T) uintptr {
 	key := TypeKeyOf[T]()
 	if f, ok := hashFuncCache.Load(key); ok {
-		return f.(func(T) H128) //nolint:forcetypeassert
+		return f.(func(T) uintptr) //nolint:forcetypeassert
 	}
 	fn := resolveHashFunc[T]()
 	hashFuncCache.Store(key, fn)
-	return fn
-}
-
-var seededHashFuncCache sync.Map
-
-// resolveSeededHashFunc returns a non-boxing seeded hash function for T that
-// produces the same values as hash.Any(t, seed). Used by mapEntryHashFunc to
-// hash keys directly without boxing the enclosing mapEntry struct.
-func resolveSeededHashFunc[T any]() func(T, uintptr) uintptr {
-	var t T
-	if _, ok := any(t).(hash.Hashable); ok {
-		// For interface types, boxing to any is free.
-		return func(key T, seed uintptr) uintptr {
-			return any(key).(hash.Hashable).Hash(seed) //nolint:forcetypeassert
-		}
-	}
-	rt := reflect.TypeOf(t)
-	if rt == nil {
-		return func(key T, seed uintptr) uintptr {
-			return hash.Any(key, seed)
-		}
-	}
-	switch rt.Kind() { //nolint:exhaustive
-	case reflect.Float32:
-		return func(key T, seed uintptr) uintptr {
-			f := *(*float32)(unsafe.Pointer(&key))
-			return hash.Float32(f, seed)
-		}
-	case reflect.Float64:
-		return func(key T, seed uintptr) uintptr {
-			f := *(*float64)(unsafe.Pointer(&key))
-			return hash.Float64(f, seed)
-		}
-	case reflect.Complex64, reflect.Complex128:
-		return func(key T, seed uintptr) uintptr {
-			return hash.Any(key, seed)
-		}
-	case reflect.String:
-		return func(key T, seed uintptr) uintptr {
-			s := *(*string)(unsafe.Pointer(&key))
-			return hash.String(s, seed)
-		}
-	}
-	return resolveSeededHashFuncBySize[T]()
-}
-
-func resolveSeededHashFuncBySize[T any]() func(T, uintptr) uintptr {
-	var t T
-	switch unsafe.Sizeof(t) {
-	case 1:
-		return func(key T, seed uintptr) uintptr {
-			v := *(*uint8)(unsafe.Pointer(&key))
-			return hash.Uint8(v, seed)
-		}
-	case 2:
-		return func(key T, seed uintptr) uintptr {
-			v := *(*uint16)(unsafe.Pointer(&key))
-			return hash.Uint16(v, seed)
-		}
-	case 4:
-		return func(key T, seed uintptr) uintptr {
-			v := *(*uint32)(unsafe.Pointer(&key))
-			return hash.Uint32(v, seed)
-		}
-	case 8:
-		return func(key T, seed uintptr) uintptr {
-			v := *(*uint64)(unsafe.Pointer(&key))
-			return hash.Uint64(v, seed)
-		}
-	}
-	return func(key T, seed uintptr) uintptr {
-		return hash.Any(key, seed)
-	}
-}
-
-// GetSeededHashFunc returns a cached seeded hash function for type T.
-func GetSeededHashFunc[T any]() func(T, uintptr) uintptr {
-	key := TypeKeyOf[T]()
-	if f, ok := seededHashFuncCache.Load(key); ok {
-		return f.(func(T, uintptr) uintptr) //nolint:forcetypeassert
-	}
-	fn := resolveSeededHashFunc[T]()
-	seededHashFuncCache.Store(key, fn)
 	return fn
 }
 
@@ -227,27 +123,29 @@ func newHasher[T any](key T, depth int) hasher {
 	return newHasherWith(key, depth, GetHashFunc[T]())
 }
 
-// hasherFromCached reconstructs a hasher from a cached H128 hash.
-// Round 0 uses h0.lo; round 1 uses h0.hi. No rehashing needed for two rounds,
-// which covers depths 0–41 (fanoutBits=3) — far beyond any realistic tree.
-func hasherFromCached(h0 H128, depth int) hasher {
+// hasherFromCached derives the address bits for depth from an element's
+// cached hash. Round 0 consumes the hash directly. Later rounds remix it with
+// the round number, which is deterministic and needs no access to the
+// element; a later round can only separate elements whose hashes differ in
+// the bits round 0 leaves unused (see maxSplitDepth). The remix is a plain
+// xor-multiply rather than a hash call so that this function, and the
+// callers that inline it on the read path, stay within the inlining budget.
+func hasherFromCached(h0 uintptr, depth int) hasher {
 	round := depth / levelsPerRound
 	level := depth % levelsPerRound
-	var bits uintptr
-	switch round {
-	case 0:
-		bits = h0.lo
-	case 1:
-		bits = h0.hi
-	default:
-		// Pathological depth (>= 2*levelsPerRound). XOR the halves with the
-		// round number to produce a deterministic but distinct hash.
-		bits = h0.lo ^ h0.hi ^ uintptr(round)
+	bits := h0
+	if round > 0 {
+		bits = (h0 ^ uintptr(round)) * roundMix //nolint:gosec // round is a small non-negative depth quotient
 	}
 	return hasher(bits) << uint(level*fanoutBits)
 }
 
-func newHasherWith[T any](key T, depth int, hf func(T) H128) hasher {
+// roundMix is an odd multiplier (the 64-bit golden ratio, truncated on
+// 32-bit targets) used to remix a cached hash for addressing rounds after
+// the first.
+const roundMix = uintptr(0x9E3779B97F4A7C15 & uint64(^uintptr(0)))
+
+func newHasherWith[T any](key T, depth int, hf func(T) uintptr) hasher {
 	return hasherFromCached(hf(key), depth)
 }
 

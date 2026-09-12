@@ -6,10 +6,14 @@ Efficient immutable data types.
 
 ## Overview
 
-`frozen` is a Go 1.19+ library of immutable, persistent data structures built on hashed array tries (HAT). All mutation operations return a new value that shares structure with the original; no existing value is ever modified. The library uses Go generics throughout.
+`frozen` is a Go 1.25+ library of immutable, persistent data structures built on hashed array tries (HAT). All mutation operations return a new value that shares structure with the original; no existing value is ever modified. The library uses Go generics throughout.
+
+v2 is a new Go module (`github.com/arr-ai/frozen/v2`) so it can sit in the same build as v1. Existing v1 import paths keep working at `github.com/arr-ai/frozen` (last release `v1.14.0`).
+
+If you use an agentic coding tool, include `agents-guide.md` in your project context.
 
 ```
-go get github.com/arr-ai/frozen
+go get github.com/arr-ai/frozen/v2
 ```
 
 ## Types
@@ -23,7 +27,7 @@ Key operations: `With`, `Without`, `Has`, `Union`, `Intersection`, `Difference`,
 Package-level functions: `Powerset[T]`, `SetMap[T, U]`, `SetGroupBy[T, K]`, `SetAs[U, T]`.
 
 ```go
-import "github.com/arr-ai/frozen"
+import "github.com/arr-ai/frozen/v2"
 
 s := frozen.NewSet(1, 2, 3)
 s2 := s.With(4).Without(2)       // {1, 3, 4}
@@ -81,7 +85,7 @@ A constraint interface that types must satisfy to be usable as custom map keys o
 ```go
 type Key[T any] interface {
     value.Equaler[T]   // Equal(T) bool
-    hash.Hashable      // Hash(seed uintptr) uintptr
+    hash.Hashable      // Hash() uintptr
 }
 ```
 
@@ -148,15 +152,15 @@ apples-to-apples comparison (no pointer shortcuts).
 
 ![Set operations benchmark](assets/set-ops-benchmark.svg)
 
-**h0 early rejection**: When sets have *different* content, `Equal` on 1M-element sets drops from ~25 us to ~50 ns — over **500x faster** — because the h0 hash mismatch is detected at the root without any traversal.
+**h0 early rejection**: When sets have *different* content, `Equal` on 1M-element sets drops from ~25 us to ~50 ns — over **500x faster** — because the h0 hash mismatch is detected at the root without any traversal. h0 is strictly a rejection filter: a matching h0 never short-circuits to "equal", so correctness depends only on the ordinary contract that equal values hash equal, never on hash injectivity.
 
 **Trade-off**: Single-element `Has` is ~20-60% slower due to h0 bookkeeping overhead. The bulk-operation gains more than compensate in typical workloads.
 
 ### EqHash interface refactoring
 
 The `EqHash[T]` interface replaces per-operation function resolution with cached
-concrete implementations. Map operations now use H128-native key hashing instead
-of double seeded calls. Key improvements (Apple M4 Max, Go 1.25, darwin/arm64):
+concrete implementations. Map operations hash keys directly instead of
+boxing entries. Key improvements (Apple M4 Max, Go 1.25, darwin/arm64):
 
 - **Map Merge 1M**: 39ms → 18ms (**53% faster**)
 - **Map Insert 1M**: 1032ns → 700ns (**32% faster**)

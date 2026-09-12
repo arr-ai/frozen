@@ -1,8 +1,8 @@
 package lazy
 
 import (
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
 )
 
 type EmptySet struct{}
@@ -46,8 +46,8 @@ func (EmptySet) EqualSet(set Set) bool {
 	return set.IsEmpty()
 }
 
-func (EmptySet) Hash(seed uintptr) uintptr {
-	return hash.Uintptr(hashSeed, seed)
+func (EmptySet) Hash() uintptr {
+	return hash.Uintptr(hashSeed)
 }
 
 func (EmptySet) Has(any) bool {

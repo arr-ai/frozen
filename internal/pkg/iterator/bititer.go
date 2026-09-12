@@ -3,7 +3,7 @@ package iterator
 import (
 	"math/bits"
 
-	"github.com/arr-ai/frozen/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
 )
 
 // BitIterator represents a set of one-bits and the ability to enumerate them.

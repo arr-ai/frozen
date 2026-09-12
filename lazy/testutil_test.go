@@ -4,9 +4,9 @@ package lazy_test
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/test"
-	"github.com/arr-ai/frozen/lazy"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2/lazy"
 )
 
 func extraArgs(msgAndArgs []any, msg string, args ...any) []any {
@@ -125,7 +125,7 @@ func assertSetOps(t *testing.T, golden frozen.Set[any], s lazy.Set) { //nolint:f
 	test.Equal(t, golden.Equal(frozen.Set[any]{}), s.EqualSet(lazy.Frozen(frozen.Set[any]{})))
 	test.False(t, golden.Equal(frozen.NewSet[any](1)), s.EqualSet(lazy.Frozen(frozen.NewSet[any](1))))
 
-	test.NotEqual(t, 0, s.Hash(0))
+	test.NotEqual(t, 0, s.Hash())
 
 	for i := 0; i < 10; i++ {
 		test.Equal(t, golden.Has(i), s.Has(i), "i=%v", i)

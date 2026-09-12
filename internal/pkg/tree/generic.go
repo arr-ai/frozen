@@ -1,7 +1,7 @@
 package tree
 
 import (
-	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
+	internalIterator "github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 )
 
 func newSliceIterator[T any](slice []T) Iterator[T] {

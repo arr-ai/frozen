@@ -2,7 +2,7 @@ Third-party code bundled in this repository
 ===========================================
 
 1. arr-ai/hash
-   Location : internal/pkg/hash/ (hash.go, hashable.go, h128.go, asm_ppc64x.h)
+   Location : internal/pkg/hash/ (hash.go, hashable.go, asm_ppc64x.h)
    Licence  : Apache License 2.0
    Source   : https://github.com/arr-ai/hash
    See      : internal/pkg/hash/LICENSE

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/test"
-	testset "github.com/arr-ai/frozen/internal/pkg/test/set"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
+	testset "github.com/arr-ai/frozen/v2/internal/pkg/test/set"
 )
 
 func TestIota(t *testing.T) {

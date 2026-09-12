@@ -1,7 +1,7 @@
 package frozen
 
 import (
-	"github.com/arr-ai/frozen/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
 )
 
 // MapBuilder[K, V] provides a more efficient way to build Maps incrementally.

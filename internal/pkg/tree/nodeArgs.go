@@ -3,8 +3,8 @@ package tree
 import (
 	"sync"
 
-	"github.com/arr-ai/frozen/internal/pkg/depth"
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 var defaultNPEqArgsCache sync.Map
@@ -106,14 +106,13 @@ func (a *CombineArgs[T]) Flip() *CombineArgs[T] {
 // EqHash provides equality and hashing operations for tree elements.
 type EqHash[T any] interface {
 	Equal(a, b T) bool
-	Hash(a T) H128
-	FullHash() bool
+	Hash(a T) uintptr
 }
 
 type EqArgs[T any] struct {
 	NodeArgs
 	EqHash[T]
-	hf func(T) H128 // cached from EqHash.Hash; avoids method-value closure in hot paths
+	hf func(T) uintptr // cached from EqHash.Hash; avoids method-value closure in hot paths
 }
 
 // NewEqArgs creates EqArgs from an EqHash implementation.
@@ -141,17 +140,15 @@ type WhereArgs[T any] struct {
 	Pred func(elem T) bool
 }
 
-// defaultEqHash is the default EqHash implementation for Set (fullHash=true).
+// defaultEqHash is the default EqHash implementation for Set.
 type defaultEqHash[T any] struct {
 	eq   func(a, b T) bool
-	hash func(T) H128
+	hash func(T) uintptr
 }
 
 func (d *defaultEqHash[T]) Equal(a, b T) bool { return d.eq(a, b) }
 
-func (d *defaultEqHash[T]) Hash(a T) H128 { return d.hash(a) }
-
-func (d *defaultEqHash[T]) FullHash() bool { return true }
+func (d *defaultEqHash[T]) Hash(a T) uintptr { return d.hash(a) }
 
 var defaultEqHashCache sync.Map
 

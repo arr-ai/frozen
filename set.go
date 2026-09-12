@@ -3,25 +3,18 @@ package frozen
 import (
 	"fmt"
 
-	"github.com/arr-ai/hash/hash128"
-
-	"github.com/arr-ai/frozen/internal/pkg/depth"
-	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
-	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
-	"github.com/arr-ai/frozen/internal/pkg/tree"
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
+	internalIterator "github.com/arr-ai/frozen/v2/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 // Hashable represents a type that can evaluate its own hash.
 type Hashable interface {
-	Hash(seed uintptr) uintptr
+	Hash() uintptr
 }
-
-// Hashable128 represents a type that can evaluate its own 128-bit hash in a
-// single pass. When a type implements both Hashable128 and Hashable, frozen
-// uses Hashable128; the two need not agree numerically.
-type Hashable128 = hash128.Hashable
 
 // Set holds a set of values of type T. The zero value is the empty Set.
 type Set[T any] struct {
@@ -171,25 +164,14 @@ func (s Set[T]) OrderedRange(less tree.Less[T]) Iterator[T] {
 	return s.tree.OrderedIterator(less, s.Count())
 }
 
-// Hash128 returns the set's 128-bit hash, maintained incrementally by the
-// tree, so it costs O(1).
-func (s Set[T]) Hash128() hash128.H128 {
-	return s.tree.H0().ToHash128()
-}
+const setSalt = uintptr(10538386443025343807 & uint64(^uintptr(0)))
 
-// Hash computes a hash value for s.
-func (s Set[T]) Hash(seed uintptr) uintptr {
-	h := hash.Uintptr(uintptr(10538386443025343807&uint64(^uintptr(0))), seed)
-	switch seed {
-	case 0:
-		return h ^ s.tree.H0().Lo()
-	case 1:
-		return h ^ s.tree.H0().Hi()
-	}
-	for i := s.Range(); i.Next(); {
-		h ^= hash.Any(i.Value(), seed)
-	}
-	return h
+// Hash computes a hash value for s. It is derived from the content hash the
+// tree maintains incrementally, so it costs O(1). The content hash is an XOR
+// of element hashes; mixing it with a salt here keeps the result non-linear
+// in the elements, so sets of sets do not collide on repartitioned contents.
+func (s Set[T]) Hash() uintptr {
+	return hash.Uintptr(s.tree.H0() ^ setSalt)
 }
 
 // Equal returns true iff s and set have all the same elements.

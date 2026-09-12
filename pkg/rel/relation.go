@@ -3,7 +3,7 @@ package rel
 import (
 	"log"
 
-	"github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/v2"
 )
 
 type (

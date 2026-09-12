@@ -3,18 +3,18 @@ package frozen_test
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
 
-	"github.com/arr-ai/frozen/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
 )
 
 type intWithBadHash int
 
 var _ hash.Hashable = intWithBadHash(0)
 
-func (i intWithBadHash) Hash(seed uintptr) uintptr {
-	return hash.Int(int(i)%100, seed)
+func (i intWithBadHash) Hash() uintptr {
+	return hash.Int(int(i) % 100)
 }
 
 func TestBadHash(t *testing.T) {
@@ -51,7 +51,7 @@ type constantHash int
 
 var _ hash.Hashable = constantHash(0)
 
-func (constantHash) Hash(uintptr) uintptr { return 0 }
+func (constantHash) Hash() uintptr { return 0 }
 
 func TestPathologicalCollision(t *testing.T) {
 	t.Parallel()

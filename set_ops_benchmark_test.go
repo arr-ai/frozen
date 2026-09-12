@@ -3,7 +3,7 @@ package frozen_test
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/v2"
 )
 
 type benchSize struct {

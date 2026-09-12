@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`github.com/arr-ai/frozen` is an immutable data structures library for Go, built on hashed array tries with Go 1.19+ generics. Core types: `Set[T]`, `Map[K, V]`, `IntSet[I]`. Go module version requires 1.19, CI tests against 1.19 and 1.23.
+`github.com/arr-ai/frozen/v2` is an immutable data structures library for Go, built on hashed array tries with Go 1.25+ generics. Core types: `Set[T]`, `Map[K, V]`, `IntSet[I]`. The Go module path is `/v2`; v1 remains `github.com/arr-ai/frozen` at the last v1 tag. CI tests against Go 1.25.
 
 ## Commands
 
@@ -67,8 +67,8 @@ go test -run=^$ -bench=BenchmarkName ./...
 ## Key Conventions
 
 - Immutable-by-design: all mutations produce new values via structural sharing
-- Hashing uses `github.com/arr-ai/hash` with seed-based `hash.Any(value, seed)`
+- Hashing uses seedless `hash.Any(value)`; scalars and strings/`[]byte` of at most 16 bytes go through an inlined multiply-fold mixer, longer byte sequences through AES
 - External test packages (`frozen_test`, etc.)
 - Line length limit: 120 characters
-- Imports grouped with `goimports` local prefix: `github.com/arr-ai/frozen`
+- Imports grouped with `goimports` local prefix: `github.com/arr-ai/frozen/v2`
 - Linter config in `.golangci.yml` enables 60+ linters with strict settings

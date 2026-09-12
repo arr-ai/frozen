@@ -23,19 +23,3 @@ TEXT ·aeshash64(SB),NOSPLIT,$0
 // Not implemented.
 TEXT ·aeshashstr(SB),NOSPLIT,$0
 	UNDEF
-
-// Not implemented.
-TEXT ·aeshash32H128(SB),NOSPLIT,$0
-	UNDEF
-
-// Not implemented.
-TEXT ·aeshash64H128(SB),NOSPLIT,$0
-	UNDEF
-
-// Not implemented.
-TEXT ·aeshashH128(SB),NOSPLIT,$0
-	UNDEF
-
-// Not implemented.
-TEXT ·aeshashstrH128(SB),NOSPLIT,$0
-	UNDEF

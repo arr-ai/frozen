@@ -3,7 +3,7 @@ package tree
 import (
 	"log"
 
-	"github.com/arr-ai/frozen/internal/pkg/vetctl"
+	"github.com/arr-ai/frozen/v2/internal/pkg/vetctl"
 )
 
 const (

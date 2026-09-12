@@ -3,8 +3,9 @@ package frozen_test
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
 )
 
 // str is uncomparable (it holds a slice) and defines equality over an
@@ -18,8 +19,8 @@ func (s str) id() string { return string(s.runes) }
 
 func (s str) Equal(o equatable) bool { return o != nil && s.id() == o.id() }
 
-func (s str) Hash(seed uintptr) uintptr {
-	h := seed
+func (s str) Hash() uintptr {
+	var h uintptr
 	for _, r := range s.runes {
 		h = h*1099511628211 ^ uintptr(uint32(r)) //nolint:gosec // test hash, value range irrelevant
 	}
@@ -45,8 +46,8 @@ func (s slice) Equal(o any) bool {
 	return true
 }
 
-func (s slice) Hash(seed uintptr) uintptr {
-	h := seed
+func (s slice) Hash() uintptr {
+	var h uintptr
 	for _, v := range s {
 		h = h*1099511628211 ^ uintptr(v)
 	}
@@ -73,8 +74,8 @@ func (p pair) Equal(o any) bool {
 	return is && p[0].id() == q[0].id() && p[1].id() == q[1].id()
 }
 
-func (p pair) Hash(seed uintptr) uintptr {
-	return newStr(p[0].id()).Hash(newStr(p[1].id()).Hash(seed))
+func (p pair) Hash() uintptr {
+	return hash.Combine(newStr(p[0].id()).Hash(), newStr(p[1].id()).Hash())
 }
 
 func TestSetOfArrayOfInterfacesDoesNotPanic(t *testing.T) {

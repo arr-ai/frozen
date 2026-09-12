@@ -1,9 +1,9 @@
 package lazy
 
 import (
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 const (
@@ -72,12 +72,12 @@ func (s *baseSet) EqualSet(t Set) bool {
 	return s.Freeze().Equal(t.Freeze())
 }
 
-func (s *baseSet) Hash(seed uintptr) uintptr {
-	h := hash.Uintptr(hashSeed, seed)
+func (s *baseSet) Hash() uintptr {
+	var acc uintptr
 	for i := s.set.Range(); i.Next(); {
-		h = hash.Any(i.Value(), h)
+		acc ^= hash.Any(i.Value())
 	}
-	return h
+	return hash.Uintptr(acc ^ hashSeed)
 }
 
 func (s *baseSet) Has(el any) bool {

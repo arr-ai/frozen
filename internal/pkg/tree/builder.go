@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/arr-ai/frozen/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
 )
 
 func DefaultNPKeyEqArgs[T any]() *EqArgs[T] {
@@ -106,24 +106,24 @@ func (b *Builder[T]) Finish() Tree[T] {
 }
 
 // computeH0 recursively fills in h0 for all nodes, bottom-up.
-func computeH0[T any](n node[T], hf func(T) H128) {
+func computeH0[T any](n node[T], hf func(T) uintptr) {
 	switch n := n.(type) {
 	case *leaf1[T]:
-		n.h0 = newElemH128(n.data, hf)
+		n.h0 = hf(n.data)
 	case *leaf2[T]:
-		n.ha = newElemH128(n.data[0], hf)
-		n.h0 = n.ha.xor(newElemH128(n.data[1], hf))
+		n.ha = hf(n.data[0])
+		n.h0 = n.ha ^ hf(n.data[1])
 	case *leaf[T]:
-		n.h0 = H128{}
+		n.h0 = 0
 		for _, e := range n.data {
-			n.h0 = n.h0.xor(newElemH128(e, hf))
+			n.h0 ^= hf(e)
 		}
 	case *branch[T]:
-		n.h0 = H128{}
+		n.h0 = 0
 		for m := n.p.mask; m != 0; m = m.Next() {
 			child := n.p.data[m.FirstIndex()]
 			computeH0(child, hf)
-			n.h0 = n.h0.xor(child.H0())
+			n.h0 ^= child.H0()
 		}
 	}
 }

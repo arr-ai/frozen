@@ -3,7 +3,7 @@ package frozen
 import (
 	"encoding/json"
 
-	"github.com/arr-ai/frozen/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 )
 
 // Iota returns Iota3(0, stop, 1).

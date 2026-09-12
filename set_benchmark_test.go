@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/v2"
 )
 
 func benchmarkSequential(b *testing.B, name string, size int) {
