@@ -259,6 +259,24 @@ func TestTypeMatrix_DerivedTypeIndependence(t *testing.T) {
 	test.False(t, sd3.Has(ID(1)))
 }
 
+// A Set[any] must treat int(5) and ID(5) as distinct elements, not as a
+// hash collision that happens to compare unequal. Same for string/Name
+// and float64/Score.
+func TestTypeMatrix_AnySetDistinguishesDerivedTypes(t *testing.T) {
+	t.Parallel()
+
+	s := frozen.NewSet[any](int(5), ID(5), "5", Name("5"), float64(0), Score(0))
+	test.Equal(t, 6, s.Count())
+	test.True(t, s.Has(int(5)))
+	test.True(t, s.Has(ID(5)))
+	test.True(t, s.Has("5"))
+	test.True(t, s.Has(Name("5")))
+	test.True(t, s.Has(float64(0)))
+	test.True(t, s.Has(Score(0)))
+	test.False(t, s.Has(int(6)))
+	test.False(t, s.Has(ID(6)))
+}
+
 // TestTypeMatrix_MapDerivedKeyIndependence verifies Map[int,V] and Map[ID,V]
 // with same underlying key values function independently.
 func TestTypeMatrix_MapDerivedKeyIndependence(t *testing.T) {
