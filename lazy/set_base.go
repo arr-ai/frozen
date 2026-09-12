@@ -1,9 +1,9 @@
 package lazy
 
 import (
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 const (

@@ -3,7 +3,7 @@ package lazy
 import (
 	"unsafe"
 
-	"github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/v2"
 )
 
 type powerSet struct {

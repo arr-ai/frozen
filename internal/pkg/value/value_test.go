@@ -3,7 +3,7 @@ package value_test
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 // --- helper types ---

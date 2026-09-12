@@ -3,9 +3,9 @@ package frozen_test
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
-	"github.com/arr-ai/frozen/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
 )
 
 // str is uncomparable (it holds a slice) and defines equality over an

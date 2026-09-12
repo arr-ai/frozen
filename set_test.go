@@ -5,11 +5,11 @@ import (
 	"math/bits"
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/iterator"
-	"github.com/arr-ai/frozen/internal/pkg/test"
-	testset "github.com/arr-ai/frozen/internal/pkg/test/set"
-	"github.com/arr-ai/frozen/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
+	testset "github.com/arr-ai/frozen/v2/internal/pkg/test/set"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
 )
 
 func largeIntSet() frozen.Set[int] {

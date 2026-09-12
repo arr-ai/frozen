@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
-	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
+	internalIterator "github.com/arr-ai/frozen/v2/internal/pkg/iterator"
 )
 
 type IntSet[I integer] struct {

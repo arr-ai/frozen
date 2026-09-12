@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/arr-ai/frozen/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
 )
 
 func DefaultNPKeyEqArgs[T any]() *EqArgs[T] {

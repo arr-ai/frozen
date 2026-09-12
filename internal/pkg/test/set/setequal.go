@@ -3,7 +3,7 @@ package testset
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/v2"
 )
 
 func AssertSetEqual[T any](t *testing.T, expected, actual frozen.Set[T], msgAndArgs ...any) bool {

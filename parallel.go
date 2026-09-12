@@ -1,6 +1,6 @@
 package frozen
 
-import "github.com/arr-ai/frozen/internal/pkg/depth"
+import "github.com/arr-ai/frozen/v2/internal/pkg/depth"
 
 // Operations over a large enough collection fan out across goroutines: each
 // level of fan-out splits the work eight ways, and a level is added only

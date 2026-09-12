@@ -3,7 +3,7 @@ package frozen_test
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen"
+	"github.com/arr-ai/frozen/v2"
 )
 
 // The h0 content hash is an XOR of element hashes. Equal must never treat a

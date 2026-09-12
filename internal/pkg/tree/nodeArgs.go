@@ -3,8 +3,8 @@ package tree
 import (
 	"sync"
 
-	"github.com/arr-ai/frozen/internal/pkg/depth"
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 var defaultNPEqArgsCache sync.Map

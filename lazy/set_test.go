@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/lazy"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/lazy"
 )
 
 type eagerLazyPair struct {

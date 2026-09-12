@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/arr-ai/frozen/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
 )
 
 func TestPackedWith(t *testing.T) {

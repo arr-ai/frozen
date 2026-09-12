@@ -4,9 +4,9 @@ package lazy_test
 import (
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/test"
-	"github.com/arr-ai/frozen/lazy"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2/lazy"
 )
 
 func extraArgs(msgAndArgs []any, msg string, args ...any) []any {

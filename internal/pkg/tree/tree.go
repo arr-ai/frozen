@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/arr-ai/frozen/internal/pkg/depth"
-	"github.com/arr-ai/frozen/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
 )
 
 func packedIteratorBuf[T any](count int) [][]node[T] {

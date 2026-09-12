@@ -1,6 +1,6 @@
 package lazy
 
-import "github.com/arr-ai/frozen"
+import "github.com/arr-ai/frozen/v2"
 
 type frozenSet struct {
 	baseSet

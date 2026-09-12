@@ -3,8 +3,8 @@ package frozen
 import (
 	"sync"
 
-	"github.com/arr-ai/frozen/internal/pkg/tree"
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 type mapEntry[K, V any] struct {

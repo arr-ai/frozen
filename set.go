@@ -3,12 +3,12 @@ package frozen
 import (
 	"fmt"
 
-	"github.com/arr-ai/frozen/internal/pkg/depth"
-	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
-	internalIterator "github.com/arr-ai/frozen/internal/pkg/iterator"
-	"github.com/arr-ai/frozen/internal/pkg/tree"
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
+	internalIterator "github.com/arr-ai/frozen/v2/internal/pkg/iterator"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 // Hashable represents a type that can evaluate its own hash.

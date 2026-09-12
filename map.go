@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/arr-ai/frozen/internal/pkg/debug"
-	"github.com/arr-ai/frozen/internal/pkg/depth"
-	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
-	"github.com/arr-ai/frozen/internal/pkg/tree"
-	"github.com/arr-ai/frozen/internal/pkg/value"
+	"github.com/arr-ai/frozen/v2/internal/pkg/debug"
+	"github.com/arr-ai/frozen/v2/internal/pkg/depth"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
+	"github.com/arr-ai/frozen/v2/internal/pkg/tree"
+	"github.com/arr-ai/frozen/v2/internal/pkg/value"
 )
 
 func (m Map[K, V]) mapEqArgs() *tree.EqArgs[mapEntry[K, V]] {

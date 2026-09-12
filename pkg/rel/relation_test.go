@@ -5,9 +5,9 @@ import (
 	"math/bits"
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	testset "github.com/arr-ai/frozen/internal/pkg/test/set"
-	"github.com/arr-ai/frozen/pkg/rel"
+	"github.com/arr-ai/frozen/v2"
+	testset "github.com/arr-ai/frozen/v2/internal/pkg/test/set"
+	"github.com/arr-ai/frozen/v2/pkg/rel"
 )
 
 func TestJoinSimple(t *testing.T) {

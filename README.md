@@ -6,10 +6,14 @@ Efficient immutable data types.
 
 ## Overview
 
-`frozen` is a Go 1.19+ library of immutable, persistent data structures built on hashed array tries (HAT). All mutation operations return a new value that shares structure with the original; no existing value is ever modified. The library uses Go generics throughout.
+`frozen` is a Go 1.25+ library of immutable, persistent data structures built on hashed array tries (HAT). All mutation operations return a new value that shares structure with the original; no existing value is ever modified. The library uses Go generics throughout.
+
+v2 is a new Go module (`github.com/arr-ai/frozen/v2`) so it can sit in the same build as v1. Existing v1 import paths keep working at `github.com/arr-ai/frozen` (last release `v1.14.0`).
+
+If you use an agentic coding tool, include `agents-guide.md` in your project context.
 
 ```
-go get github.com/arr-ai/frozen
+go get github.com/arr-ai/frozen/v2
 ```
 
 ## Types
@@ -23,7 +27,7 @@ Key operations: `With`, `Without`, `Has`, `Union`, `Intersection`, `Difference`,
 Package-level functions: `Powerset[T]`, `SetMap[T, U]`, `SetGroupBy[T, K]`, `SetAs[U, T]`.
 
 ```go
-import "github.com/arr-ai/frozen"
+import "github.com/arr-ai/frozen/v2"
 
 s := frozen.NewSet(1, 2, 3)
 s2 := s.With(4).Without(2)       // {1, 3, 4}

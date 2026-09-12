@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
 )
 
 func memoizePrepop[T any](prepare func(n int) T) func(n int) T {

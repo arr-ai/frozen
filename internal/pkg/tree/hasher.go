@@ -7,8 +7,8 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/arr-ai/frozen/internal/pkg/fu"
-	"github.com/arr-ai/frozen/internal/pkg/hash"
+	"github.com/arr-ai/frozen/v2/internal/pkg/fu"
+	"github.com/arr-ai/frozen/v2/internal/pkg/hash"
 )
 
 const (

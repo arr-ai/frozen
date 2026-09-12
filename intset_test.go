@@ -6,8 +6,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/arr-ai/frozen"
-	"github.com/arr-ai/frozen/internal/pkg/test"
+	"github.com/arr-ai/frozen/v2"
+	"github.com/arr-ai/frozen/v2/internal/pkg/test"
 )
 
 func hugeCollectionSize() int {
